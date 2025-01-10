@@ -269,7 +269,7 @@ Widget userContainer(
   return Container(
     margin: const EdgeInsets.all(2),
     padding: const EdgeInsets.fromLTRB(25, 8, 25, 8),
-    // width: MediaQuery.of(context).size.width * 0.8,
+    width: 270,
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(8),

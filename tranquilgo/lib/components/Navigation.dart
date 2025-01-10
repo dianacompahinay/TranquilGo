@@ -78,7 +78,9 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                 color: Color(0xFF110000),
               ),
               iconSize: 26,
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pushNamed(context, '/notifs');
+              },
             ),
           ),
         ],

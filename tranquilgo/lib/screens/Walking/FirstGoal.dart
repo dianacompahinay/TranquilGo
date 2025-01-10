@@ -51,7 +51,7 @@ class _FirstGoalState extends State<FirstGoal> {
                           builder: (context) {
                             return AlertDialog(
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.0),
+                                borderRadius: BorderRadius.circular(10),
                               ),
                               backgroundColor: Colors.white,
                               title: SizedBox(

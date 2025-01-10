@@ -13,6 +13,7 @@ import 'screens/Mindfulness/JournalNotes.dart';
 import 'screens/Mindfulness/AddJournal.dart';
 import 'screens/Mindfulness/AddGratitudeLog.dart';
 import 'screens/Social/FindCompanions.dart';
+import 'screens/Notifications.dart';
 
 void main() {
   runApp(const MainApp());
@@ -42,6 +43,7 @@ class MainApp extends StatelessWidget {
         '/addlog': (context) => const AddGratitudeLogPage(),
         '/gratitudelogs': (context) => const GratitudeLogs(),
         '/searchusers': (context) => const FindCompanionsPage(),
+        '/notifs': (context) => NotificationsPage(),
       },
     );
   }
