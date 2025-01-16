@@ -281,7 +281,7 @@ class _FirstGoalState extends State<FirstGoal> {
               padding: const EdgeInsets.all(22.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 20),
                   Text(
                     'Set your daily walking goal for this week. Start with a duration that feels comfortable for you.',
                     style: GoogleFonts.poppins(
@@ -322,7 +322,7 @@ class _FirstGoalState extends State<FirstGoal> {
                     backgroundColor: const Color(0xFF55AC9F),
                     minimumSize: const Size(double.infinity, 48),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
+                      borderRadius: BorderRadius.circular(5),
                     ),
                   ),
                   child: Text(

@@ -121,224 +121,235 @@ class _JournalNotesState extends State<JournalNotes> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        padding: const EdgeInsets.only(left: 20, right: 20),
-        constraints: const BoxConstraints.expand(),
-        decoration: const BoxDecoration(color: Colors.white),
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 61),
-                  Center(
-                    child: Column(
-                      children: [
-                        // title
-                        Text(
-                          "Mindfulness",
-                          style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              color: Color(0xFF110000),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 19,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        // subtitle
-                        Text(
-                          "Reflection Notes",
-                          style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              color: Color(0xFF606060),
-                              fontSize: 13.5,
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+      backgroundColor: Colors.white,
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                backgroundColor: Colors.white,
+                leading: Container(
+                  margin: const EdgeInsets.only(left: 10),
+                  width: 42,
+                  height: 42,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFFFFF),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 20),
-
-                  // month selection tabs
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: generateMonthTabs(
-                          DateTime.now(), DateTime(2024, 8), selectedMonth),
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-
-                  // journal entries header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: [
-                          Image.asset(
-                            'assets/icons/sidebar_logs.png',
-                            width: 24,
-                            height: 24,
-                            fit: BoxFit.contain,
-                            color: const Color(0xFF494949),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            'Journal Entries',
-                            style: GoogleFonts.poppins(
-                              textStyle: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Color(0xFF494949),
-                              ),
-                            ),
-                          ),
-                        ],
+                  child: IconButton(
+                    icon: SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: Image.asset(
+                        'assets/images/back-arrow.png',
+                        fit: BoxFit.contain,
+                        color: const Color(0xFF6C6C6C),
                       ),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.sort, color: Color(0xFF606060)),
-                        onSelected: (value) {
-                          isAscending = value == 'Ascending';
-                          sortEntries();
-                        },
-                        itemBuilder: (context) => [
-                          PopupMenuItem<String>(
-                            value: 'Descending',
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 8, horizontal: 10),
-                              child: const Text(
-                                'Sort by Latest',
-                                style: TextStyle(color: Color(0xFF606060)),
-                              ),
-                            ),
-                          ),
-                          PopupMenuItem<String>(
-                            value: 'Ascending',
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 8, horizontal: 10),
-                              child: const Text(
-                                'Sort by Oldest',
-                                style: TextStyle(color: Color(0xFF606060)),
-                              ),
-                            ),
-                          ),
-                        ],
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(5),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // dynamically load journal entries
-                  for (var i = 0; i < filteredEntries.length; i++)
-                    journalEntry(
-                      index: i,
-                      date: filteredEntries[i]['date'],
-                      images: filteredEntries[i]['images'],
-                      content: filteredEntries[i]['content'],
                     ),
-                  const SizedBox(height: 45),
-
-                  if (filteredEntries.isEmpty)
-                    Center(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+                title: Text(
+                  "Mindfulness",
+                  style: GoogleFonts.poppins(
+                    textStyle: const TextStyle(
+                      color: Color(0xFF110000),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 19,
+                    ),
+                  ),
+                ),
+                elevation: 0,
+                centerTitle: true,
+                automaticallyImplyLeading: false,
+                floating: false,
+                pinned: false,
+              ),
+              SliverList(
+                delegate: SliverChildListDelegate(
+                  [
+                    Container(
+                      padding: const EdgeInsets.only(left: 20, right: 20),
+                      decoration: const BoxDecoration(color: Colors.white),
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Image.asset(
-                            'assets/icons/rainy.png',
-                            width: 32,
-                            height: 32,
-                            fit: BoxFit.contain,
-                            color: const Color(0xFF999999),
+                          Center(
+                            child: Column(
+                              children: [
+                                // subtitle
+                                Text(
+                                  "Reflection Notes",
+                                  style: GoogleFonts.poppins(
+                                    textStyle: const TextStyle(
+                                      color: Color(0xFF606060),
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "It's empty here...",
-                            style: GoogleFonts.poppins(
-                              textStyle: const TextStyle(
-                                color: Color(0xFF999999),
-                                fontWeight: FontWeight.w400,
-                                fontSize: 14,
+                          const SizedBox(height: 20),
+
+                          // month selection tabs
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: generateMonthTabs(DateTime.now(),
+                                  DateTime(2024, 8), selectedMonth),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+
+                          // journal entries header
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Image.asset(
+                                    'assets/icons/sidebar_logs.png',
+                                    width: 24,
+                                    height: 24,
+                                    fit: BoxFit.contain,
+                                    color: const Color(0xFF494949),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Text(
+                                    'Journal Entries',
+                                    style: GoogleFonts.poppins(
+                                      textStyle: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF494949),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              PopupMenuButton<String>(
+                                icon: const Icon(Icons.sort,
+                                    color: Color(0xFF606060)),
+                                onSelected: (value) {
+                                  isAscending = value == 'Ascending';
+                                  sortEntries();
+                                },
+                                itemBuilder: (context) => [
+                                  PopupMenuItem<String>(
+                                    value: 'Descending',
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8, horizontal: 10),
+                                      child: const Text(
+                                        'Sort by Latest',
+                                        style:
+                                            TextStyle(color: Color(0xFF606060)),
+                                      ),
+                                    ),
+                                  ),
+                                  PopupMenuItem<String>(
+                                    value: 'Ascending',
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 8, horizontal: 10),
+                                      child: const Text(
+                                        'Sort by Oldest',
+                                        style:
+                                            TextStyle(color: Color(0xFF606060)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                color: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          // dynamically load journal entries
+                          for (var i = 0; i < filteredEntries.length; i++)
+                            journalEntry(
+                              index: i,
+                              date: filteredEntries[i]['date'],
+                              images: filteredEntries[i]['images'],
+                              content: filteredEntries[i]['content'],
+                            ),
+                          const SizedBox(height: 45),
+
+                          if (filteredEntries.isEmpty)
+                            Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Image.asset(
+                                    'assets/icons/rainy.png',
+                                    width: 32,
+                                    height: 32,
+                                    fit: BoxFit.contain,
+                                    color: const Color(0xFF999999),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    "It's empty here...",
+                                    style: GoogleFonts.poppins(
+                                      textStyle: const TextStyle(
+                                        color: Color(0xFF999999),
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
                               ),
                             ),
-                            textAlign: TextAlign.center,
-                          ),
                         ],
                       ),
                     ),
-                ],
-              ),
-            ),
-
-            // back button
-            Positioned(
-              top: 60,
-              left: 0,
-              child: Container(
-                width: 42.0,
-                height: 42.0,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFF7F7F7),
-                  shape: BoxShape.circle,
+                  ],
                 ),
-                child: IconButton(
-                  icon: SizedBox(
-                    width: 30,
-                    height: 30,
-                    child: Image.asset(
-                      'assets/images/back-arrow.png',
-                      fit: BoxFit.contain,
-                      color: const Color(0xFF6C6C6C),
+              ),
+            ],
+          ),
+          // add entry button
+          Positioned(
+            bottom: 10,
+            right: 10,
+            child: SizedBox(
+              height: 38,
+              child: FloatingActionButton.extended(
+                onPressed: addNewEntry,
+                label: Text(
+                  'Add entry',
+                  style: GoogleFonts.poppins(
+                    textStyle: const TextStyle(
+                      color: Color(0xFF585757),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                ),
+                icon: const Icon(
+                  Icons.add,
+                  color: Color(0xFF585757),
+                  size: 20,
+                ),
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
             ),
-
-            // add entry button
-            Align(
-              alignment: const Alignment(1.05, 0.95),
-              child: SizedBox(
-                height: 38,
-                child: FloatingActionButton.extended(
-                  onPressed: addNewEntry,
-                  label: Text(
-                    'Add entry',
-                    style: GoogleFonts.poppins(
-                      textStyle: const TextStyle(
-                        color: Color(0xFF585757),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                  icon: const Icon(
-                    Icons.add,
-                    color: Color(0xFF585757),
-                    size: 20,
-                  ),
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

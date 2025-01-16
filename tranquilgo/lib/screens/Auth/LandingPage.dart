@@ -67,7 +67,7 @@ class LandingPage extends StatelessWidget {
                         backgroundColor: const Color(0xFF55AC9F),
                         minimumSize: const Size(double.infinity, 48),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                       ),
                       child: DefaultTextStyle(
@@ -91,7 +91,7 @@ class LandingPage extends StatelessWidget {
                         backgroundColor: const Color(0xFFFDFDFD),
                         minimumSize: const Size(double.infinity, 48),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
+                          borderRadius: BorderRadius.circular(5),
                         ),
                       ),
                       child: DefaultTextStyle(

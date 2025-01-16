@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:my_app/components/MessageUser.dart';
+import 'package:my_app/components/SocialMessageUser.dart';
 
 class UserDetailsModal {
   static void show(BuildContext context, Map<String, dynamic> user) {

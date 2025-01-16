@@ -15,7 +15,7 @@ class Getstarted extends StatelessWidget {
             children: [
               Column(
                 children: [
-                  const SizedBox(height: 135),
+                  const SizedBox(height: 75),
                   Container(
                     height: 400,
                     decoration: const BoxDecoration(

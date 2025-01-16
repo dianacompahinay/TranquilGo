@@ -32,7 +32,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
                   34, // center the circle horizontally
               top: -25,
               child: GestureDetector(
-                onTap: () {}, // action
+                onTap: () {
+                  Navigator.pushNamed(context, '/walk');
+                },
                 child: Container(
                   height: 58,
                   width: 58,
@@ -62,9 +64,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
               // four icons with space in between
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildNavigationIcons(0),
+                buildNavigationIcons(0),
                 const Expanded(child: SizedBox()),
-                _buildNavigationIcons(2),
+                buildNavigationIcons(2),
               ],
             ),
           ],
@@ -73,7 +75,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
     );
   }
 
-  Row _buildNavigationIcons(int start) {
+  Row buildNavigationIcons(int start) {
     return Row(
       children: List.generate(2, (index) {
         return GestureDetector(

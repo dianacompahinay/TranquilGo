@@ -79,11 +79,11 @@ class LeaderboardPage extends StatelessWidget {
                   margin: const EdgeInsets.fromLTRB(2, 8, 2, 6),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: const Color(0xFFFDFDFD),
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
+                        color: Colors.grey.withOpacity(0.2),
                         spreadRadius: 0.2,
                         blurRadius: 2,
                         offset: const Offset(0, 1.2),

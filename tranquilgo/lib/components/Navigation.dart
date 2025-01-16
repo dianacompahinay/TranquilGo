@@ -4,6 +4,7 @@ import 'NavigationBar.dart';
 import '../screens/Dashboard.dart';
 import '../screens/Mindfulness/Mindfulness.dart';
 import '../screens/Social/SocialPage.dart';
+import '../screens/Walking/Statistics.dart';
 
 class DashboardWithNavigation extends StatefulWidget {
   const DashboardWithNavigation({super.key});
@@ -29,7 +30,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
     const Dashboard(),
     const Mindfulness(),
     const SocialPage(),
-    Center(child: Text('Progress Page')),
+    StatisticsPage(),
   ];
 
   late PageController pageController;
@@ -112,7 +113,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                 }, // action
                 child: Container(
                   padding: const EdgeInsets.only(
-                      left: 8, right: 8, top: 60, bottom: 16),
+                      left: 8, right: 8, top: 35, bottom: 16),
                   child: Column(
                     children: [
                       Row(
@@ -179,8 +180,8 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                       ),
                     ),
                   ),
-                  item('Daily Goals', 'assets/icons/sidebar_goals.png',
-                      '/navigation'),
+                  item('Start Walking', 'assets/icons/sidebar_footprint.png',
+                      '/walk'),
                   item('Activity Summary', 'assets/icons/sidebar_activity.png',
                       'progress'),
                 ],
@@ -251,8 +252,6 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                       ),
                     ),
                   ),
-                  item('Settings', 'assets/icons/sidebar_settings.png',
-                      '/navigation'),
                   item('About Us', 'assets/icons/sidebar_info.png',
                       '/navigation'),
                 ],

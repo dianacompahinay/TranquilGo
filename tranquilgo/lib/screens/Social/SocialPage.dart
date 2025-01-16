@@ -46,7 +46,7 @@ class _SocialPageState extends State<SocialPage> {
                     child: GestureDetector(
                       onTap: () {
                         setState(() {
-                          currentIndex = 0; // select connnections tab
+                          currentIndex = 0; // select connections tab
                         });
                       },
                       child: Container(

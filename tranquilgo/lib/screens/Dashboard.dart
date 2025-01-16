@@ -155,7 +155,9 @@ class Dashboard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(5),
                             ),
                           ),
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/walk');
+                          },
                           child: Text(
                             'Start walking',
                             style: GoogleFonts.poppins(

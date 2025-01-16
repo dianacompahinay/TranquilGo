@@ -34,11 +34,11 @@ class PodiumWidgetWithImage extends StatelessWidget {
                 margin: const EdgeInsets.fromLTRB(2, 8, 2, 6),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFFFDFDFD),
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: Colors.grey.withOpacity(0.2),
                       spreadRadius: 0.2,
                       blurRadius: 2,
                       offset: const Offset(0, 1.2),
@@ -135,7 +135,7 @@ class PodiumWidgetWithImage extends StatelessWidget {
                 // background podium image
                 Image.asset(
                   podiumImage,
-                  width: MediaQuery.of(context).size.width * 0.7,
+                  width: 275,
                 ),
                 const SizedBox(height: 40),
               ],
@@ -150,19 +150,19 @@ class PodiumWidgetWithImage extends StatelessWidget {
             if (topUsers.isNotEmpty)
               Positioned(
                 top: 38,
-                left: MediaQuery.of(context).size.width * 0.307,
+                left: 120,
                 child: TopUserImage(img: topUsers[0]["userImage"], size: 34),
               ),
             if (topUsers.length > 1)
               Positioned(
                 top: 60,
-                left: MediaQuery.of(context).size.width * 0.159,
+                left: 62,
                 child: TopUserImage(img: topUsers[1]["userImage"], size: 34),
               ),
             if (topUsers.length > 2)
               Positioned(
                 top: 75,
-                right: MediaQuery.of(context).size.width * 0.158,
+                right: 62,
                 child: TopUserImage(img: topUsers[2]["userImage"], size: 34),
               ),
           ],
@@ -271,11 +271,11 @@ Widget userContainer(
     padding: const EdgeInsets.fromLTRB(25, 8, 25, 8),
     width: 270,
     decoration: BoxDecoration(
-      color: Colors.white,
+      color: const Color(0xFFFEFEFE),
       borderRadius: BorderRadius.circular(8),
       boxShadow: [
         BoxShadow(
-          color: Colors.grey.withOpacity(0.3),
+          color: Colors.grey.withOpacity(0.18),
           spreadRadius: 0.2,
           blurRadius: 2,
           offset: const Offset(0, 1.2),
