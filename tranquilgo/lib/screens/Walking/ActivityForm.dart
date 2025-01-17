@@ -358,7 +358,7 @@ class _ActivityFormState extends State<ActivityForm> {
                                   print("Confidence Level: $confidenceLevel");
                                   print("Selected Mood: $selectedMood");
 
-                                  showTopSnackBar(
+                                  showSnackBar(
                                       context, getRandomMotivationalMessage());
 
                                   // close the page and return to the main page
@@ -477,7 +477,7 @@ class _ActivityFormState extends State<ActivityForm> {
     );
   }
 
-  void showTopSnackBar(BuildContext context, String message) {
+  void showSnackBar(BuildContext context, String message) {
     final overlay = Overlay.of(context);
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(

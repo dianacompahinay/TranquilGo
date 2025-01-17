@@ -69,13 +69,13 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           fit: BoxFit.contain,
                           color: const Color(0xFF616161),
                         ),
-                        const SizedBox(width: 3),
+                        const SizedBox(width: 5),
                         Text(
                           "This week's daily goal",
                           style: GoogleFonts.manrope(
                             fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF797979),
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF666666),
                           ),
                         ),
                       ],
@@ -100,7 +100,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                             ' steps',
                             style: GoogleFonts.manrope(
                               fontSize: 14,
-                              fontWeight: FontWeight.bold,
+                              fontWeight: FontWeight.w600,
                               color: const Color(0xFF8C8C8C),
                             ),
                           ),

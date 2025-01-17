@@ -140,7 +140,7 @@ class LoginPage extends StatelessWidget {
                                         backgroundColor:
                                             const Color(0xFF55AC9F),
                                         minimumSize:
-                                            const Size(double.infinity, 48),
+                                            const Size(double.infinity, 42),
                                         shape: RoundedRectangleBorder(
                                           borderRadius:
                                               BorderRadius.circular(5),
