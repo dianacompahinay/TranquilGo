@@ -10,6 +10,8 @@ class ActivityForm extends StatefulWidget {
 }
 
 class _ActivityFormState extends State<ActivityForm> {
+  bool isButtonClicked = false;
+
   final TextEditingController reflectionController = TextEditingController();
   final TextEditingController gratitudeController = TextEditingController();
 
@@ -19,7 +21,8 @@ class _ActivityFormState extends State<ActivityForm> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: () async => false, // prevent going back
+      onWillPop: () async =>
+          false, // prevent going back, needs to accomplish the form first
       child: Scaffold(
         backgroundColor: Colors.white,
         body: CustomScrollView(
@@ -72,16 +75,38 @@ class _ActivityFormState extends State<ActivityForm> {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        Text(
-                          "How confident are you in completing a similar training next week, despite its duration?",
-                          style: GoogleFonts.poppins(
-                            textStyle: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF555555),
+                        Text.rich(
+                          TextSpan(
+                            text:
+                                "How confident are you in completing a similar training next week, despite its duration?",
+                            style: GoogleFonts.poppins(
+                              fontSize: 12.5,
+                              color: const Color(0xFF555555),
                               fontWeight: FontWeight.w500,
                             ),
+                            children: [
+                              isButtonClicked && confidenceLevel == null
+                                  ? TextSpan(
+                                      text: "  * Required",
+                                      style: GoogleFonts.poppins(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFFC14040)),
+                                    )
+                                  : const TextSpan(),
+                            ],
                           ),
                         ),
+                        // Text(
+                        //   "How confident are you in completing a similar training next week, despite its duration?",
+                        //   style: GoogleFonts.poppins(
+                        //     textStyle: const TextStyle(
+                        //       fontSize: 12.5,
+                        //       color: Color(0xFF555555),
+                        //       fontWeight: FontWeight.w500,
+                        //     ),
+                        //   ),
+                        // ),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -110,6 +135,7 @@ class _ActivityFormState extends State<ActivityForm> {
                                           confidenceLevel = value!;
                                         });
                                       },
+                                      activeColor: const Color(0xFF55AC9F),
                                     ),
                                     Transform.translate(
                                       offset: const Offset(0, -6),
@@ -159,16 +185,37 @@ class _ActivityFormState extends State<ActivityForm> {
                             mainAxisAlignment: MainAxisAlignment.start,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                "How do you feel after your walk?",
-                                style: GoogleFonts.poppins(
-                                  textStyle: const TextStyle(
+                              Text.rich(
+                                TextSpan(
+                                  text: "How do you feel after your walk?",
+                                  style: GoogleFonts.poppins(
                                     fontSize: 13,
-                                    color: Color(0xFF555555),
+                                    color: const Color(0xFF555555),
                                     fontWeight: FontWeight.w500,
                                   ),
+                                  children: [
+                                    isButtonClicked && selectedMood == null
+                                        ? TextSpan(
+                                            text: "  * Required",
+                                            style: GoogleFonts.poppins(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w500,
+                                                color: const Color(0xFFC14040)),
+                                          )
+                                        : const TextSpan(),
+                                  ],
                                 ),
                               ),
+                              // Text(
+                              //   "How do you feel after your walk?",
+                              //   style: GoogleFonts.poppins(
+                              //     textStyle: const TextStyle(
+                              //       fontSize: 13,
+                              //       color: Color(0xFF555555),
+                              //       fontWeight: FontWeight.w500,
+                              //     ),
+                              //   ),
+                              // ),
                               const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment:
@@ -358,12 +405,19 @@ class _ActivityFormState extends State<ActivityForm> {
                                   print("Confidence Level: $confidenceLevel");
                                   print("Selected Mood: $selectedMood");
 
-                                  showSnackBar(
-                                      context, getRandomMotivationalMessage());
+                                  setState(() {
+                                    isButtonClicked = true;
+                                  });
 
-                                  // close the page and return to the main page
-                                  Navigator.of(context).pop();
-                                  Navigator.of(context).pop();
+                                  if (confidenceLevel != null &&
+                                      selectedMood != null) {
+                                    showSnackBar(context,
+                                        getRandomMotivationalMessage());
+
+                                    // close the page and return to the main page
+                                    Navigator.of(context).pop();
+                                    Navigator.of(context).pop();
+                                  }
                                 },
                                 style: ElevatedButton.styleFrom(
                                   padding:

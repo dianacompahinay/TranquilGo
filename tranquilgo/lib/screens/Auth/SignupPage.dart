@@ -11,74 +11,37 @@ class SignupPage extends StatefulWidget {
 class _SignupPageState extends State<SignupPage> {
   bool isButtonClicked = false;
 
-  final usernameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
 
-  // mock user data
+  String? usernameError;
+  String? emailError;
+  String? passwordError;
+  String? confirmPasswordError;
+
+  @override
+  void dispose() {
+    // dispose text controllers when widget is removed
+    usernameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
+  }
+
   final Map<String, String> userCredentials = {
     "user1": "password1",
     "user2": "password2",
     "test": "1234",
   };
 
-  // validate username
-  String? validateUsername(String value) {
-    if (!isButtonClicked) return null;
-
-    if (value.trim().isEmpty) {
-      return 'Username is required';
-    } else if (value.length < 3) {
-      return 'Username must be at least 3 characters';
-    } else if (userCredentials.containsKey(value)) {
-      return '"$value" username already exists';
-    }
-    return null;
-  }
-
-  // validate email
-  String? validateEmail(String value) {
-    if (!isButtonClicked) return null;
-
-    if (value.trim().isEmpty) {
-      return 'Email is required';
-    } else if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
-        .hasMatch(value)) {
-      return 'Enter a valid email';
-    }
-    return null;
-  }
-
-  // validate password
-  String? validatePassword(String value) {
-    if (!isButtonClicked) return null;
-
-    if (value.isEmpty) {
-      return 'Password is required';
-    } else if (value.length < 8) {
-      return 'Password must be at least 8 characters';
-    }
-    return null;
-  }
-
-  // validate confirm password
-  String? validateConfirmPassword(String value, String password) {
-    if (!isButtonClicked) return null;
-
-    if (value.isEmpty) {
-      return 'Confirm password is required';
-    } else if (value != password) {
-      return 'Passwords do not match';
-    }
-    return null;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // background gradient
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -98,7 +61,6 @@ class _SignupPageState extends State<SignupPage> {
                 children: [
                   Expanded(
                     child: Container(
-                      // white background
                       width: double.infinity,
                       decoration: const BoxDecoration(
                         color: Colors.white,
@@ -111,7 +73,6 @@ class _SignupPageState extends State<SignupPage> {
                         child: Column(
                           children: [
                             const SizedBox(height: 50),
-                            // title text
                             DefaultTextStyle(
                               style: GoogleFonts.poppins(
                                 textStyle: const TextStyle(
@@ -122,233 +83,54 @@ class _SignupPageState extends State<SignupPage> {
                               ),
                               child: const Text('Create Account'),
                             ),
-                            // username field
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  left: 40.0, right: 40.0, top: 40.0),
-                              child: TextField(
-                                controller: usernameController,
-                                decoration: InputDecoration(
-                                  hintText: "Username",
-                                  errorText:
-                                      validateUsername(usernameController.text),
-                                  hintStyle: GoogleFonts.poppins(
-                                    textStyle: const TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF919191),
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 0.0,
-                                    horizontal: 18.0,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: Color(0xFFC1C1C1)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF55AC9F),
-                                      width: 2.0,
-                                    ),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFC14040),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFC14040),
-                                      width: 2.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
+                            buildTextField(
+                              "Username",
+                              usernameController,
+                              usernameError,
+                              false,
+                              validateUsername,
                             ),
-                            // email field
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  left: 40.0, right: 40.0, top: 24.0),
-                              child: TextField(
-                                controller: emailController,
-                                decoration: InputDecoration(
-                                  hintText: "Email",
-                                  errorText:
-                                      validateEmail(emailController.text),
-                                  hintStyle: GoogleFonts.poppins(
-                                    textStyle: const TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF919191),
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 0.0,
-                                    horizontal: 18.0,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: Color(0xFFC1C1C1)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF55AC9F),
-                                      width: 2.0,
-                                    ),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFC14040),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFC14040),
-                                      width: 2.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
+                            buildTextField(
+                              "Email",
+                              emailController,
+                              emailError,
+                              false,
+                              validateEmail,
                             ),
-                            // password field
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  left: 40.0, right: 40.0, top: 24.0),
-                              child: TextField(
-                                controller: passwordController,
-                                obscureText: true,
-                                decoration: InputDecoration(
-                                  hintText: "Password",
-                                  errorText:
-                                      validatePassword(passwordController.text),
-                                  hintStyle: GoogleFonts.poppins(
-                                    textStyle: const TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF919191),
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 0.0,
-                                    horizontal: 18.0,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: Color(0xFFC1C1C1)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF55AC9F),
-                                      width: 2.0,
-                                    ),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFC14040),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFC14040),
-                                      width: 2.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
+                            buildTextField(
+                              "Password",
+                              passwordController,
+                              passwordError,
+                              true,
+                              validatePassword,
                             ),
-                            // confirm password field
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  left: 40.0, right: 40.0, top: 24.0),
-                              child: TextField(
-                                controller: confirmPasswordController,
-                                obscureText: true,
-                                decoration: InputDecoration(
-                                  hintText: "Confirm Password",
-                                  errorText: validateConfirmPassword(
-                                    confirmPasswordController.text,
-                                    passwordController.text,
-                                  ),
-                                  hintStyle: GoogleFonts.poppins(
-                                    textStyle: const TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.w500,
-                                      color: Color(0xFF919191),
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    vertical: 0.0,
-                                    horizontal: 18.0,
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                        color: Color(0xFFC1C1C1)),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFF55AC9F),
-                                      width: 2.0,
-                                    ),
-                                  ),
-                                  errorBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFC14040),
-                                      width: 1.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  focusedErrorBorder: OutlineInputBorder(
-                                    borderSide: const BorderSide(
-                                      color: Color(0xFFC14040),
-                                      width: 2.0,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
+                            buildTextField(
+                              "Confirm Password",
+                              confirmPasswordController,
+                              confirmPasswordError,
+                              true,
+                              validateConfirmPassword,
                             ),
                             const SizedBox(height: 38),
-                            // signup button
                             Padding(
-                              padding: const EdgeInsets.only(
-                                  left: 40.0, right: 40.0),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 40.0),
                               child: ElevatedButton(
                                 onPressed: () {
-                                  // validate all fields here
                                   setState(() {
                                     isButtonClicked = true;
                                   });
-                                  if (validateUsername(
-                                              usernameController.text) ==
-                                          null &&
-                                      validateEmail(emailController.text) ==
-                                          null &&
-                                      validatePassword(
-                                              passwordController.text) ==
-                                          null &&
-                                      validateConfirmPassword(
-                                              confirmPasswordController.text,
-                                              passwordController.text) ==
-                                          null) {
+
+                                  validateUsername(usernameController.text);
+                                  validateEmail(emailController.text);
+                                  validatePassword(passwordController.text);
+                                  validateConfirmPassword(
+                                      confirmPasswordController.text);
+
+                                  if (usernameError == null &&
+                                      emailError == null &&
+                                      passwordError == null &&
+                                      confirmPasswordError == null) {
                                     showBottomSnackBar(context);
                                     Navigator.pushNamed(context, '/login');
                                   }
@@ -428,6 +210,66 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
+  Widget buildTextField(
+    String hintText,
+    TextEditingController controller,
+    String? errorText,
+    bool obscureText,
+    Function(String) validator,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 40.0, right: 40.0, top: 24.0),
+      child: TextField(
+        controller: controller,
+        onChanged: (value) {
+          // remove error text when the user types
+          validator(value);
+        },
+        obscureText: obscureText,
+        decoration: InputDecoration(
+          hintText: hintText,
+          errorText: isButtonClicked ? errorText : null,
+          hintStyle: GoogleFonts.poppins(
+            textStyle: const TextStyle(
+              fontSize: 14.0,
+              fontWeight: FontWeight.w500,
+              color: Color(0xFF919191),
+            ),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 0.0,
+            horizontal: 18.0,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFC1C1C1)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(
+              color: Color(0xFF55AC9F),
+              width: 2.0,
+            ),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderSide: const BorderSide(
+              color: Color(0xFFC14040),
+              width: 1.0,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderSide: const BorderSide(
+              color: Color(0xFFC14040),
+              width: 2.0,
+            ),
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+      ),
+    );
+  }
+
   void showBottomSnackBar(BuildContext context) {
     final overlay = Overlay.of(context);
     final overlayEntry = OverlayEntry(
@@ -454,10 +296,60 @@ class _SignupPageState extends State<SignupPage> {
       ),
     );
 
-    // insert and auto remove the snackbar after 3 seconds
     overlay.insert(overlayEntry);
     Future.delayed(const Duration(seconds: 3), () {
       overlayEntry.remove();
+    });
+  }
+
+  void validateUsername(String value) {
+    setState(() {
+      if (value.trim().isEmpty) {
+        usernameError = 'Username is required';
+      } else if (value.length < 3) {
+        usernameError = 'Username must be at least 3 characters';
+      } else if (userCredentials.containsKey(value)) {
+        usernameError = '"$value" username already exists';
+      } else {
+        usernameError = null;
+      }
+    });
+  }
+
+  void validateEmail(String value) {
+    setState(() {
+      if (value.trim().isEmpty) {
+        emailError = 'Email is required';
+      } else if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+          .hasMatch(value)) {
+        emailError = 'Enter a valid email';
+      } else {
+        emailError = null;
+      }
+    });
+  }
+
+  void validatePassword(String value) {
+    setState(() {
+      if (value.isEmpty) {
+        passwordError = 'Password is required';
+      } else if (value.length < 8) {
+        passwordError = 'Password must be at least 8 characters';
+      } else {
+        passwordError = null;
+      }
+    });
+  }
+
+  void validateConfirmPassword(String value) {
+    setState(() {
+      if (value.isEmpty) {
+        confirmPasswordError = 'Confirm password is required';
+      } else if (value != passwordController.text) {
+        confirmPasswordError = 'Passwords do not match';
+      } else {
+        confirmPasswordError = null;
+      }
     });
   }
 }

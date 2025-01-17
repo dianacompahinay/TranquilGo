@@ -9,6 +9,8 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  bool isButtonClicked = false;
+
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   String? usernameError;
@@ -20,34 +22,6 @@ class _LoginPageState extends State<LoginPage> {
     "user2": "password2",
     "test": "1234",
   };
-
-  void validateAndLogin() {
-    setState(() {
-      usernameError = null;
-      passwordError = null;
-
-      String username = usernameController.text.trim();
-      String password = passwordController.text;
-
-      // check for empty fields
-      if (username.isEmpty) {
-        usernameError = 'Username is required';
-      }
-      if (password.isEmpty) {
-        passwordError = 'Password is required';
-      }
-      // check if credentials are valid
-      else if (!userCredentials.containsKey(username) ||
-          userCredentials[username] != password) {
-        passwordError = 'Invalid username or password';
-      }
-
-      // if no errors, navigate to the next page
-      if (usernameError == null && passwordError == null) {
-        Navigator.pushNamed(context, '/firstgoal');
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,9 +77,14 @@ class _LoginPageState extends State<LoginPage> {
                                   left: 40.0, right: 40.0, top: 40.0),
                               child: TextField(
                                 controller: usernameController,
+                                onChanged: (value) {
+                                  // remove error text when the user types
+                                  validateAndLogin();
+                                },
                                 decoration: InputDecoration(
                                   hintText: "Username",
-                                  errorText: usernameError,
+                                  errorText:
+                                      isButtonClicked ? usernameError : null,
                                   hintStyle: GoogleFonts.poppins(
                                     textStyle: const TextStyle(
                                       fontSize: 14.0,
@@ -152,10 +131,15 @@ class _LoginPageState extends State<LoginPage> {
                                   left: 40.0, right: 40.0, top: 24.0),
                               child: TextField(
                                 controller: passwordController,
+                                onChanged: (value) {
+                                  // remove error text when the user types
+                                  validateAndLogin();
+                                },
                                 obscureText: true,
                                 decoration: InputDecoration(
                                   hintText: "Password",
-                                  errorText: passwordError,
+                                  errorText:
+                                      isButtonClicked ? passwordError : null,
                                   hintStyle: GoogleFonts.poppins(
                                     textStyle: const TextStyle(
                                       fontSize: 14.0,
@@ -202,7 +186,18 @@ class _LoginPageState extends State<LoginPage> {
                               padding: const EdgeInsets.only(
                                   left: 40.0, right: 40.0),
                               child: ElevatedButton(
-                                onPressed: validateAndLogin,
+                                onPressed: () {
+                                  setState(() {
+                                    isButtonClicked = true;
+                                  });
+
+                                  validateAndLogin();
+                                  // if no errors, navigate to the next page
+                                  if (usernameError == null &&
+                                      passwordError == null) {
+                                    Navigator.pushNamed(context, '/firstgoal');
+                                  }
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF55AC9F),
                                   minimumSize: const Size(double.infinity, 42),
@@ -277,5 +272,28 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+  }
+
+  void validateAndLogin() {
+    setState(() {
+      usernameError = null;
+      passwordError = null;
+
+      String username = usernameController.text.trim();
+      String password = passwordController.text;
+
+      // check for empty fields
+      if (username.isEmpty) {
+        usernameError = 'Username is required';
+      }
+      if (password.isEmpty) {
+        passwordError = 'Password is required';
+      }
+      // check if credentials are valid
+      else if (!userCredentials.containsKey(username) ||
+          userCredentials[username] != password) {
+        passwordError = 'Invalid username or password';
+      }
+    });
   }
 }

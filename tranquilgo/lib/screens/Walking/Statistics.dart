@@ -46,7 +46,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                   color: const Color(0xFFFCFCFC),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: const Color(0xFFF9F9F9),
+                    color: const Color(0xFF888888),
                     width: 1,
                   ),
                   boxShadow: [
