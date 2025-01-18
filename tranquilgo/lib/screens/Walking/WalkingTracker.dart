@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_app/components/TrackerActionButtons.dart';
 import 'package:my_app/components/TrackerConfirmationDialog.dart';
+import 'package:image_picker/image_picker.dart';
 
 class WalkingTracker extends StatefulWidget {
   const WalkingTracker({super.key});
@@ -12,6 +13,11 @@ class WalkingTracker extends StatefulWidget {
 }
 
 class _WalkingTrackerState extends State<WalkingTracker> {
+  final List<XFile> capturedImages = []; // list to store captured images
+  final ImagePicker picker = ImagePicker();
+
+  XFile? capturedImage;
+
   String buttonState = 'start';
   bool showMap = true;
   double progress = 0.675;
@@ -67,33 +73,125 @@ class _WalkingTrackerState extends State<WalkingTracker> {
         children: [
           showMap
               ? Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(top: 8),
-                    decoration: const BoxDecoration(
-                      border: Border(
-                        top: BorderSide(
-                          color: Color(0xFFECECEC),
-                          width: 8,
+                  child: Stack(
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 8),
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            top: BorderSide(
+                              color: Color(0xFFECECEC),
+                              width: 8,
+                            ),
+                          ),
+                        ),
+                        child: Image.asset(
+                          'assets/images/temp-map.png',
+                          fit: BoxFit.cover,
                         ),
                       ),
-                    ),
-                    child: Image.asset(
-                      'assets/images/temp-map.png',
-                      fit: BoxFit.cover,
-                    ),
+                      Positioned(
+                        bottom: 18,
+                        right: 18,
+                        child: GestureDetector(
+                          onTap: () async {
+                            // Open camera to take a picture
+                            capturedImage = await picker.pickImage(
+                                source: ImageSource.camera);
+                            if (capturedImage != null) {
+                              capturedImages.add(capturedImage!);
+                              // ignore: use_build_context_synchronously
+                              showTopSnackBar(context);
+                            }
+                          },
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.25),
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1.2),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.black54,
+                              size: 26,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 )
               : Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
-                    child: Column(
-                      children: [
-                        buildMetricsCard("Steps", "675", "large"),
-                        buildMetricsCard("Distance covered", "0.5", "large"),
-                        buildMetricsCard("Time", "0:08:12", "large"),
-                      ],
-                    ),
+                  child: Stack(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
+                        child: Column(
+                          children: [
+                            buildMetricsCard("Steps", "675", "large"),
+                            buildMetricsCard(
+                                "Distance covered", "0.5", "large"),
+                            buildMetricsCard("Time", "0:08:12", "large"),
+                            Container(
+                              padding: const EdgeInsets.all(2),
+                              width: 150,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  // open camera to take a picture
+                                  capturedImage = await picker.pickImage(
+                                      source: ImageSource.camera);
+                                  if (capturedImage != null) {
+                                    setState(() {
+                                      capturedImages.add(capturedImage!);
+                                    });
+                                    // ignore: use_build_context_synchronously
+                                    showTopSnackBar(context);
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFF8F8F8),
+                                  minimumSize: const Size(60, 38),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                ),
+                                child: DefaultTextStyle(
+                                  style: GoogleFonts.inter(
+                                    textStyle: const TextStyle(
+                                      color: Colors.black45,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.camera_alt,
+                                        color: Colors.black38,
+                                        size: 18,
+                                      ),
+                                      SizedBox(width: 5),
+                                      Text('Take a Photo'),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
           Padding(
@@ -303,6 +401,40 @@ class _WalkingTrackerState extends State<WalkingTracker> {
         });
       },
       progress: progress,
+      capturedImages: capturedImages,
     );
+  }
+
+  void showTopSnackBar(BuildContext context) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 50,
+        left: 10,
+        right: 10,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              "Photo successfully taken!",
+              style: TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // insert and auto remove the snackbar after 3 seconds
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }

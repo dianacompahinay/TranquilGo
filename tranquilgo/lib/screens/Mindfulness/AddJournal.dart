@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart'; // Import intl package
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 
 class AddJournalPage extends StatefulWidget {
   const AddJournalPage({super.key});
@@ -11,14 +13,8 @@ class AddJournalPage extends StatefulWidget {
 
 class _AddJournalPageState extends State<AddJournalPage> {
   final TextEditingController _contentController = TextEditingController();
-
-  void pickImage() {
-    // logic to pick an image
-  }
-
-  void saveEntry() {
-    Navigator.pop(context);
-  }
+  final ImagePicker picker = ImagePicker();
+  final List<File> images = []; // list to store captured images
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +106,61 @@ class _AddJournalPageState extends State<AddJournalPage> {
             ),
             const SizedBox(height: 16),
 
+            images.isNotEmpty
+                ? SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        // loop through the images list to dynamically add containers
+                        for (int i = 0; i < images.length; i++)
+                          Padding(
+                            padding:
+                                const EdgeInsets.only(right: 12, bottom: 8),
+                            child: Stack(
+                              children: [
+                                GestureDetector(
+                                  onTap: () => showImageModal(images[i]),
+                                  child: Container(
+                                    width: 75,
+                                    height: 90,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(5),
+                                      image: DecorationImage(
+                                        image: FileImage(images[i]),
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  right: 5,
+                                  top: 5,
+                                  child: GestureDetector(
+                                    onTap: () =>
+                                        removeImage(i), // remove image at index
+                                    child: Container(
+                                      width: 20,
+                                      height: 20,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: Colors.black87.withOpacity(0.3),
+                                      ),
+                                      child: const Icon(
+                                        Icons.close,
+                                        size: 15,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  )
+                : const Spacer(),
+
             // button row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -119,7 +170,17 @@ class _AddJournalPageState extends State<AddJournalPage> {
                   children: [
                     // camera button
                     IconButton(
-                      onPressed: pickImage,
+                      onPressed: () async {
+                        // open camera to take a picture
+                        XFile? capturedImage =
+                            await picker.pickImage(source: ImageSource.camera);
+                        if (capturedImage != null) {
+                          File imageFile = File(capturedImage.path);
+                          setState(() {
+                            images.add(imageFile);
+                          });
+                        }
+                      },
                       icon: const Icon(Icons.camera_alt_outlined,
                           size: 30, color: Color(0xFF55AC9F)),
                     ),
@@ -161,5 +222,52 @@ class _AddJournalPageState extends State<AddJournalPage> {
         ),
       ),
     );
+  }
+
+  Future<void> pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        images.add(File(pickedFile.path));
+      });
+    }
+  }
+
+  void showImageModal(File image) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Stack(
+          children: [
+            Image(
+              image: FileImage(image),
+              fit: BoxFit.cover,
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void removeImage(int index) {
+    setState(() {
+      images.removeAt(index);
+    });
+  }
+
+  void saveEntry() {
+    Navigator.pop(context);
   }
 }

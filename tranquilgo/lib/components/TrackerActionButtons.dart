@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:my_app/screens/Walking/ActivityForm.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ActionButtons extends StatelessWidget {
   final String buttonState;
@@ -9,6 +10,7 @@ class ActionButtons extends StatelessWidget {
   final VoidCallback onFinish;
   final VoidCallback onSwitchMap;
   final double progress;
+  final List<XFile>? capturedImages;
 
   const ActionButtons({
     required this.buttonState,
@@ -18,6 +20,7 @@ class ActionButtons extends StatelessWidget {
     required this.onFinish,
     required this.onSwitchMap,
     required this.progress,
+    required this.capturedImages,
     Key? key,
   }) : super(key: key);
 
@@ -25,17 +28,17 @@ class ActionButtons extends StatelessWidget {
   Widget build(BuildContext context) {
     switch (buttonState) {
       case 'start':
-        return _buildStartButton();
+        return buildStartButton();
       case 'pause':
-        return _buildPauseButton();
+        return buildPauseButton();
       case 'resume':
-        return _buildResumeButton(context);
+        return buildResumeButton(context);
       default:
         return Container();
     }
   }
 
-  Widget _buildStartButton() {
+  Widget buildStartButton() {
     return Container(
       width: 50,
       height: 50,
@@ -54,7 +57,7 @@ class ActionButtons extends StatelessWidget {
     );
   }
 
-  Widget _buildPauseButton() {
+  Widget buildPauseButton() {
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -76,13 +79,13 @@ class ActionButtons extends StatelessWidget {
         Positioned(
           bottom: 0,
           right: 0,
-          child: _buildSwitchButton(),
+          child: buildSwitchButton(),
         ),
       ],
     );
   }
 
-  Widget _buildResumeButton(BuildContext context) {
+  Widget buildResumeButton(BuildContext context) {
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -92,7 +95,7 @@ class ActionButtons extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _buildIconButton(
+              buildIconButton(
                 icon: Icons.play_arrow_rounded,
                 size: 35,
                 color: const Color(0xFF636363),
@@ -100,7 +103,7 @@ class ActionButtons extends StatelessWidget {
                 onPressed: onResume,
               ),
               const SizedBox(width: 20),
-              _buildIconButton(
+              buildIconButton(
                 icon: Icons.check_rounded,
                 size: 30,
                 color: Colors.white,
@@ -112,7 +115,8 @@ class ActionButtons extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const ActivityForm(),
+                        builder: (context) =>
+                            ActivityForm(capturedImages: capturedImages ?? []),
                       ),
                     );
                   }
@@ -124,13 +128,13 @@ class ActionButtons extends StatelessWidget {
         Positioned(
           bottom: 0,
           right: 0,
-          child: _buildSwitchButton(),
+          child: buildSwitchButton(),
         ),
       ],
     );
   }
 
-  Widget _buildIconButton({
+  Widget buildIconButton({
     required IconData icon,
     required double size,
     required Color color,
@@ -158,7 +162,7 @@ class ActionButtons extends StatelessWidget {
     );
   }
 
-  Widget _buildSwitchButton() {
+  Widget buildSwitchButton() {
     return Container(
       width: 33,
       height: 33,

@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'Auth/LandingPage.dart';
+import 'package:image_picker/image_picker.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -10,6 +12,8 @@ class UserProfilePage extends StatefulWidget {
 }
 
 class UserProfilePageState extends State<UserProfilePage> {
+  File? profileImage;
+
   late TextEditingController usernameController;
   late TextEditingController emailController;
   late TextEditingController passwordController;
@@ -95,25 +99,62 @@ class UserProfilePageState extends State<UserProfilePage> {
 
                   // profile icon
                   Center(
-                    child: Container(
-                      width: 130,
-                      height: 130,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFFACACAC),
-                          width: 1,
+                    child: Stack(
+                      children: [
+                        // Main profile container
+                        Container(
+                          width: 130,
+                          height: 130,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFACACAC),
+                              width: 1,
+                            ),
+                          ),
+                          child: CircleAvatar(
+                            radius: 65,
+                            backgroundColor: Colors.white,
+                            backgroundImage: profileImage != null
+                                ? FileImage(profileImage!)
+                                : null,
+                            child: profileImage == null
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 95,
+                                    color: Color(0xFF73C2C4),
+                                  )
+                                : null,
+                          ),
                         ),
-                      ),
-                      child: const CircleAvatar(
-                        radius: 65,
-                        backgroundColor: Colors.white,
-                        child: Icon(
-                          Icons.person,
-                          size: 95,
-                          color: Color(0xFF73C2C4),
-                        ),
-                      ),
+                        // photo upload
+                        isEditable
+                            ? Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: pickImage,
+                                  child: Container(
+                                    width: 35,
+                                    height: 35,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF87D3D8),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.camera_alt,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : const SizedBox(),
+                      ],
                     ),
                   ),
 
@@ -223,6 +264,19 @@ class UserProfilePageState extends State<UserProfilePage> {
         ),
       ),
     );
+  }
+
+  Future<void> pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        profileImage = File(pickedFile.path);
+      });
+    }
   }
 
   // reusable function to build text fields

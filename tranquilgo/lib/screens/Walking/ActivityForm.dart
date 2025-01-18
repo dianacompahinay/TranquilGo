@@ -1,15 +1,22 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:math';
 
 class ActivityForm extends StatefulWidget {
-  const ActivityForm({super.key});
+  final List<XFile> capturedImages;
+
+  const ActivityForm({super.key, required this.capturedImages});
 
   @override
   State<ActivityForm> createState() => _ActivityFormState();
 }
 
 class _ActivityFormState extends State<ActivityForm> {
+  late List<XFile> capturedImages = widget.capturedImages;
+  final List<File> images = []; // list to store images
+
   bool isButtonClicked = false;
 
   final TextEditingController reflectionController = TextEditingController();
@@ -17,6 +24,18 @@ class _ActivityFormState extends State<ActivityForm> {
 
   int? confidenceLevel;
   int? selectedMood;
+
+  @override
+  void initState() {
+    super.initState();
+    // convert XFile in File type
+    for (var img in capturedImages) {
+      File imageFile = File(img.path);
+      setState(() {
+        images.add(imageFile);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -258,81 +277,92 @@ class _ActivityFormState extends State<ActivityForm> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 80,
-                                    height: 90,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(5),
-                                      image: const DecorationImage(
-                                        image: AssetImage(
-                                            'assets/images/landing-page.png'),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                    child: Stack(
-                                      children: [
-                                        Positioned(
-                                          right: 5,
-                                          top: 5,
-                                          child: GestureDetector(
-                                            onTap: () {},
-                                            child: Container(
-                                              width: 20,
-                                              height: 20,
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    // loop through the images list to dynamically add containers
+                                    for (int i = 0; i < images.length; i++)
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(right: 12),
+                                        child: Stack(
+                                          children: [
+                                            Container(
+                                              width: 80,
+                                              height: 90,
                                               decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: Colors.black87
-                                                    .withOpacity(0.3),
-                                              ),
-                                              child: const Icon(
-                                                Icons.close,
-                                                size: 15,
-                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(5),
+                                                image: DecorationImage(
+                                                  image: FileImage(images[i]),
+                                                  fit: BoxFit.cover,
+                                                ),
                                               ),
                                             ),
-                                          ),
+                                            Positioned(
+                                              right: 5,
+                                              top: 5,
+                                              child: GestureDetector(
+                                                onTap: () => removeImage(
+                                                    i), // Remove image at index
+                                                child: Container(
+                                                  width: 20,
+                                                  height: 20,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: Colors.black87
+                                                        .withOpacity(0.3),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.close,
+                                                    size: 15,
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  GestureDetector(
-                                    onTap: () {},
-                                    child: Container(
-                                      width: 80,
-                                      height: 90,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(5),
-                                        color: const Color(0xFFF3F3F3),
                                       ),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          const Icon(
-                                            Icons.camera_alt_outlined,
-                                            color: Color(0xFF989898),
-                                            size: 20,
-                                          ),
-                                          Text(
-                                            "Upload\nPhoto",
-                                            style: GoogleFonts.poppins(
-                                              textStyle: const TextStyle(
-                                                fontSize: 11,
-                                                color: Color(0xFFA4A4A4),
-                                                fontWeight: FontWeight.w500,
-                                                height: 1.2,
-                                              ),
+                                    // const SizedBox(width: 12),
+                                    GestureDetector(
+                                      onTap: pickImage,
+                                      child: Container(
+                                        width: 80,
+                                        height: 90,
+                                        decoration: BoxDecoration(
+                                          borderRadius:
+                                              BorderRadius.circular(5),
+                                          color: const Color(0xFFF3F3F3),
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(
+                                              Icons.camera_alt_outlined,
+                                              color: Color(0xFF989898),
+                                              size: 20,
                                             ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ],
+                                            Text(
+                                              "Upload\nPhoto",
+                                              style: GoogleFonts.poppins(
+                                                textStyle: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: Color(0xFFA4A4A4),
+                                                  fontWeight: FontWeight.w500,
+                                                  height: 1.2,
+                                                ),
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                               const SizedBox(height: 16),
                               Text(
@@ -529,6 +559,25 @@ class _ActivityFormState extends State<ActivityForm> {
         ),
       ),
     );
+  }
+
+  Future<void> pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedFile = await picker.pickImage(
+      source: ImageSource.gallery,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        images.add(File(pickedFile.path));
+      });
+    }
+  }
+
+  void removeImage(int index) {
+    setState(() {
+      images.removeAt(index);
+    });
   }
 
   void showSnackBar(BuildContext context, String message) {
