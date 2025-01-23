@@ -52,7 +52,7 @@ class UserDetailsModal {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user["fullname"],
+                          user["name"],
                           style: GoogleFonts.inter(
                             textStyle: const TextStyle(
                               fontWeight: FontWeight.w700,

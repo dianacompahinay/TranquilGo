@@ -104,21 +104,24 @@ class GratitudeLogs extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.only(
-                                  left: 10, right: 10, bottom: 5),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFAFAFA),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                'Gratitude Logs',
-                                style: GoogleFonts.poppins(
-                                  textStyle: const TextStyle(
-                                    color: Color(0xFF606060),
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w500,
+                          Transform.translate(
+                            offset: const Offset(0, -4),
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.only(
+                                    left: 10, right: 10, bottom: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFAFAFA),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'Gratitude Logs',
+                                  style: GoogleFonts.poppins(
+                                    textStyle: const TextStyle(
+                                      color: Color(0xFF606060),
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
                                 ),
                               ),

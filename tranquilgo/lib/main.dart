@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'providers/AuthProvider.dart';
 
 import 'screens/Auth/LandingPage.dart';
 import 'screens/Auth/LoginPage.dart';
@@ -20,8 +24,19 @@ import 'screens/Walking/WalkingTracker.dart';
 import 'screens/Social/FindCompanions.dart';
 import 'screens/Notifications.dart';
 
-void main() {
-  runApp(const MainApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: ((context) => AuthProvider())),
+      ],
+      child: const MainApp(),
+    ),
+  );
 }
 
 class MainApp extends StatelessWidget {
@@ -32,7 +47,15 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       // title: 'TranquilGo',
-      home: const LandingPage(),
+      home: Consumer<AuthProvider>(
+        builder: (context, authProvider, child) {
+          if (authProvider.isAuthenticated) {
+            return const DashboardWithNavigation(); // authenticated users
+          } else {
+            return const LandingPage(); // non-authenticated users
+          }
+        },
+      ),
       routes: {
         '/welcome': (context) => const LandingPage(),
         '/login': (context) => const LoginPage(),
@@ -48,7 +71,7 @@ class MainApp extends StatelessWidget {
         '/addlog': (context) => const AddGratitudeLogPage(),
         '/gratitudelogs': (context) => const GratitudeLogs(),
         '/searchusers': (context) => const FindCompanionsPage(),
-        '/notifs': (context) => NotificationsPage(),
+        '/notifs': (context) => const NotificationsPage(),
         '/walk': (context) => const WalkingTracker(),
       },
     );

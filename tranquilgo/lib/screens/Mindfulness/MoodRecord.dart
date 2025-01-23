@@ -65,13 +65,16 @@ class _MoodRecordState extends State<MoodRecord> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              Text(
-                'Mood Tracking',
-                style: GoogleFonts.poppins(
-                  textStyle: const TextStyle(
-                    color: Color(0xFF606060),
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w400,
+              Transform.translate(
+                offset: const Offset(0, -4),
+                child: Text(
+                  'Mood Tracking',
+                  style: GoogleFonts.poppins(
+                    textStyle: const TextStyle(
+                      color: Color(0xFF606060),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
                 ),
               ),

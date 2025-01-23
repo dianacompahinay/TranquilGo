@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../providers/AuthProvider.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -10,33 +12,39 @@ class SignupPage extends StatefulWidget {
 
 class _SignupPageState extends State<SignupPage> {
   bool isButtonClicked = false;
+  bool isPasswordVisible = false;
+  bool isConfirmPasswordVisible = false;
 
+  final TextEditingController nameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
 
+  String? nameError;
   String? usernameError;
   String? emailError;
   String? passwordError;
   String? confirmPasswordError;
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    authProvider.fetchExistingUsernamesAndEmails();
+  }
 
   @override
   void dispose() {
-    // dispose text controllers when widget is removed
+    nameController.dispose();
     usernameController.dispose();
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
     super.dispose();
   }
-
-  final Map<String, String> userCredentials = {
-    "user1": "password1",
-    "user2": "password2",
-    "test": "1234",
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -84,57 +92,51 @@ class _SignupPageState extends State<SignupPage> {
                               child: const Text('Create Account'),
                             ),
                             buildTextField(
+                              "Name",
+                              nameController,
+                              nameError,
+                              validateName,
+                            ),
+                            buildTextField(
                               "Username",
                               usernameController,
                               usernameError,
-                              false,
                               validateUsername,
                             ),
                             buildTextField(
                               "Email",
                               emailController,
                               emailError,
-                              false,
                               validateEmail,
                             ),
                             buildTextField(
                               "Password",
                               passwordController,
                               passwordError,
-                              true,
                               validatePassword,
                             ),
                             buildTextField(
                               "Confirm Password",
                               confirmPasswordController,
                               confirmPasswordError,
-                              true,
                               validateConfirmPassword,
                             ),
                             const SizedBox(height: 38),
+
+                            // sign up button
                             Padding(
                               padding:
                                   const EdgeInsets.symmetric(horizontal: 40.0),
                               child: ElevatedButton(
-                                onPressed: () {
-                                  setState(() {
-                                    isButtonClicked = true;
-                                  });
+                                onPressed: isLoading
+                                    ? null
+                                    : () {
+                                        setState(() {
+                                          isButtonClicked = true;
+                                        });
 
-                                  validateUsername(usernameController.text);
-                                  validateEmail(emailController.text);
-                                  validatePassword(passwordController.text);
-                                  validateConfirmPassword(
-                                      confirmPasswordController.text);
-
-                                  if (usernameError == null &&
-                                      emailError == null &&
-                                      passwordError == null &&
-                                      confirmPasswordError == null) {
-                                    showBottomSnackBar(context);
-                                    Navigator.pushNamed(context, '/login');
-                                  }
-                                },
+                                        handleSignUp(context);
+                                      },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF55AC9F),
                                   minimumSize: const Size(double.infinity, 42),
@@ -142,16 +144,25 @@ class _SignupPageState extends State<SignupPage> {
                                     borderRadius: BorderRadius.circular(5),
                                   ),
                                 ),
-                                child: DefaultTextStyle(
-                                  style: GoogleFonts.poppins(
-                                    textStyle: const TextStyle(
-                                      color: Color(0xFFFFFFFF),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  child: const Text('Sign up'),
-                                ),
+                                child: isLoading
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 4,
+                                        ),
+                                      )
+                                    : DefaultTextStyle(
+                                        style: GoogleFonts.poppins(
+                                          textStyle: const TextStyle(
+                                            color: Color(0xFFFFFFFF),
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        child: const Text('Sign up'),
+                                      ),
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -170,6 +181,7 @@ class _SignupPageState extends State<SignupPage> {
                                 child: const Text('Already have an account'),
                               ),
                             ),
+                            const SizedBox(height: 26),
                           ],
                         ),
                       ),
@@ -214,7 +226,6 @@ class _SignupPageState extends State<SignupPage> {
     String hintText,
     TextEditingController controller,
     String? errorText,
-    bool obscureText,
     Function(String) validator,
   ) {
     return Padding(
@@ -225,7 +236,11 @@ class _SignupPageState extends State<SignupPage> {
           // remove error text when the user types
           validator(value);
         },
-        obscureText: obscureText,
+        obscureText: hintText == "Password"
+            ? !isPasswordVisible
+            : hintText == "Confirm Password"
+                ? !isConfirmPasswordVisible
+                : false,
         decoration: InputDecoration(
           hintText: hintText,
           errorText: isButtonClicked ? errorText : null,
@@ -236,6 +251,35 @@ class _SignupPageState extends State<SignupPage> {
               color: Color(0xFF919191),
             ),
           ),
+          suffixIcon: hintText == "Password"
+              ? IconButton(
+                  iconSize: 20,
+                  icon: Icon(
+                    isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                    color: const Color(0xFFBFBFBF),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      isPasswordVisible = !isPasswordVisible;
+                    });
+                  },
+                )
+              : hintText == "Confirm Password"
+                  ? IconButton(
+                      iconSize: 20,
+                      icon: Icon(
+                        isConfirmPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: const Color(0xFFBFBFBF),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          isConfirmPasswordVisible = !isConfirmPasswordVisible;
+                        });
+                      },
+                    )
+                  : null,
           contentPadding: const EdgeInsets.symmetric(
             vertical: 0.0,
             horizontal: 18.0,
@@ -270,7 +314,7 @@ class _SignupPageState extends State<SignupPage> {
     );
   }
 
-  void showBottomSnackBar(BuildContext context) {
+  void showBottomSnackBar(BuildContext context, String text) {
     final overlay = Overlay.of(context);
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -281,11 +325,11 @@ class _SignupPageState extends State<SignupPage> {
           elevation: 4,
           borderRadius: BorderRadius.circular(8),
           color: const Color(0xFF2BB1C0),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             child: Text(
-              "A new account has been successfully created.",
-              style: TextStyle(
+              text,
+              style: const TextStyle(
                   color: Color(0xFFFFFFFF),
                   fontSize: 13.5,
                   fontWeight: FontWeight.bold),
@@ -302,14 +346,67 @@ class _SignupPageState extends State<SignupPage> {
     });
   }
 
+  void handleSignUp(BuildContext context) async {
+    validateName(nameController.text);
+    validateUsername(usernameController.text);
+    validateEmail(emailController.text);
+    validatePassword(passwordController.text);
+    validateConfirmPassword(confirmPasswordController.text);
+
+    if (nameError == null &&
+        usernameError == null &&
+        emailError == null &&
+        passwordError == null &&
+        confirmPasswordError == null) {
+      setState(() {
+        isLoading = true;
+      });
+
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.signUp(
+          name: nameController.text,
+          username: usernameController.text,
+          email: emailController.text,
+          password: passwordController.text,
+        );
+        String success = "A new account has been successfully created.";
+        showBottomSnackBar(context, success);
+        Navigator.pushReplacementNamed(context, '/login');
+      } catch (e) {
+        showBottomSnackBar(
+            context, 'An unexpected error occurred. Please try again later.');
+        print('Error: $e');
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
+  }
+
+  void validateName(String value) {
+    setState(() {
+      if (value.trim().isEmpty) {
+        nameError = 'Name is required';
+      } else {
+        nameError = null;
+      }
+    });
+  }
+
   void validateUsername(String value) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     setState(() {
       if (value.trim().isEmpty) {
         usernameError = 'Username is required';
+      } else if (value.contains(' ')) {
+        usernameError = 'Username must not contain spaces';
       } else if (value.length < 3) {
         usernameError = 'Username must be at least 3 characters';
-      } else if (userCredentials.containsKey(value)) {
-        usernameError = '"$value" username already exists';
+      } else if (authProvider.usernames.contains(value)) {
+        usernameError = 'Username is already taken';
       } else {
         usernameError = null;
       }
@@ -317,12 +414,16 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   void validateEmail(String value) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
     setState(() {
       if (value.trim().isEmpty) {
         emailError = 'Email is required';
       } else if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
           .hasMatch(value)) {
         emailError = 'Enter a valid email';
+      } else if (authProvider.emails.contains(value)) {
+        emailError = 'Email is already registered';
       } else {
         emailError = null;
       }
@@ -333,6 +434,8 @@ class _SignupPageState extends State<SignupPage> {
     setState(() {
       if (value.isEmpty) {
         passwordError = 'Password is required';
+      } else if (value.contains(' ')) {
+        passwordError = 'Password must not contain spaces';
       } else if (value.length < 8) {
         passwordError = 'Password must be at least 8 characters';
       } else {

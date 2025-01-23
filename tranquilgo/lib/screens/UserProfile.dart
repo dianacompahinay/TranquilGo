@@ -14,22 +14,26 @@ class UserProfilePage extends StatefulWidget {
 class UserProfilePageState extends State<UserProfilePage> {
   File? profileImage;
 
+  late TextEditingController nameController;
   late TextEditingController usernameController;
   late TextEditingController emailController;
   late TextEditingController passwordController;
 
   // for error messages
+  String? nameError;
   String? usernameError;
   String? emailError;
   String? passwordError;
 
   bool isEditable = false;
   bool isButtonClicked = false;
+  bool isPasswordVisible = false;
 
   @override
   void initState() {
     super.initState();
     // initialize text controllers with default values
+    nameController = TextEditingController(text: "Name");
     usernameController = TextEditingController(text: "username123");
     emailController = TextEditingController(text: "username123@gmail.com");
     passwordController = TextEditingController(text: "********");
@@ -38,6 +42,7 @@ class UserProfilePageState extends State<UserProfilePage> {
   @override
   void dispose() {
     // dispose text controllers when widget is removed
+    nameController.dispose();
     usernameController.dispose();
     emailController.dispose();
     passwordController.dispose();
@@ -95,7 +100,7 @@ class UserProfilePageState extends State<UserProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 10),
 
                   // profile icon
                   Center(
@@ -158,7 +163,16 @@ class UserProfilePageState extends State<UserProfilePage> {
                     ),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 20),
+
+                  // name field
+                  buildField(
+                    "Name",
+                    "Enter name",
+                    nameError,
+                    nameController,
+                    validateUsername,
+                  ),
 
                   // username field
                   buildField(
@@ -187,7 +201,7 @@ class UserProfilePageState extends State<UserProfilePage> {
                     validatePassword,
                   ),
 
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 40),
 
                   // edit profile button
                   ElevatedButton(
@@ -196,17 +210,20 @@ class UserProfilePageState extends State<UserProfilePage> {
                         if (isEditable) {
                           isButtonClicked = true;
 
+                          validateName(nameController.text);
                           validateUsername(usernameController.text);
                           validateEmail(emailController.text);
                           validatePassword(passwordController.text);
 
                           // check validation for all fields
-                          bool isValid = usernameError == null &&
+                          bool isValid = nameError == null &&
+                              usernameError == null &&
                               emailError == null &&
                               passwordError == null;
 
                           if (isValid) {
                             isEditable = false; // disable editing if valid
+                            isPasswordVisible = false;
                           }
                         } else {
                           isEditable = true; // enable editing
@@ -257,6 +274,7 @@ class UserProfilePageState extends State<UserProfilePage> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -307,7 +325,7 @@ class UserProfilePageState extends State<UserProfilePage> {
               // remove error text when the user types
               validator(value);
             },
-            obscureText: label == "Password" ? true : false,
+            obscureText: label == "Password" ? !isPasswordVisible : false,
             enabled: isEditable,
             style: GoogleFonts.inter(
               textStyle: TextStyle(
@@ -321,6 +339,22 @@ class UserProfilePageState extends State<UserProfilePage> {
             decoration: InputDecoration(
               hintText: hint,
               errorText: isButtonClicked ? errorText : null,
+              suffixIcon: label == "Password"
+                  ? IconButton(
+                      iconSize: 20,
+                      icon: Icon(
+                        isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: const Color(0xFFBFBFBF),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          isPasswordVisible = !isPasswordVisible;
+                        });
+                      },
+                    )
+                  : null,
               contentPadding: const EdgeInsets.symmetric(
                 vertical: 8.0,
                 horizontal: 18.0,
@@ -365,12 +399,24 @@ class UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
+  void validateName(String value) {
+    setState(() {
+      if (value.trim().isEmpty) {
+        usernameError = 'Name is required';
+      } else {
+        usernameError = null;
+      }
+    });
+  }
+
   void validateUsername(String value) {
     setState(() {
       if (value.trim().isEmpty) {
-        usernameError = 'username is required';
+        usernameError = 'Username is required';
+      } else if (value.contains(' ')) {
+        usernameError = 'Username must not contain spaces';
       } else if (value.length < 3) {
-        usernameError = 'username must be at least 3 characters';
+        usernameError = 'Username must be at least 3 characters';
       } else {
         usernameError = null;
       }
@@ -380,10 +426,10 @@ class UserProfilePageState extends State<UserProfilePage> {
   void validateEmail(String value) {
     setState(() {
       if (value.trim().isEmpty) {
-        emailError = 'email is required';
+        emailError = 'Email is required';
       } else if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
           .hasMatch(value)) {
-        emailError = 'enter a valid email';
+        emailError = 'Enter a valid email';
       } else {
         emailError = null;
       }
@@ -393,9 +439,11 @@ class UserProfilePageState extends State<UserProfilePage> {
   void validatePassword(String value) {
     setState(() {
       if (value.isEmpty) {
-        passwordError = 'password is required';
+        passwordError = 'Password is required';
+      } else if (value.contains(' ')) {
+        passwordError = 'Password must not contain spaces';
       } else if (value.length < 8) {
-        passwordError = 'password must be at least 8 characters';
+        passwordError = 'Password must be at least 8 characters';
       } else {
         passwordError = null;
       }

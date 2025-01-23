@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "17515297820",
+    "project_id": "tranquilgo-594b2",
+    "storage_bucket": "tranquilgo-594b2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:17515297820:android:763eb564f72b778539f3d9",
+        "android_client_info": {
+          "package_name": "com.example.tranquilgo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSlfo4Jkf7NMTxlmjjLMuAiL3jvdsznT8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

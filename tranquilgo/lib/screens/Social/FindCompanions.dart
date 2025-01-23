@@ -21,22 +21,18 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
 
   void initializeUsers() {
     users = [
-      {"username": "john_doe", "fullname": "John Doe", "status": "friend"},
-      {"username": "jane_smith", "fullname": "Jane Smith", "status": "add"},
-      {"username": "alex_jones", "fullname": "Alex Jones", "status": "friend"},
-      {"username": "emily_clark", "fullname": "Emily Clark", "status": "add"},
+      {"username": "john_doe", "name": "John Doe", "status": "friend"},
+      {"username": "jane_smith", "name": "Jane Smith", "status": "add"},
+      {"username": "alex_jones", "name": "Alex Jones", "status": "friend"},
+      {"username": "emily_clark", "name": "Emily Clark", "status": "add"},
       {
         "username": "michael_brown",
-        "fullname": "Michael Brown",
+        "name": "Michael Brown",
         "status": "friend"
       },
-      {"username": "sarah_lee", "fullname": "Sarah Lee", "status": "add"},
-      {
-        "username": "david_wright",
-        "fullname": "David Wright",
-        "status": "friend"
-      },
-      {"username": "linda_hall", "fullname": "Linda Hall", "status": "add"},
+      {"username": "sarah_lee", "name": "Sarah Lee", "status": "add"},
+      {"username": "david_wright", "name": "David Wright", "status": "friend"},
+      {"username": "linda_hall", "name": "Linda Hall", "status": "add"},
     ];
     filteredUsers = List.from(users);
   }
@@ -57,7 +53,7 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
       filteredUsers = users
           .where((user) =>
               user["username"].toLowerCase().contains(query.toLowerCase()) ||
-              user["fullname"].toLowerCase().contains(query.toLowerCase()))
+              user["name"].toLowerCase().contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -201,7 +197,7 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
                       ),
                     ),
                     subtitle: Text(
-                      user["fullname"],
+                      user["name"],
                       style: GoogleFonts.poppins(
                         textStyle: const TextStyle(
                           color: Color(0xFF656263),
