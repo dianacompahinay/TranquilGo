@@ -51,15 +51,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Future<void> login(String username, String password) async {
-  //   try {
-  //     _user = await authService.login(username, password);
-  //     notifyListeners();
-  //   } catch (e) {
-  //     throw Exception('Login failed: $e');
-  //   }
-  // }
-
   Future<String> login(String username, String password) async {
     try {
       final result = await authService.login(username, password);

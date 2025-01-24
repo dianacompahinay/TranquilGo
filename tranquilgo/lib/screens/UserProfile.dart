@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:provider/provider.dart';
+import 'package:my_app/providers/AuthProvider.dart';
+
 import 'Auth/LandingPage.dart';
 import 'package:my_app/components/ChangePassword.dart';
 
@@ -263,14 +266,7 @@ class UserProfilePageState extends State<UserProfilePage> {
                   // log out button
                   Center(
                     child: InkWell(
-                      onTap: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const LandingPage()),
-                          (Route<dynamic> route) => false,
-                        );
-                      },
+                      onTap: () => logOut(),
                       child: DefaultTextStyle(
                         style: GoogleFonts.inter(
                           textStyle: const TextStyle(
@@ -457,5 +453,16 @@ class UserProfilePageState extends State<UserProfilePage> {
         passwordError = null;
       }
     });
+  }
+
+  void logOut() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    try {
+      await authProvider.logout();
+      // navigate to the login screen or home page after logout
+      Navigator.of(context).pushReplacementNamed('/welcome');
+    } catch (e) {
+      print(e);
+    }
   }
 }
