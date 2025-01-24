@@ -436,8 +436,8 @@ class _SignupPageState extends State<SignupPage> {
         passwordError = 'Password is required';
       } else if (value.contains(' ')) {
         passwordError = 'Password must not contain spaces';
-      } else if (value.length < 8) {
-        passwordError = 'Password must be at least 8 characters';
+      } else if (value.length < 6) {
+        passwordError = 'Password must be at least 6 characters';
       } else {
         passwordError = null;
       }

@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'Auth/LandingPage.dart';
 import 'package:image_picker/image_picker.dart';
+
+import 'Auth/LandingPage.dart';
+import 'package:my_app/components/ChangePassword.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -100,7 +102,7 @@ class UserProfilePageState extends State<UserProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
 
                   // profile icon
                   Center(
@@ -192,16 +194,23 @@ class UserProfilePageState extends State<UserProfilePage> {
                     validateEmail,
                   ),
 
-                  // password field
-                  buildField(
-                    "Password",
-                    "Enter password",
-                    passwordError,
-                    passwordController,
-                    validatePassword,
-                  ),
+                  // // password field
+                  // buildField(
+                  //   "Password",
+                  //   "Enter password",
+                  //   passwordError,
+                  //   passwordController,
+                  //   validatePassword,
+                  // ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 30),
+
+                  // change password
+                  isEditable
+                      ? const ChangePassword(userId: '0')
+                      : const SizedBox(height: 20),
+
+                  const SizedBox(height: 10),
 
                   // edit profile button
                   ElevatedButton(
@@ -442,8 +451,8 @@ class UserProfilePageState extends State<UserProfilePage> {
         passwordError = 'Password is required';
       } else if (value.contains(' ')) {
         passwordError = 'Password must not contain spaces';
-      } else if (value.length < 8) {
-        passwordError = 'Password must be at least 8 characters';
+      } else if (value.length < 6) {
+        passwordError = 'Password must be at least 6 characters';
       } else {
         passwordError = null;
       }
