@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../api/auth_service.dart';
 
-class AuthProvider extends ChangeNotifier {
+class AuthenticationProvider extends ChangeNotifier {
   final AuthService authService = AuthService();
   User? _user;
 
@@ -17,7 +17,7 @@ class AuthProvider extends ChangeNotifier {
   Set<String> get usernames => _usernames;
   Set<String> get emails => _emails;
 
-  AuthProvider() {
+  AuthenticationProvider() {
     _user = authService.getCurrentUser();
   }
 

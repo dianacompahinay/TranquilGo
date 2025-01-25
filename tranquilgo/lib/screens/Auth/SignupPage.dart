@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../providers/AuthProvider.dart';
+import 'package:my_app/providers/AuthProvider.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -32,7 +32,8 @@ class _SignupPageState extends State<SignupPage> {
   @override
   void initState() {
     super.initState();
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authProvider =
+        Provider.of<AuthenticationProvider>(context, listen: false);
     authProvider.fetchExistingUsernamesAndEmails();
   }
 
@@ -363,7 +364,8 @@ class _SignupPageState extends State<SignupPage> {
       });
 
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final authProvider =
+            Provider.of<AuthenticationProvider>(context, listen: false);
         await authProvider.signUp(
           name: nameController.text,
           username: usernameController.text,
@@ -396,7 +398,8 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   void validateUsername(String value) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authProvider =
+        Provider.of<AuthenticationProvider>(context, listen: false);
 
     setState(() {
       if (value.trim().isEmpty) {
@@ -414,7 +417,8 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   void validateEmail(String value) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authProvider =
+        Provider.of<AuthenticationProvider>(context, listen: false);
 
     setState(() {
       if (value.trim().isEmpty) {

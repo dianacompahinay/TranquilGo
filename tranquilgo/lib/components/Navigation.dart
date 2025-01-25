@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'NavigationBar.dart';
-import '../screens/Dashboard.dart';
-import '../screens/Mindfulness/Mindfulness.dart';
-import '../screens/Social/SocialPage.dart';
-import '../screens/Walking/Statistics.dart';
+
+import 'package:my_app/screens/Dashboard.dart';
+import 'package:my_app/screens/Mindfulness/Mindfulness.dart';
+import 'package:my_app/screens/Social/SocialPage.dart';
+import 'package:my_app/screens/Walking/Statistics.dart';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:my_app/providers/UserProvider.dart';
 
 class DashboardWithNavigation extends StatefulWidget {
   const DashboardWithNavigation({super.key});
@@ -39,6 +44,15 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
   void initState() {
     super.initState();
     pageController = PageController();
+
+    // for fetching username in sidebar profile
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        Provider.of<UserDetailsProvider>(context, listen: false)
+            .fetchUserDetails(userId);
+      }
+    });
   }
 
   @override
@@ -51,6 +65,9 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    final userProfileProvider = Provider.of<UserDetailsProvider>(context);
+    final userDetails = userProfileProvider.userDetails;
+
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
@@ -127,7 +144,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                           ),
                           const SizedBox(width: 5),
                           Text(
-                            "Username",
+                            "${userDetails == null ? 'Username' : userDetails['username']}",
                             style: GoogleFonts.inter(
                               fontWeight: FontWeight.w500,
                               fontSize: 15,

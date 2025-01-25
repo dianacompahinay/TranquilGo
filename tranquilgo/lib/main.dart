@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/AuthProvider.dart';
+import 'providers/UserProvider.dart';
 
 import 'screens/Auth/LandingPage.dart';
 import 'screens/Auth/LoginPage.dart';
@@ -32,7 +33,8 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: ((context) => AuthProvider())),
+        ChangeNotifierProvider(create: ((context) => AuthenticationProvider())),
+        ChangeNotifierProvider(create: ((context) => UserDetailsProvider())),
       ],
       child: const MainApp(),
     ),
@@ -47,7 +49,7 @@ class MainApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       // title: 'TranquilGo',
-      home: Consumer<AuthProvider>(
+      home: Consumer<AuthenticationProvider>(
         builder: (context, authProvider, child) {
           if (authProvider.isAuthenticated) {
             return const DashboardWithNavigation(); // authenticated users

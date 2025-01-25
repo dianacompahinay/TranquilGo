@@ -2,12 +2,13 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shimmer/shimmer.dart';
 
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/providers/AuthProvider.dart';
-
-import 'Auth/LandingPage.dart';
 import 'package:my_app/components/ChangePassword.dart';
+import 'package:my_app/providers/UserProvider.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});
@@ -19,16 +20,14 @@ class UserProfilePage extends StatefulWidget {
 class UserProfilePageState extends State<UserProfilePage> {
   File? profileImage;
 
-  late TextEditingController nameController;
-  late TextEditingController usernameController;
-  late TextEditingController emailController;
-  late TextEditingController passwordController;
+  late TextEditingController nameController = TextEditingController();
+  late TextEditingController usernameController = TextEditingController();
+  late TextEditingController emailController = TextEditingController();
 
   // for error messages
   String? nameError;
   String? usernameError;
   String? emailError;
-  String? passwordError;
 
   bool isEditable = false;
   bool isButtonClicked = false;
@@ -37,11 +36,28 @@ class UserProfilePageState extends State<UserProfilePage> {
   @override
   void initState() {
     super.initState();
-    // initialize text controllers with default values
-    nameController = TextEditingController(text: "Name");
-    usernameController = TextEditingController(text: "username123");
-    emailController = TextEditingController(text: "username123@gmail.com");
-    passwordController = TextEditingController(text: "********");
+
+    // ensures that the fetch happens after the current build phase (delay triggering the fetch)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        Provider.of<UserDetailsProvider>(context, listen: false)
+            .fetchUserDetails(userId)
+            .then((_) {
+          final userProfileProvider =
+              Provider.of<UserDetailsProvider>(context, listen: false);
+          final userDetails = userProfileProvider.userDetails;
+
+          if (userDetails != null) {
+            nameController.text = userDetails["name"] ?? "";
+            usernameController.text = userDetails["username"] ?? "";
+            emailController.text = userDetails["email"] ?? "";
+          }
+        }).catchError((error) {
+          print('$error');
+        });
+      }
+    });
   }
 
   @override
@@ -50,12 +66,14 @@ class UserProfilePageState extends State<UserProfilePage> {
     nameController.dispose();
     usernameController.dispose();
     emailController.dispose();
-    passwordController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final userProfileProvider = Provider.of<UserDetailsProvider>(context);
+    final isLoading = userProfileProvider.isLoading;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -111,32 +129,34 @@ class UserProfilePageState extends State<UserProfilePage> {
                   Center(
                     child: Stack(
                       children: [
-                        // Main profile container
-                        Container(
-                          width: 130,
-                          height: 130,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: const Color(0xFFACACAC),
-                              width: 1,
-                            ),
-                          ),
-                          child: CircleAvatar(
-                            radius: 65,
-                            backgroundColor: Colors.white,
-                            backgroundImage: profileImage != null
-                                ? FileImage(profileImage!)
-                                : null,
-                            child: profileImage == null
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 95,
-                                    color: Color(0xFF73C2C4),
-                                  )
-                                : null,
-                          ),
-                        ),
+                        // main profile container
+                        isLoading
+                            ? loadingUserImage()
+                            : Container(
+                                width: 130,
+                                height: 130,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: const Color(0xFFACACAC),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: CircleAvatar(
+                                  radius: 65,
+                                  backgroundColor: Colors.white,
+                                  backgroundImage: profileImage != null
+                                      ? FileImage(profileImage!)
+                                      : null,
+                                  child: profileImage == null
+                                      ? const Icon(
+                                          Icons.person,
+                                          size: 95,
+                                          color: Color(0xFF73C2C4),
+                                        )
+                                      : null,
+                                ),
+                              ),
                         // photo upload
                         isEditable
                             ? Positioned(
@@ -171,40 +191,37 @@ class UserProfilePageState extends State<UserProfilePage> {
                   const SizedBox(height: 20),
 
                   // name field
-                  buildField(
-                    "Name",
-                    "Enter name",
-                    nameError,
-                    nameController,
-                    validateUsername,
-                  ),
+                  isLoading
+                      ? loadingTextField()
+                      : buildField(
+                          "Name",
+                          "Enter name",
+                          nameError,
+                          nameController,
+                          validateName,
+                        ),
 
                   // username field
-                  buildField(
-                    "Username",
-                    "Enter username",
-                    usernameError,
-                    usernameController,
-                    validateUsername,
-                  ),
+                  isLoading
+                      ? loadingTextField()
+                      : buildField(
+                          "Username",
+                          "Enter username",
+                          usernameError,
+                          usernameController,
+                          validateUsername,
+                        ),
 
                   // email field
-                  buildField(
-                    "Email",
-                    "Enter email",
-                    emailError,
-                    emailController,
-                    validateEmail,
-                  ),
-
-                  // // password field
-                  // buildField(
-                  //   "Password",
-                  //   "Enter password",
-                  //   passwordError,
-                  //   passwordController,
-                  //   validatePassword,
-                  // ),
+                  isLoading
+                      ? loadingTextField()
+                      : buildField(
+                          "Email",
+                          "Enter email",
+                          emailError,
+                          emailController,
+                          validateEmail,
+                        ),
 
                   const SizedBox(height: 30),
 
@@ -216,69 +233,84 @@ class UserProfilePageState extends State<UserProfilePage> {
                   const SizedBox(height: 10),
 
                   // edit profile button
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        if (isEditable) {
-                          isButtonClicked = true;
+                  isLoading
+                      ? Shimmer.fromColors(
+                          baseColor: Colors.grey[300]!,
+                          highlightColor: Colors.grey[100]!,
+                          child: Container(
+                            width: double.infinity,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            margin: const EdgeInsets.only(bottom: 6),
+                          ),
+                        )
+                      : ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              if (isEditable) {
+                                isButtonClicked = true;
 
-                          validateName(nameController.text);
-                          validateUsername(usernameController.text);
-                          validateEmail(emailController.text);
-                          validatePassword(passwordController.text);
+                                validateName(nameController.text);
+                                validateUsername(usernameController.text);
 
-                          // check validation for all fields
-                          bool isValid = nameError == null &&
-                              usernameError == null &&
-                              emailError == null &&
-                              passwordError == null;
+                                // check validation for all fields
+                                bool isValid = nameError == null &&
+                                    usernameError == null &&
+                                    emailError == null;
 
-                          if (isValid) {
-                            isEditable = false; // disable editing if valid
-                            isPasswordVisible = false;
-                          }
-                        } else {
-                          isEditable = true; // enable editing
-                        }
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF55AC9F),
-                      minimumSize: const Size(double.infinity, 42),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    ),
-                    child: DefaultTextStyle(
-                      style: GoogleFonts.inter(
-                        textStyle: const TextStyle(
-                          color: Color(0xFFFFFFFF),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                                if (isValid) {
+                                  isEditable =
+                                      false; // disable editing if valid
+                                  isPasswordVisible = false;
+                                }
+                              } else {
+                                isEditable = true; // enable editing
+                              }
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF55AC9F),
+                            minimumSize: const Size(double.infinity, 42),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          child: DefaultTextStyle(
+                            style: GoogleFonts.inter(
+                              textStyle: const TextStyle(
+                                color: Color(0xFFFFFFFF),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            child: Text(
+                                isEditable ? 'Save Changes' : 'Edit Profile'),
+                          ),
                         ),
-                      ),
-                      child: Text(isEditable ? 'Save Changes' : 'Edit Profile'),
-                    ),
-                  ),
 
                   const SizedBox(height: 16),
 
                   // log out button
-                  Center(
-                    child: InkWell(
-                      onTap: () => logOut(),
-                      child: DefaultTextStyle(
-                        style: GoogleFonts.inter(
-                          textStyle: const TextStyle(
-                            color: Color(0xFF494949),
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
+                  isLoading
+                      ? const SizedBox()
+                      : Center(
+                          child: InkWell(
+                            onTap: () => logOut(),
+                            child: DefaultTextStyle(
+                              style: GoogleFonts.inter(
+                                textStyle: const TextStyle(
+                                  color: Color(0xFF494949),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              child: const Text('Log out'),
+                            ),
                           ),
                         ),
-                        child: const Text('Log out'),
-                      ),
-                    ),
-                  ),
                   const SizedBox(height: 20),
                 ],
               ),
@@ -331,12 +363,12 @@ class UserProfilePageState extends State<UserProfilePage> {
               validator(value);
             },
             obscureText: label == "Password" ? !isPasswordVisible : false,
-            enabled: isEditable,
+            enabled: label == "Email" ? false : isEditable,
             style: GoogleFonts.inter(
               textStyle: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
-                color: isEditable
+                color: isEditable && label != "Email"
                     ? const Color(0xFF000000)
                     : const Color(0xFF616161),
               ),
@@ -407,9 +439,9 @@ class UserProfilePageState extends State<UserProfilePage> {
   void validateName(String value) {
     setState(() {
       if (value.trim().isEmpty) {
-        usernameError = 'Name is required';
+        nameError = 'Name is required';
       } else {
-        usernameError = null;
+        nameError = null;
       }
     });
   }
@@ -441,22 +473,9 @@ class UserProfilePageState extends State<UserProfilePage> {
     });
   }
 
-  void validatePassword(String value) {
-    setState(() {
-      if (value.isEmpty) {
-        passwordError = 'Password is required';
-      } else if (value.contains(' ')) {
-        passwordError = 'Password must not contain spaces';
-      } else if (value.length < 6) {
-        passwordError = 'Password must be at least 6 characters';
-      } else {
-        passwordError = null;
-      }
-    });
-  }
-
   void logOut() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authProvider =
+        Provider.of<AuthenticationProvider>(context, listen: false);
     try {
       await authProvider.logout();
       // navigate to the login screen or home page after logout
@@ -464,5 +483,57 @@ class UserProfilePageState extends State<UserProfilePage> {
     } catch (e) {
       print(e);
     }
+  }
+
+  Widget loadingUserImage() {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Shimmer.fromColors(
+          baseColor: Colors.grey[300]!,
+          highlightColor: Colors.grey[100]!,
+          child: Container(
+            width: 130,
+            height: 130,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        const Icon(
+          Icons.person,
+          size: 95,
+          color: Colors.white,
+        ),
+      ],
+    );
+  }
+
+  Widget loadingTextField() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[300]!,
+      highlightColor: Colors.grey[100]!,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 80,
+            height: 18,
+            color: Colors.grey[300],
+            margin: const EdgeInsets.only(bottom: 2, top: 16),
+          ),
+          Container(
+            width: double.infinity,
+            height: 42,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(5),
+            ),
+            margin: const EdgeInsets.only(bottom: 6),
+          ),
+        ],
+      ),
+    );
   }
 }

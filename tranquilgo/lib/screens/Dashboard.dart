@@ -1,11 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class Dashboard extends StatelessWidget {
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:my_app/providers/UserProvider.dart';
+
+class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
 
   @override
+  DashboardState createState() => DashboardState();
+}
+
+class DashboardState extends State<Dashboard> {
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        Provider.of<UserDetailsProvider>(context, listen: false)
+            .fetchUserDetails(userId);
+      }
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final userProfileProvider = Provider.of<UserDetailsProvider>(context);
+    final userDetails = userProfileProvider.userDetails;
+
     return Scaffold(
       body: Container(
         constraints: const BoxConstraints.expand(),
@@ -121,7 +146,7 @@ class Dashboard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        "Let's Get Moving, [Username]!",
+                        "Let's Get Moving, ${userDetails == null ? 'User' : userDetails['username']}!",
                         style: GoogleFonts.poppins(
                           textStyle: const TextStyle(
                             color: Color(0xFF404040),

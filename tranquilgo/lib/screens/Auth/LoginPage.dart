@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../providers/AuthProvider.dart';
+import 'package:my_app/providers/AuthProvider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,7 +23,8 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authProvider =
+        Provider.of<AuthenticationProvider>(context, listen: false);
     authProvider.fetchExistingUsernamesAndEmails();
   }
 
@@ -337,7 +338,8 @@ class _LoginPageState extends State<LoginPage> {
         isLoading = true;
       });
       try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final authProvider =
+            Provider.of<AuthenticationProvider>(context, listen: false);
         final result = await authProvider.login(username, password);
 
         if (result == 'success') {
