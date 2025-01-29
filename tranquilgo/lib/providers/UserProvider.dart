@@ -30,6 +30,33 @@ class UserDetailsProvider with ChangeNotifier {
     }
   }
 
+  Future<String> changeUserDetails(String userId, String? newName,
+      String? newUsername, String currentEmail) async {
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // check if username is being changed and if it is already taken
+      if (newUsername != null && newUsername != _userDetails?['username']) {
+        if (await _userDetailsService.isUsernameTaken(newUsername)) {
+          return 'username_taken';
+        }
+      }
+
+      // update
+      await _userDetailsService.updateUserDetails(userId,
+          name: newName, username: newUsername, email: currentEmail);
+      if (newName != null) _userDetails?['name'] = newName;
+      if (newUsername != null) _userDetails?['username'] = newUsername;
+
+      notifyListeners();
+      return 'success';
+    } catch (e) {
+      _errorMessage = e.toString();
+      return 'error';
+    }
+  }
+
   Future<String> updatePassword(
       String email, String oldPassword, String newPassword) async {
     _errorMessage = null;

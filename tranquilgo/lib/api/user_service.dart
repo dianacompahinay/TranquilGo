@@ -20,6 +20,50 @@ class UserDetailsService {
     }
   }
 
+  Future<bool> isUsernameTaken(String username) async {
+    final query = await firestore.collection('usernames').doc(username).get();
+    return query.exists;
+  }
+
+  Future<void> updateUserDetails(String userId,
+      {String? name, String? username, String? email}) async {
+    try {
+      Map<String, dynamic> updates = {};
+
+      if (name != null) updates['name'] = name;
+
+      if (username != null) {
+        // check if username is already taken
+        if (await isUsernameTaken(username)) {
+          throw Exception('username_taken');
+        }
+
+        updates['username'] = username;
+
+        // remove old username from 'usernames' collection
+        final userDoc = await firestore.collection('users').doc(userId).get();
+        String? oldUsername = userDoc.data()?['username'];
+        if (oldUsername != null) {
+          await firestore.collection('usernames').doc(oldUsername).delete();
+        }
+
+        // add new username to 'usernames' collection
+        await firestore
+            .collection('usernames')
+            .doc(username)
+            .set({'email': email});
+      }
+
+      // Update user document
+      if (updates.isNotEmpty) {
+        await firestore.collection('users').doc(userId).update(updates);
+      }
+    } catch (e) {
+      print("Error updating user details: $e");
+      throw Exception("Failed to update user details");
+    }
+  }
+
   // re-authenticate the user with their old password before allowing them to set a new one
   // firebase does not allow fetching stored passwords directly
   Future<void> reauthenticateUser(String email, String oldPassword) async {

@@ -4,11 +4,9 @@ import 'package:my_app/providers/UserProvider.dart';
 import 'package:provider/provider.dart';
 
 class ChangePassword extends StatefulWidget {
-  final String userId;
   final String email;
 
-  const ChangePassword({Key? key, required this.userId, required this.email})
-      : super(key: key);
+  const ChangePassword({Key? key, required this.email}) : super(key: key);
 
   @override
   State<ChangePassword> createState() => _ChangePasswordState();

@@ -29,9 +29,12 @@ class UserProfilePageState extends State<UserProfilePage> {
   String? usernameError;
   String? emailError;
 
+  String initialName = "";
+  String initialUsername = "";
+
   bool isEditable = false;
   bool isButtonClicked = false;
-  bool isPasswordVisible = false;
+  bool isUpdating = false;
 
   @override
   void initState() {
@@ -52,6 +55,11 @@ class UserProfilePageState extends State<UserProfilePage> {
             nameController.text = userDetails["name"] ?? "";
             usernameController.text = userDetails["username"] ?? "";
             emailController.text = userDetails["email"] ?? "";
+
+            setState(() {
+              initialName = userDetails["name"] ?? "";
+              initialUsername = userDetails["username"] ?? "";
+            });
           }
         }).catchError((error) {
           print('$error');
@@ -227,7 +235,7 @@ class UserProfilePageState extends State<UserProfilePage> {
 
                   // change password
                   isEditable
-                      ? ChangePassword(userId: '0', email: emailController.text)
+                      ? ChangePassword(email: emailController.text)
                       : const SizedBox(height: 20),
 
                   const SizedBox(height: 10),
@@ -248,29 +256,11 @@ class UserProfilePageState extends State<UserProfilePage> {
                           ),
                         )
                       : ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              if (isEditable) {
-                                isButtonClicked = true;
-
-                                validateName(nameController.text);
-                                validateUsername(usernameController.text);
-
-                                // check validation for all fields
-                                bool isValid = nameError == null &&
-                                    usernameError == null &&
-                                    emailError == null;
-
-                                if (isValid) {
-                                  isEditable =
-                                      false; // disable editing if valid
-                                  isPasswordVisible = false;
-                                }
-                              } else {
-                                isEditable = true; // enable editing
-                              }
-                            });
-                          },
+                          onPressed: isUpdating
+                              ? null
+                              : () {
+                                  handleSave();
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF55AC9F),
                             minimumSize: const Size(double.infinity, 42),
@@ -278,17 +268,27 @@ class UserProfilePageState extends State<UserProfilePage> {
                               borderRadius: BorderRadius.circular(5),
                             ),
                           ),
-                          child: DefaultTextStyle(
-                            style: GoogleFonts.inter(
-                              textStyle: const TextStyle(
-                                color: Color(0xFFFFFFFF),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            child: Text(
-                                isEditable ? 'Save Changes' : 'Edit Profile'),
-                          ),
+                          child: isUpdating
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 4,
+                                  ),
+                                )
+                              : DefaultTextStyle(
+                                  style: GoogleFonts.inter(
+                                    textStyle: const TextStyle(
+                                      color: Color(0xFFFFFFFF),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  child: Text(isEditable
+                                      ? 'Save Changes'
+                                      : 'Edit Profile'),
+                                ),
                         ),
 
                   const SizedBox(height: 16),
@@ -362,7 +362,6 @@ class UserProfilePageState extends State<UserProfilePage> {
               // remove error text when the user types
               validator(value);
             },
-            obscureText: label == "Password" ? !isPasswordVisible : false,
             enabled: label == "Email" ? false : isEditable,
             style: GoogleFonts.inter(
               textStyle: TextStyle(
@@ -376,22 +375,6 @@ class UserProfilePageState extends State<UserProfilePage> {
             decoration: InputDecoration(
               hintText: hint,
               errorText: isButtonClicked ? errorText : null,
-              suffixIcon: label == "Password"
-                  ? IconButton(
-                      iconSize: 20,
-                      icon: Icon(
-                        isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: const Color(0xFFBFBFBF),
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          isPasswordVisible = !isPasswordVisible;
-                        });
-                      },
-                    )
-                  : null,
               contentPadding: const EdgeInsets.symmetric(
                 vertical: 8.0,
                 horizontal: 18.0,
@@ -434,6 +417,73 @@ class UserProfilePageState extends State<UserProfilePage> {
         ],
       ),
     );
+  }
+
+  void handleSave() async {
+    validateName(nameController.text);
+    validateUsername(usernameController.text);
+    // check validation for all fields
+    bool isValid =
+        nameError == null && usernameError == null && emailError == null;
+
+    if (isEditable) {
+      setState(() {
+        isButtonClicked = true;
+      });
+      if (isValid) {
+        // wait for result after clicking the button and the input fields are valid
+        setState(() {
+          isUpdating = true;
+        });
+
+        // updating the user's detail
+        String? newName = nameController.text.trim() != initialName
+            ? nameController.text.trim()
+            : null;
+        String? newUsername = usernameController.text.trim() != initialUsername
+            ? usernameController.text.trim()
+            : null;
+
+        final userId = FirebaseAuth.instance.currentUser?.uid;
+        if (userId != null) {
+          String result =
+              await Provider.of<UserDetailsProvider>(context, listen: false)
+                  .changeUserDetails(
+                      userId, newName, newUsername, emailController.text);
+
+          if (result == 'username_taken') {
+            setState(() {
+              usernameError = 'Username is already taken';
+              isUpdating = false;
+            });
+          } else if (result == 'success') {
+            setState(() {
+              // save changes when edit is success
+              initialName = nameController.text;
+              initialUsername = usernameController.text;
+              isEditable = false;
+              isButtonClicked = false;
+              isUpdating = false;
+            });
+          } else {
+            showBottomSnackBar(
+                context, "Failed to save changes. Please try again later.");
+            setState(() {
+              // dont save changes when edit fails
+              nameController.text = initialName;
+              usernameController.text = initialUsername;
+              isEditable = false;
+              isButtonClicked = false;
+              isUpdating = false;
+            });
+          }
+        }
+      }
+    } else {
+      setState(() {
+        isEditable = true; // enable editing
+      });
+    }
   }
 
   void validateName(String value) {
@@ -535,5 +585,37 @@ class UserProfilePageState extends State<UserProfilePage> {
         ],
       ),
     );
+  }
+
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }
