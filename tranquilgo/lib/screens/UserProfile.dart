@@ -227,7 +227,7 @@ class UserProfilePageState extends State<UserProfilePage> {
 
                   // change password
                   isEditable
-                      ? const ChangePassword(userId: '0')
+                      ? ChangePassword(userId: '0', email: emailController.text)
                       : const SizedBox(height: 20),
 
                   const SizedBox(height: 10),
@@ -235,13 +235,13 @@ class UserProfilePageState extends State<UserProfilePage> {
                   // edit profile button
                   isLoading
                       ? Shimmer.fromColors(
-                          baseColor: Colors.grey[300]!,
+                          baseColor: Colors.grey[200]!,
                           highlightColor: Colors.grey[100]!,
                           child: Container(
                             width: double.infinity,
                             height: 42,
                             decoration: BoxDecoration(
-                              color: Colors.grey[300],
+                              color: Colors.grey[200],
                               borderRadius: BorderRadius.circular(5),
                             ),
                             margin: const EdgeInsets.only(bottom: 6),
@@ -490,7 +490,7 @@ class UserProfilePageState extends State<UserProfilePage> {
       alignment: Alignment.center,
       children: [
         Shimmer.fromColors(
-          baseColor: Colors.grey[300]!,
+          baseColor: Colors.grey[200]!,
           highlightColor: Colors.grey[100]!,
           child: Container(
             width: 130,
@@ -512,7 +512,7 @@ class UserProfilePageState extends State<UserProfilePage> {
 
   Widget loadingTextField() {
     return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
+      baseColor: Colors.grey[200]!,
       highlightColor: Colors.grey[100]!,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -520,14 +520,14 @@ class UserProfilePageState extends State<UserProfilePage> {
           Container(
             width: 80,
             height: 18,
-            color: Colors.grey[300],
+            color: Colors.grey[200],
             margin: const EdgeInsets.only(bottom: 2, top: 16),
           ),
           Container(
             width: double.infinity,
             height: 42,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: Colors.grey[200],
               borderRadius: BorderRadius.circular(5),
             ),
             margin: const EdgeInsets.only(bottom: 6),

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_app/providers/UserProvider.dart';
+import 'package:provider/provider.dart';
 
 class ChangePassword extends StatefulWidget {
   final String userId;
+  final String email;
 
-  const ChangePassword({Key? key, required this.userId}) : super(key: key);
+  const ChangePassword({Key? key, required this.userId, required this.email})
+      : super(key: key);
 
   @override
   State<ChangePassword> createState() => _ChangePasswordState();
@@ -32,6 +36,17 @@ class _ChangePasswordState extends State<ChangePassword> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  Future<String> changePassword(
+      String email, String oldPassword, String newPassword) async {
+    final authProvider =
+        Provider.of<UserDetailsProvider>(context, listen: false);
+
+    String result =
+        await authProvider.updatePassword(email, oldPassword, newPassword);
+
+    return result;
   }
 
   @override
@@ -107,7 +122,7 @@ class _ChangePasswordState extends State<ChangePassword> {
               });
             }
 
-            void handleChangePass() {
+            void handleChangePass() async {
               setDialogState(() {
                 isButtonClicked = true;
               });
@@ -124,7 +139,31 @@ class _ChangePasswordState extends State<ChangePassword> {
                 });
 
                 // handle it here
-                // if old password is entered incorrectly update the error text of currentPassError
+                // if old password is entered incorrectly update the error text of currentPassError\
+
+                String result = await changePassword(widget.email,
+                    currentPassController.text, newPassController.text);
+
+                if (result == 'success') {
+                  showBottomSnackBar(context, 'Password changed successfully.');
+                  Navigator.pop(context);
+                } else if (result == 'incorrect_old_password') {
+                  currentPassError = 'Incorrect old password';
+                } else if (result == 'update_failed') {
+                  showBottomSnackBar(context,
+                      'Failed to update the password. Please try again later.');
+                  Navigator.pop(context);
+                } else {
+                  showBottomSnackBar(context, 'An unknown error occurred.');
+                  Navigator.pop(context);
+                }
+
+                setDialogState(() {
+                  isLoading = false;
+                  isCurrentPassVisible = false;
+                  isNewPassVisible = false;
+                  isRetypePassVisible = false;
+                });
               }
             }
 
@@ -350,5 +389,37 @@ class _ChangePasswordState extends State<ChangePassword> {
       ),
       onPressed: onPressed,
     );
+  }
+
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }
