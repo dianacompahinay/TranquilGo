@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:my_app/api/user_service.dart';
@@ -7,13 +8,36 @@ class UserDetailsProvider with ChangeNotifier {
   final UserDetailsService _authService = UserDetailsService();
 
   Map<String, dynamic>? _userDetails;
+  File? get profileImage => _profileImage;
   Map<String, dynamic>? get userDetails => _userDetails;
 
+  File? _profileImage;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
+
+  Future<String?> uploadUserImage(String userId, File image) async {
+    try {
+      _profileImage = image;
+      notifyListeners();
+
+      String? imageUrl =
+          await _userDetailsService.uploadProfileImage(userId, image);
+
+      if (imageUrl != null) {
+        _userDetails?['profileImage'] = imageUrl;
+        notifyListeners();
+        return imageUrl;
+      }
+
+      return "error";
+    } catch (e) {
+      print("Error uploading user image: $e");
+      return "error";
+    }
+  }
 
   Future<void> fetchUserDetails(String userId) async {
     _isLoading = true;

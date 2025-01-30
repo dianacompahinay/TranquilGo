@@ -136,13 +136,35 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                       Row(
                         children: [
                           const SizedBox(width: 8),
-                          const CircleAvatar(
-                            radius: 24,
-                            backgroundColor: Colors.white,
-                            child: Icon(Icons.person,
-                                size: 48, color: Color(0xFF73C2C4)),
+                          Consumer<UserDetailsProvider>(
+                            builder: (context, userDetailsProvider, child) {
+                              String? imageUrl = userDetailsProvider
+                                  .userDetails?['profileImage'];
+
+                              return CircleAvatar(
+                                radius: 22,
+                                backgroundColor: Colors.white,
+                                backgroundImage: imageUrl != null &&
+                                        imageUrl.isNotEmpty
+                                    ? NetworkImage(imageUrl) as ImageProvider
+                                    : null,
+                                child: imageUrl == null || imageUrl.isEmpty
+                                    ? const Icon(
+                                        Icons.person,
+                                        size: 48,
+                                        color: Color(0xFF73C2C4),
+                                      )
+                                    : null,
+                              );
+                            },
                           ),
-                          const SizedBox(width: 5),
+                          // const CircleAvatar(
+                          //   radius: 24,
+                          //   backgroundColor: Colors.white,
+                          //   child: Icon(Icons.person,
+                          //       size: 48, color: Color(0xFF73C2C4)),
+                          // ),
+                          const SizedBox(width: 12),
                           Text(
                             "${userDetails == null ? 'Username' : userDetails['username']}",
                             style: GoogleFonts.inter(
@@ -153,6 +175,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
                       const Divider(color: Color(0xFFC3C3C3), thickness: 1),
                     ],
                   ),

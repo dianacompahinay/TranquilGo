@@ -1,9 +1,66 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloudinary_sdk/cloudinary_sdk.dart';
+import 'package:image/image.dart' as img;
 
 class UserDetailsService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  // cloudinary instance
+  final cloudinary = Cloudinary.full(
+    apiKey: '483599581764523',
+    apiSecret: 'vVuK6Dnhi0rr-Qg_wFFjSKcRoAo',
+    cloudName: 'de8e3mj0x',
+  );
+
+  Future<String?> uploadProfileImage(String userId, File imageFile) async {
+    try {
+      // check if file exists
+      if (!imageFile.existsSync()) {
+        return null;
+      }
+
+      final compressedFile = await compressImage(File(imageFile.path));
+
+      // upload image to cloudinary
+      final response = await cloudinary.uploadResource(
+        CloudinaryUploadResource(
+          filePath: compressedFile.path,
+          resourceType: CloudinaryResourceType.image,
+          folder: 'profile_images',
+          publicId: "$userId${DateTime.now().millisecondsSinceEpoch}",
+          progressCallback: (count, total) {
+            print('Uploading: $count/$total');
+          },
+        ),
+      );
+
+      if (response.isSuccessful) {
+        // save url in database
+        await firestore
+            .collection('users')
+            .doc(userId)
+            .update({'profileImage': response.secureUrl});
+
+        return response.secureUrl;
+      } else {
+        // error uploading image
+        return null;
+      }
+    } catch (e) {
+      // error uploading image
+      return null;
+    }
+  }
+
+  Future<File> compressImage(File imageFile) async {
+    final rawImage = img.decodeImage(await imageFile.readAsBytes());
+    final compressed = img.encodeJpg(rawImage!, quality: 80); // adjust quality
+    final newFile = File(imageFile.path)..writeAsBytesSync(compressed);
+    return newFile;
+  }
 
   Future<Map<String, dynamic>> getUserDetails(String userId) async {
     try {
@@ -54,7 +111,7 @@ class UserDetailsService {
             .set({'email': email});
       }
 
-      // Update user document
+      // update user document
       if (updates.isNotEmpty) {
         await firestore.collection('users').doc(userId).update(updates);
       }

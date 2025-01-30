@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, avoid_print
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -150,20 +152,50 @@ class UserProfilePageState extends State<UserProfilePage> {
                                     width: 1,
                                   ),
                                 ),
-                                child: CircleAvatar(
-                                  radius: 65,
-                                  backgroundColor: Colors.white,
-                                  backgroundImage: profileImage != null
-                                      ? FileImage(profileImage!)
-                                      : null,
-                                  child: profileImage == null
-                                      ? const Icon(
-                                          Icons.person,
-                                          size: 95,
-                                          color: Color(0xFF73C2C4),
-                                        )
-                                      : null,
+                                child: Consumer<UserDetailsProvider>(
+                                  builder:
+                                      (context, userDetailsProvider, child) {
+                                    String? imageUrl = userDetailsProvider
+                                        .userDetails?['profileImage'];
+
+                                    return CircleAvatar(
+                                      radius: 65,
+                                      backgroundColor: Colors.white,
+                                      backgroundImage: profileImage != null
+                                          ? FileImage(
+                                              profileImage!) // show local file if newly uploaded
+                                          : imageUrl != null &&
+                                                  imageUrl.isNotEmpty
+                                              ? NetworkImage(imageUrl)
+                                                  as ImageProvider
+                                              : null,
+                                      child: (profileImage == null &&
+                                              (imageUrl == null ||
+                                                  imageUrl.isEmpty))
+                                          ? const Icon(
+                                              Icons.person,
+                                              size: 95,
+                                              color: Color(0xFF73C2C4),
+                                            )
+                                          : null,
+                                    );
+                                  },
                                 ),
+
+                                // CircleAvatar(
+                                //   radius: 65,
+                                //   backgroundColor: Colors.white,
+                                //   backgroundImage: profileImage != null
+                                //       ? FileImage(profileImage!)
+                                //       : null,
+                                //   child: profileImage == null
+                                //       ? const Icon(
+                                //           Icons.person,
+                                //           size: 95,
+                                //           color: Color(0xFF73C2C4),
+                                //         )
+                                //       : null,
+                                // ),
                               ),
                         // photo upload
                         isEditable
@@ -436,6 +468,22 @@ class UserProfilePageState extends State<UserProfilePage> {
           isUpdating = true;
         });
 
+        String? userId = FirebaseAuth.instance.currentUser?.uid;
+
+        // uploading user's profile image
+        if (userId != null && profileImage != null) {
+          String? uploadResult =
+              await Provider.of<UserDetailsProvider>(context, listen: false)
+                  .uploadUserImage(userId, profileImage!);
+
+          if (uploadResult == "error") {
+            showBottomSnackBar(context, "Failed to upload the image.");
+            setState(() {
+              profileImage = null;
+            });
+          }
+        }
+
         // updating the user's detail
         String? newName = nameController.text.trim() != initialName
             ? nameController.text.trim()
@@ -444,7 +492,6 @@ class UserProfilePageState extends State<UserProfilePage> {
             ? usernameController.text.trim()
             : null;
 
-        final userId = FirebaseAuth.instance.currentUser?.uid;
         if (userId != null) {
           String result =
               await Provider.of<UserDetailsProvider>(context, listen: false)
