@@ -378,6 +378,7 @@ class _SignupPageState extends State<SignupPage> {
       } catch (e) {
         showBottomSnackBar(
             context, 'An unexpected error occurred. Please try again later.');
+        Navigator.pop(context);
         print('Error: $e');
       } finally {
         setState(() {

@@ -181,21 +181,6 @@ class UserProfilePageState extends State<UserProfilePage> {
                                     );
                                   },
                                 ),
-
-                                // CircleAvatar(
-                                //   radius: 65,
-                                //   backgroundColor: Colors.white,
-                                //   backgroundImage: profileImage != null
-                                //       ? FileImage(profileImage!)
-                                //       : null,
-                                //   child: profileImage == null
-                                //       ? const Icon(
-                                //           Icons.person,
-                                //           size: 95,
-                                //           color: Color(0xFF73C2C4),
-                                //         )
-                                //       : null,
-                                // ),
                               ),
                         // photo upload
                         isEditable

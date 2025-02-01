@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_app/providers/UserProvider.dart';
 
 class FindCompanionsPage extends StatefulWidget {
   const FindCompanionsPage({super.key});
@@ -9,6 +10,8 @@ class FindCompanionsPage extends StatefulWidget {
 }
 
 class _FindCompanionsPageState extends State<FindCompanionsPage> {
+  UserDetailsProvider userList = UserDetailsProvider();
+
   final TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> users = [];
   List<Map<String, dynamic>> filteredUsers = [];
@@ -19,22 +22,34 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
     initializeUsers();
   }
 
-  void initializeUsers() {
-    users = [
-      {"username": "john_doe", "name": "John Doe", "status": "friend"},
-      {"username": "jane_smith", "name": "Jane Smith", "status": "add"},
-      {"username": "alex_jones", "name": "Alex Jones", "status": "friend"},
-      {"username": "emily_clark", "name": "Emily Clark", "status": "add"},
-      {
-        "username": "michael_brown",
-        "name": "Michael Brown",
-        "status": "friend"
-      },
-      {"username": "sarah_lee", "name": "Sarah Lee", "status": "add"},
-      {"username": "david_wright", "name": "David Wright", "status": "friend"},
-      {"username": "linda_hall", "name": "Linda Hall", "status": "add"},
-    ];
-    filteredUsers = List.from(users);
+  // void initializeUsers() {
+  //   users = [
+  //     {"username": "john_doe", "name": "John Doe", "status": "friend"},
+  //     {"username": "jane_smith", "name": "Jane Smith", "status": "add"},
+  //     {"username": "alex_jones", "name": "Alex Jones", "status": "friend"},
+  //     {"username": "emily_clark", "name": "Emily Clark", "status": "add"},
+  //     {
+  //       "username": "michael_brown",
+  //       "name": "Michael Brown",
+  //       "status": "friend"
+  //     },
+  //     {"username": "sarah_lee", "name": "Sarah Lee", "status": "add"},
+  //     {"username": "david_wright", "name": "David Wright", "status": "friend"},
+  //     {"username": "linda_hall", "name": "Linda Hall", "status": "add"},
+  //   ];
+  //   filteredUsers = List.from(users);
+  // }
+
+  Future<void> initializeUsers() async {
+    try {
+      List<Map<String, dynamic>> fetchedUsers = await userList.fetchUsers();
+      setState(() {
+        users = fetchedUsers;
+        filteredUsers = List.from(users);
+      });
+    } catch (e) {
+      print("Error fetching users: $e");
+    }
   }
 
   void addFriend(int index) {
@@ -108,7 +123,7 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
 
             // search bar
             TextField(
@@ -149,96 +164,100 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
             ),
             const SizedBox(height: 20),
 
-            Text(
-              'Search Result',
-              style: GoogleFonts.poppins(
-                textStyle: const TextStyle(
-                  color: Color(0xFF696969),
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
-              ),
-            ),
+            userList.isLoading
+                ? const SizedBox()
+                : Text(
+                    'Search Result',
+                    style: GoogleFonts.poppins(
+                      textStyle: const TextStyle(
+                        color: Color(0xFF696969),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
 
             // list of users
             Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.only(left: 10, right: 10),
-                itemCount: filteredUsers.length,
-                itemBuilder: (context, index) {
-                  final user = filteredUsers[index];
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                        vertical: 4.0,
-                        horizontal: 0.0), // Reduced vertical padding
-                    leading: Container(
-                      height: 40,
-                      width: 40,
-                      decoration: BoxDecoration(
-                        image: DecorationImage(
-                          colorFilter: ColorFilter.mode(
-                            const Color(0xFFADD8E6).withOpacity(0.5),
-                            BlendMode.overlay,
-                          ),
-                          image: const AssetImage('assets/images/user.jpg'),
-                          fit: BoxFit.contain,
-                        ),
-                        borderRadius: BorderRadius.circular(50),
+              child: userList.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF36B9A5),
+                        strokeWidth: 5,
                       ),
-                    ),
-                    title: Text(
-                      user["username"],
-                      style: GoogleFonts.poppins(
-                        textStyle: const TextStyle(
-                          color: Color(0xFF525252),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    subtitle: Text(
-                      user["name"],
-                      style: GoogleFonts.poppins(
-                        textStyle: const TextStyle(
-                          color: Color(0xFF656263),
-                          fontWeight: FontWeight.w400,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    trailing: user["status"] == "friend"
-                        ? GestureDetector(
-                            onTap: () {},
-                            child: Image.asset(
-                              'assets/icons/connected.png',
-                              width: 24,
-                              height: 24,
-                              fit: BoxFit.contain,
-                            ),
-                          )
-                        : user["status"] == "request_sent"
-                            ? GestureDetector(
-                                onTap: () {},
-                                child: Image.asset(
-                                  'assets/icons/request_sent.png',
-                                  width: 25,
-                                  height: 25,
-                                  color: const Color(0xFF73D2C3),
-                                  fit: BoxFit.contain,
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(left: 10, right: 10),
+                      itemCount: filteredUsers.length,
+                      itemBuilder: (context, index) {
+                        final user = filteredUsers[index];
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 4.0,
+                              horizontal: 0.0), // Reduced vertical padding
+                          leading: Container(
+                            height: 40,
+                            width: 40,
+                            decoration: BoxDecoration(
+                              image: DecorationImage(
+                                colorFilter: ColorFilter.mode(
+                                  const Color(0xFFADD8E6).withOpacity(0.5),
+                                  BlendMode.overlay,
                                 ),
-                              )
-                            : GestureDetector(
-                                onTap: () => addFriend(index),
-                                child: Image.asset(
-                                  'assets/icons/add_user.png',
+                                image:
+                                    const AssetImage('assets/images/user.jpg'),
+                                fit: BoxFit.contain,
+                              ),
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                          ),
+                          title: Text(
+                            user["username"],
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                color: Color(0xFF525252),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          subtitle: Text(
+                            user["name"],
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                color: Color(0xFF656263),
+                                fontWeight: FontWeight.w400,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          trailing: user["status"] == "friend"
+                              ? Image.asset(
+                                  'assets/icons/connected.png',
                                   width: 24,
                                   height: 24,
                                   fit: BoxFit.contain,
-                                ),
-                              ),
-                  );
-                },
-              ),
+                                )
+                              : user["status"] == "request_sent"
+                                  ? Image.asset(
+                                      'assets/icons/request_sent.png',
+                                      width: 25,
+                                      height: 25,
+                                      color: const Color(0xFF73D2C3),
+                                      fit: BoxFit.contain,
+                                    )
+                                  : GestureDetector(
+                                      onTap: () => addFriend(index),
+                                      child: Image.asset(
+                                        'assets/icons/add_user.png',
+                                        width: 24,
+                                        height: 24,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),

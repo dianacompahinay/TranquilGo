@@ -7,6 +7,25 @@ import 'package:image/image.dart' as img;
 class UserDetailsService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
+
+  // Future<void> createFriendsDocumentsForAllUsers() async {
+  //   // Get the list of all users
+  //   QuerySnapshot usersSnapshot = await firestore.collection("users").get();
+
+  //   // Loop through all users and create a friends document for each
+  //   for (var doc in usersSnapshot.docs) {
+  //     String userId = doc.id; // User's UID
+  //     String username =
+  //         doc["username"]; // Assuming you store usernames in 'username' field
+
+  //     // Create the friends document for this user
+  //     await firestore.collection("friends").doc(userId).set({
+  //       "username": username,
+  //       "friendList": {},
+  //     });
+  //   }
+  // }
 
   // cloudinary instance
   final cloudinary = Cloudinary.full(
@@ -14,6 +33,98 @@ class UserDetailsService {
     apiSecret: 'vVuK6Dnhi0rr-Qg_wFFjSKcRoAo',
     cloudName: 'de8e3mj0x',
   );
+
+  Future<List<Map<String, dynamic>>> fetchUsers() async {
+    try {
+      // fetch all users
+      QuerySnapshot usersSnapshot = await firestore.collection("users").get();
+
+      List<Map<String, dynamic>> usersList = [];
+
+      for (var userDoc in usersSnapshot.docs) {
+        String friendId = userDoc.id;
+        String username = userDoc['username'];
+        String name = userDoc['name'];
+
+        // get the current user's friends list
+        DocumentSnapshot friendSnapshot =
+            await firestore.collection('friends').doc(currentUserId).get();
+
+        String status = 'add'; // default status (not a friend)
+
+        if (friendSnapshot.exists) {
+          // check if the current user has a status for this user in their friendList
+          if (friendSnapshot['friendList'].containsKey(friendId)) {
+            status = friendSnapshot['friendList'][friendId]['status'];
+          }
+        }
+
+        // Don't include the current user
+        if (userDoc.id != currentUserId) {
+          usersList.add({
+            "username": username,
+            "name": name,
+            "status": status,
+          });
+        }
+      }
+
+      return usersList;
+    } catch (e) {
+      throw Exception('Failed to fetch users: ${e.toString()}');
+    }
+  }
+
+  Future<void> createFriendsDocument(String userId, String username) async {
+    await firestore
+        .collection("friends")
+        .doc(userId)
+        .set({"username": username, "friendList": {}});
+  }
+
+  Future<void> sendFriendRequest(String userId, String friendId) async {
+    await firestore.collection("friends").doc(userId).update({
+      "friendList.$friendId": {
+        "status": "request_sent",
+        "dateAdded": FieldValue.serverTimestamp(),
+      }
+    });
+
+    await firestore.collection("friends").doc(friendId).update({
+      "friendList.$userId": {
+        "status": "pending_request",
+        "dateAdded": FieldValue.serverTimestamp(),
+      }
+    });
+  }
+
+  Future<void> acceptFriendRequest(String userId, String friendId) async {
+    await firestore.collection("friends").doc(userId).update({
+      "friendList.$friendId": {
+        "status": "friend",
+        "dateAdded": FieldValue.serverTimestamp(),
+      }
+    });
+
+    await firestore.collection("friends").doc(friendId).update({
+      "friendList.$userId": {
+        "status": "friend",
+        "dateAdded": FieldValue.serverTimestamp(),
+      }
+    });
+  }
+
+  Future<void> removeFriend(String userId, String friendId) async {
+    await firestore
+        .collection("friends")
+        .doc(userId)
+        .update({"friendList.$friendId": FieldValue.delete()});
+
+    await firestore
+        .collection("friends")
+        .doc(friendId)
+        .update({"friendList.$userId": FieldValue.delete()});
+  }
 
   Future<String?> uploadProfileImage(String userId, File imageFile) async {
     try {

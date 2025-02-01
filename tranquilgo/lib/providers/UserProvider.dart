@@ -18,6 +18,23 @@ class UserDetailsProvider with ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  Future<List<Map<String, dynamic>>> fetchUsers() async {
+    List<Map<String, dynamic>> userList = [];
+    _isLoading = true;
+
+    try {
+      userList = await _userDetailsService.fetchUsers();
+      notifyListeners();
+      _isLoading = false;
+      return userList;
+    } catch (e) {
+      print('Error fetching users: $e');
+    }
+
+    _isLoading = false;
+    return []; // return empty list when there is an error
+  }
+
   Future<String?> uploadUserImage(String userId, File image) async {
     try {
       _profileImage = image;

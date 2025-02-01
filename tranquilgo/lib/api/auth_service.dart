@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/api/user_service.dart';
 
 class AuthService {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
@@ -56,37 +57,14 @@ class AuthService {
         'email': email,
       });
 
+      UserDetailsService users = UserDetailsService();
+      users.createFriendsDocument(userId, username);
+
       return userCredential.user;
     } catch (e) {
       throw Exception('Sign-up failed: ${e.toString()}');
     }
   }
-
-  // log in a user using username and password
-  // Future<User?> login(String username, String password) async {
-  //   try {
-  //     // finding the email address associated with a username
-  //     DocumentSnapshot userDoc =
-  //         await firestore.collection('usernames').doc(username).get();
-
-  //     if (!userDoc.exists) {
-  //       throw Exception('Username not found');
-  //     }
-
-  //     String email = userDoc.get('email');
-
-  //     // log in with resolved email and password
-  //     UserCredential userCredential =
-  //         await firebaseAuth.signInWithEmailAndPassword(
-  //       email: email,
-  //       password: password,
-  //     );
-
-  //     return userCredential.user;
-  //   } catch (e) {
-  //     throw Exception('Login failed: $e');
-  //   }
-  // }
 
   Future<String> login(String username, String password) async {
     try {
