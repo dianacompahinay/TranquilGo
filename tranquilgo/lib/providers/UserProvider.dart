@@ -18,12 +18,12 @@ class UserDetailsProvider with ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  Future<List<Map<String, dynamic>>> fetchUsers() async {
+  Future<List<Map<String, dynamic>>> fetchUsers(String userId) async {
     List<Map<String, dynamic>> userList = [];
     _isLoading = true;
 
     try {
-      userList = await _userDetailsService.fetchUsers();
+      userList = await _userDetailsService.fetchUsers(userId);
       notifyListeners();
       _isLoading = false;
       return userList;
@@ -33,6 +33,63 @@ class UserDetailsProvider with ChangeNotifier {
 
     _isLoading = false;
     return []; // return empty list when there is an error
+  }
+
+  Future<List<Map<String, dynamic>>> fetchFriends(String userId) async {
+    List<Map<String, dynamic>> userList = [];
+    _isLoading = true;
+
+    try {
+      userList = await _userDetailsService.fetchFriends(userId);
+      notifyListeners();
+      _isLoading = false;
+      return userList;
+    } catch (e) {
+      print('Error fetching users: $e');
+    }
+
+    _isLoading = false;
+    return []; // return empty list when there is an error
+  }
+
+  Future<String> sendFriendRequest(String userId, String friendId) async {
+    try {
+      await _userDetailsService.sendFriendRequest(userId, friendId);
+      notifyListeners();
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while sending friend request.";
+    }
+  }
+
+  Future<String> acceptFriendRequest(String userId, String friendId) async {
+    try {
+      await _userDetailsService.acceptFriendRequest(userId, friendId);
+      notifyListeners();
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while accepting friend request.";
+    }
+  }
+
+  Future<String> cancelFriendRequest(String userId, String friendId) async {
+    try {
+      await _userDetailsService.removeFriend(userId, friendId);
+      notifyListeners();
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while cancelling the friend request.";
+    }
+  }
+
+  Future<String> removeFriend(String userId, String friendId) async {
+    try {
+      await _userDetailsService.removeFriend(userId, friendId);
+      notifyListeners();
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while removing the friend.";
+    }
   }
 
   Future<String?> uploadUserImage(String userId, File image) async {

@@ -141,29 +141,53 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                               String? imageUrl = userDetailsProvider
                                   .userDetails?['profileImage'];
 
-                              return CircleAvatar(
-                                radius: 22,
-                                backgroundColor: Colors.white,
-                                backgroundImage: imageUrl != null &&
-                                        imageUrl.isNotEmpty
-                                    ? NetworkImage(imageUrl) as ImageProvider
-                                    : null,
-                                child: imageUrl == null || imageUrl.isEmpty
-                                    ? const Icon(
+                              return Container(
+                                height: 44,
+                                width: 44,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                child: imageUrl != null && imageUrl.isNotEmpty
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(50),
+                                        child: Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (context, child,
+                                              loadingProgress) {
+                                            if (loadingProgress == null) {
+                                              return child;
+                                            }
+                                            return Container(
+                                              padding: const EdgeInsets.all(12),
+                                              color: Colors.grey[50],
+                                              child: Center(
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.grey[300],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return const Icon(
+                                              Icons.person,
+                                              size: 48,
+                                              color: Color(0xFF73C2C4),
+                                            );
+                                          },
+                                        ),
+                                      )
+                                    : const Icon(
                                         Icons.person,
                                         size: 48,
                                         color: Color(0xFF73C2C4),
-                                      )
-                                    : null,
+                                      ),
                               );
                             },
                           ),
-                          // const CircleAvatar(
-                          //   radius: 24,
-                          //   backgroundColor: Colors.white,
-                          //   child: Icon(Icons.person,
-                          //       size: 48, color: Color(0xFF73C2C4)),
-                          // ),
                           const SizedBox(width: 12),
                           Text(
                             "${userDetails == null ? 'Username' : userDetails['username']}",

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_app/components/SocialMessageUser.dart';
+import 'package:provider/provider.dart';
+import 'package:my_app/providers/UserProvider.dart';
 
 class UserDetailsModal {
   static void show(BuildContext context, Map<String, dynamic> user) {
@@ -31,20 +33,58 @@ class UserDetailsModal {
               const SizedBox(height: 28),
               Row(
                 children: [
-                  Container(
-                    height: 65,
-                    width: 65,
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        colorFilter: ColorFilter.mode(
-                          const Color(0xFFADD8E6).withOpacity(0.5),
-                          BlendMode.overlay,
+                  Consumer<UserDetailsProvider>(
+                    builder: (context, userDetailsProvider, child) {
+                      String imageUrl = user['profileImage'];
+
+                      return Container(
+                        height: 65,
+                        width: 65,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(50),
                         ),
-                        image: AssetImage('${user["userimage"]}'),
-                        fit: BoxFit.contain,
-                      ),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(50),
+                          child: imageUrl != "no_image"
+                              ? Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  loadingBuilder:
+                                      (context, child, loadingProgress) {
+                                    if (loadingProgress == null) {
+                                      return child;
+                                    }
+                                    return Container(
+                                      padding: const EdgeInsets.all(12),
+                                      color: Colors.grey[50],
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.grey[300],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Image.asset(
+                                      'assets/images/user.jpg',
+                                      fit: BoxFit.cover,
+                                      color: const Color(0xFFADD8E6)
+                                          .withOpacity(0.5),
+                                      colorBlendMode: BlendMode.overlay,
+                                    );
+                                  },
+                                )
+                              : Image.asset(
+                                  'assets/images/user.jpg',
+                                  fit: BoxFit.cover,
+                                  color:
+                                      const Color(0xFFADD8E6).withOpacity(0.5),
+                                  colorBlendMode: BlendMode.overlay,
+                                ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(width: 16),
                   Expanded(

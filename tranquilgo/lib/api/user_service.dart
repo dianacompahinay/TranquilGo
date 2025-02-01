@@ -7,7 +7,6 @@ import 'package:image/image.dart' as img;
 class UserDetailsService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
-  final String currentUserId = FirebaseAuth.instance.currentUser!.uid;
 
   // Future<void> createFriendsDocumentsForAllUsers() async {
   //   // Get the list of all users
@@ -34,7 +33,7 @@ class UserDetailsService {
     cloudName: 'de8e3mj0x',
   );
 
-  Future<List<Map<String, dynamic>>> fetchUsers() async {
+  Future<List<Map<String, dynamic>>> fetchUsers(String userId) async {
     try {
       // fetch all users
       QuerySnapshot usersSnapshot = await firestore.collection("users").get();
@@ -45,10 +44,14 @@ class UserDetailsService {
         String friendId = userDoc.id;
         String username = userDoc['username'];
         String name = userDoc['name'];
+        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+        String userImage = userData.containsKey('profileImage')
+            ? userDoc['profileImage']
+            : "no_image";
 
         // get the current user's friends list
         DocumentSnapshot friendSnapshot =
-            await firestore.collection('friends').doc(currentUserId).get();
+            await firestore.collection('friends').doc(userId).get();
 
         String status = 'add'; // default status (not a friend)
 
@@ -59,9 +62,11 @@ class UserDetailsService {
           }
         }
 
-        // Don't include the current user
-        if (userDoc.id != currentUserId) {
+        // don't include the current user
+        if (userDoc.id != userId) {
           usersList.add({
+            "userId": friendId,
+            "profileImage": userImage,
             "username": username,
             "name": name,
             "status": status,
@@ -72,6 +77,58 @@ class UserDetailsService {
       return usersList;
     } catch (e) {
       throw Exception('Failed to fetch users: ${e.toString()}');
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> fetchFriends(String userId) async {
+    try {
+      DocumentSnapshot userDoc =
+          await firestore.collection("friends").doc(userId).get();
+
+      if (userDoc.exists) {
+        Map<String, dynamic> connections = userDoc['friendList'];
+
+        List<Map<String, dynamic>> friends = [];
+
+        for (var friendId in connections.keys) {
+          // fetch the friend's details from users collection
+          DocumentSnapshot friendDoc =
+              await firestore.collection("users").doc(friendId).get();
+
+          if (friendDoc.exists) {
+            if (connections[friendId]["status"] == "friend") {
+              Map<String, dynamic> friendData =
+                  friendDoc.data() as Map<String, dynamic>;
+
+              String userImage = friendData.containsKey("profileImage")
+                  ? friendDoc["profileImage"]
+                  : "no_image";
+
+              friends.add({
+                "userId": friendId,
+                "profileImage": userImage,
+                "username": friendDoc['username'],
+                "name": friendDoc['name'],
+
+                // temporary data
+                "activeStatus": "offline",
+                "steps": 2081,
+                "distance": "1.5 km",
+                "mood": 5.0,
+                "weeklySteps": 10088,
+                "weeklyDistance": "7.57 km",
+                "weeklyMood": 4.5,
+              });
+            }
+          }
+        }
+
+        return friends;
+      } else {
+        throw Exception("User document not found");
+      }
+    } catch (e) {
+      throw Exception("Error fetching friends: $e");
     }
   }
 
