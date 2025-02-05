@@ -12,13 +12,14 @@ class FindCompanionsPage extends StatefulWidget {
 }
 
 class _FindCompanionsPageState extends State<FindCompanionsPage> {
-  UserDetailsProvider userList = UserDetailsProvider();
+  UserDetailsProvider userProvider = UserDetailsProvider();
 
   final TextEditingController searchController = TextEditingController();
   List<Map<String, dynamic>> users = [];
-  List<Map<String, dynamic>> filteredUsers = [];
+  List<Map<String, dynamic>> searchedUsers = [];
   bool isConnectionFailed = false;
   bool addedNewFriend = false;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -47,18 +48,68 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
   Future<void> initializeUsers() async {
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
+    setState(() {
+      isLoading = true;
+    });
+
     try {
-      List<Map<String, dynamic>> fetchedUsers =
-          await userList.fetchUsers(userId);
-      setState(() {
-        users = fetchedUsers;
-        filteredUsers = List.from(users);
-      });
+      // get total user count
+      int totalUsers = await userProvider.getUserCount() ?? 0;
+      int fetchedCount = 0;
+
+      // fetch the first 5 users before the loop
+      List<Map<String, dynamic>> initialUsers =
+          await userProvider.fetchUsers(userId, null);
+
+      if (initialUsers.isNotEmpty) {
+        fetchedCount += initialUsers.length;
+        setState(() {
+          users.addAll(initialUsers);
+        });
+      }
+
+      // continue fetching remaining users (not including the current user)
+      while (fetchedCount < totalUsers - 1) {
+        List<Map<String, dynamic>> fetchedUsers =
+            await userProvider.fetchUsers(userId, users.last["userId"]);
+
+        if (fetchedUsers.isNotEmpty) {
+          fetchedCount += fetchedUsers.length;
+
+          setState(() {
+            users.addAll(fetchedUsers);
+          });
+          print("fetchedCount: $fetchedCount totalUsers: $totalUsers");
+
+          // when user searches, searchUsers function is called to render the loaded searched users
+          if (searchController.text.trim().isNotEmpty) {
+            searchUsers(searchController.text);
+          }
+        }
+
+        if (fetchedCount == totalUsers - 1) {
+          setState(() {
+            isLoading = false;
+          });
+          break;
+        }
+      }
     } catch (e) {
       setState(() {
+        isLoading = false;
         isConnectionFailed = true;
       });
     }
+  }
+
+  void searchUsers(String query) {
+    setState(() {
+      searchedUsers = users
+          .where((user) =>
+              user["username"].toLowerCase().contains(query.toLowerCase()) ||
+              user["name"].toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
   }
 
   void addFriend(int index, String friendId) async {
@@ -70,9 +121,9 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
 
     if (result == "success") {
       setState(() {
-        filteredUsers[index]["status"] = "request_sent";
-        final userIndex = users.indexWhere(
-            (user) => user["username"] == filteredUsers[index]["username"]);
+        users[index]["status"] = "request_sent";
+        final userIndex = users
+            .indexWhere((user) => user["username"] == users[index]["username"]);
         if (userIndex != -1) {
           users[userIndex]["status"] = "request_sent";
         }
@@ -90,9 +141,9 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
             .cancelFriendRequest(userId, friendId);
     if (result == "success") {
       setState(() {
-        filteredUsers[index]["status"] = "add";
-        final userIndex = users.indexWhere(
-            (user) => user["username"] == filteredUsers[index]["username"]);
+        users[index]["status"] = "add";
+        final userIndex = users
+            .indexWhere((user) => user["username"] == users[index]["username"]);
         if (userIndex != -1) {
           users[userIndex]["status"] = "add";
         }
@@ -111,9 +162,9 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
     if (result == "success") {
       setState(() {
         addedNewFriend = true;
-        filteredUsers[index]["status"] = "friend";
-        final userIndex = users.indexWhere(
-            (user) => user["username"] == filteredUsers[index]["username"]);
+        users[index]["status"] = "friend";
+        final userIndex = users
+            .indexWhere((user) => user["username"] == users[index]["username"]);
         if (userIndex != -1) {
           users[userIndex]["status"] = "friend";
         }
@@ -121,16 +172,6 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
     } else {
       showBottomSnackBar(context, result);
     }
-  }
-
-  void filterUsers(String query) {
-    setState(() {
-      filteredUsers = users
-          .where((user) =>
-              user["username"].toLowerCase().contains(query.toLowerCase()) ||
-              user["name"].toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    });
   }
 
   @override
@@ -194,7 +235,7 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
             TextField(
               controller: searchController,
               // filters the users by the characters in the search bar
-              onChanged: filterUsers,
+              onChanged: searchUsers,
               decoration: InputDecoration(
                 hintText: "Search",
                 hintStyle: GoogleFonts.poppins(
@@ -229,7 +270,7 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
             ),
             const SizedBox(height: 20),
 
-            userList.isLoading
+            isLoading
                 ? const SizedBox()
                 : Text(
                     'Search Result',
@@ -243,171 +284,184 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
                   ),
 
             // list of users
-            Expanded(
-              child: userList.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF36B9A5),
-                        strokeWidth: 5,
-                      ),
-                    )
-                  : isConnectionFailed
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'assets/icons/error.png',
-                                width: 32,
-                                height: 32,
-                                fit: BoxFit.contain,
-                                color: const Color(0xFF999999),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Connection Failed",
-                                style: GoogleFonts.poppins(
-                                  textStyle: const TextStyle(
-                                    color: Color(0xFF999999),
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+            isConnectionFailed
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/icons/error.png',
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.contain,
+                          color: const Color(0xFF999999),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Connection Failed",
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              color: Color(0xFF999999),
+                              fontWeight: FontWeight.w400,
+                              fontSize: 14,
+                            ),
                           ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(left: 10, right: 10),
-                          itemCount: filteredUsers.length,
-                          itemBuilder: (context, index) {
-                            final user = filteredUsers[index];
-                            return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(
-                                  vertical: 4.0, horizontal: 0.0),
-                              leading: Consumer<UserDetailsProvider>(
-                                builder: (context, userDetailsProvider, child) {
-                                  String imageUrl = user['profileImage'];
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                : Flexible(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.only(left: 10, right: 10),
+                      itemCount: searchController.text.trim().isEmpty
+                          ? users.length + (isLoading ? 1 : 0)
+                          : searchedUsers.length + (isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        int usersLength;
+                        List<Map<String, dynamic>> filteredUsers;
+                        if (searchController.text.trim().isEmpty) {
+                          usersLength = users.length;
+                          filteredUsers = users;
+                        } else {
+                          usersLength = searchedUsers.length;
+                          filteredUsers = searchedUsers;
+                        }
 
-                                  return Container(
-                                    height: 44,
-                                    width: 44,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(50),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(50),
-                                      child: imageUrl != "no_image"
-                                          ? Image.network(
-                                              imageUrl,
-                                              fit: BoxFit.cover,
-                                              loadingBuilder: (context, child,
-                                                  loadingProgress) {
-                                                if (loadingProgress == null) {
-                                                  return child;
-                                                }
-                                                return Container(
-                                                  padding:
-                                                      const EdgeInsets.all(12),
-                                                  color: Colors.grey[50],
-                                                  child: Center(
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: Colors.grey[300],
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                return Image.asset(
-                                                  'assets/images/user.jpg',
-                                                  fit: BoxFit.cover,
-                                                  color: const Color(0xFFADD8E6)
-                                                      .withOpacity(0.5),
-                                                  colorBlendMode:
-                                                      BlendMode.overlay,
-                                                );
-                                              },
-                                            )
-                                          : Image.asset(
+                        if (isLoading && index == usersLength) {
+                          return const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF36B9A5),
+                              strokeWidth: 5,
+                            ),
+                          );
+                        }
+
+                        final user = filteredUsers[index];
+
+                        return ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                              vertical: 4.0, horizontal: 0.0),
+                          leading: Consumer<UserDetailsProvider>(
+                            builder: (context, userDetailsProvider, child) {
+                              String imageUrl = user['profileImage'];
+
+                              return Container(
+                                height: 44,
+                                width: 44,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(50),
+                                  child: imageUrl != "no_image"
+                                      ? Image.network(
+                                          imageUrl,
+                                          fit: BoxFit.cover,
+                                          loadingBuilder: (context, child,
+                                              loadingProgress) {
+                                            if (loadingProgress == null) {
+                                              return child;
+                                            }
+                                            return Container(
+                                              padding: const EdgeInsets.all(12),
+                                              color: Colors.grey[50],
+                                              child: Center(
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: Colors.grey[300],
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
+                                            return Image.asset(
                                               'assets/images/user.jpg',
                                               fit: BoxFit.cover,
                                               color: const Color(0xFFADD8E6)
                                                   .withOpacity(0.5),
                                               colorBlendMode: BlendMode.overlay,
-                                            ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              title: Text(
-                                user["username"],
-                                style: GoogleFonts.poppins(
-                                  textStyle: const TextStyle(
-                                    color: Color(0xFF525252),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
+                                            );
+                                          },
+                                        )
+                                      : Image.asset(
+                                          'assets/images/user.jpg',
+                                          fit: BoxFit.cover,
+                                          color: const Color(0xFFADD8E6)
+                                              .withOpacity(0.5),
+                                          colorBlendMode: BlendMode.overlay,
+                                        ),
                                 ),
+                              );
+                            },
+                          ),
+                          title: Text(
+                            user["username"],
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                color: Color(0xFF525252),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
                               ),
-                              subtitle: Text(
-                                user["name"],
-                                style: GoogleFonts.poppins(
-                                  textStyle: const TextStyle(
-                                    color: Color(0xFF656263),
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 12,
-                                  ),
-                                ),
+                            ),
+                          ),
+                          subtitle: Text(
+                            user["name"],
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                color: Color(0xFF656263),
+                                fontWeight: FontWeight.w400,
+                                fontSize: 12,
                               ),
-                              trailing: user["status"] == "friend"
-                                  ? Image.asset(
-                                      'assets/icons/connected.png',
-                                      width: 24,
-                                      height: 24,
-                                      fit: BoxFit.contain,
+                            ),
+                          ),
+                          trailing: user["status"] == "friend"
+                              ? Image.asset(
+                                  'assets/icons/connected.png',
+                                  width: 24,
+                                  height: 24,
+                                  fit: BoxFit.contain,
+                                )
+                              : user["status"] == "request_sent"
+                                  ? GestureDetector(
+                                      onTap: () => cancelFriendRequest(
+                                          index, user['userId']),
+                                      child: Image.asset(
+                                        'assets/icons/request_sent.png',
+                                        width: 25,
+                                        height: 25,
+                                        color: const Color(0xFF73D2C3),
+                                        fit: BoxFit.contain,
+                                      ),
                                     )
-                                  : user["status"] == "request_sent"
+                                  : user["status"] == "pending_request"
                                       ? GestureDetector(
-                                          onTap: () => cancelFriendRequest(
+                                          onTap: () => acceptFriend(
                                               index, user['userId']),
                                           child: Image.asset(
-                                            'assets/icons/request_sent.png',
+                                            'assets/icons/pending_request.png',
                                             width: 25,
                                             height: 25,
                                             color: const Color(0xFF73D2C3),
                                             fit: BoxFit.contain,
                                           ),
                                         )
-                                      : user["status"] == "pending_request"
-                                          ? GestureDetector(
-                                              onTap: () => acceptFriend(
-                                                  index, user['userId']),
-                                              child: Image.asset(
-                                                'assets/icons/pending_request.png',
-                                                width: 25,
-                                                height: 25,
-                                                color: const Color(0xFF73D2C3),
-                                                fit: BoxFit.contain,
-                                              ),
-                                            )
-                                          : GestureDetector(
-                                              onTap: () => addFriend(
-                                                  index, user['userId']),
-                                              child: Image.asset(
-                                                'assets/icons/add_user.png',
-                                                width: 24,
-                                                height: 24,
-                                                fit: BoxFit.contain,
-                                              ),
-                                            ),
-                            );
-                          },
-                        ),
-            ),
+                                      : GestureDetector(
+                                          onTap: () =>
+                                              addFriend(index, user['userId']),
+                                          child: Image.asset(
+                                            'assets/icons/add_user.png',
+                                            width: 24,
+                                            height: 24,
+                                            fit: BoxFit.contain,
+                                          ),
+                                        ),
+                        );
+                      },
+                    ),
+                  ),
           ],
         ),
       ),

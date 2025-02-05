@@ -33,47 +33,59 @@ class UserDetailsService {
     cloudName: 'de8e3mj0x',
   );
 
-  Future<List<Map<String, dynamic>>> fetchUsers(String userId) async {
+  Future<List<Map<String, dynamic>>> fetchUsers(
+      String userId, String? lastUserId) async {
+    int limit = 6;
+
     try {
-      // fetch all users
-      QuerySnapshot usersSnapshot = await firestore.collection("users").get();
+      Query query = firestore
+          .collection("users")
+          .orderBy(FieldPath.documentId)
+          .limit(limit);
+
+      if (lastUserId != null) {
+        DocumentSnapshot lastDoc =
+            await firestore.collection('users').doc(lastUserId).get();
+
+        if (lastDoc.exists) {
+          query = query.startAfterDocument(lastDoc);
+        } else {
+          return [];
+        }
+      }
+
+      QuerySnapshot usersSnapshot = await query.get();
+      if (usersSnapshot.docs.isEmpty) return [];
 
       List<Map<String, dynamic>> usersList = [];
 
+      // access the friend collection to check the status between the current user and the other user
+      DocumentSnapshot friendSnapshot =
+          await firestore.collection('friends').doc(userId).get();
+
+      Map<String, dynamic> friendList =
+          friendSnapshot.exists ? friendSnapshot['friendList'] ?? {} : {};
+
       for (var userDoc in usersSnapshot.docs) {
         String friendId = userDoc.id;
-        String username = userDoc['username'];
-        String name = userDoc['name'];
         Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-        String userImage = userData.containsKey('profileImage')
-            ? userDoc['profileImage']
-            : "no_image";
+        String status = friendList.containsKey(friendId)
+            ? friendList[friendId]['status']
+            : 'add';
 
-        // get the current user's friends list
-        DocumentSnapshot friendSnapshot =
-            await firestore.collection('friends').doc(userId).get();
-
-        String status = 'add'; // default status (not a friend)
-
-        if (friendSnapshot.exists) {
-          // check if the current user has a status for this user in their friendList
-          if (friendSnapshot['friendList'].containsKey(friendId)) {
-            status = friendSnapshot['friendList'][friendId]['status'];
-          }
-        }
-
-        // don't include the current user
-        if (userDoc.id != userId) {
+        // dont include the current user
+        if (friendId != userId) {
           usersList.add({
             "userId": friendId,
-            "profileImage": userImage,
-            "username": username,
-            "name": name,
+            "profileImage": userData.containsKey('profileImage')
+                ? userData['profileImage']
+                : "no_image",
+            "username": userData['username'],
+            "name": userData['name'],
             "status": status,
           });
         }
       }
-
       return usersList;
     } catch (e) {
       throw Exception('Failed to fetch users: ${e.toString()}');

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:my_app/api/user_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserDetailsProvider with ChangeNotifier {
   final UserDetailsService _userDetailsService = UserDetailsService();
@@ -18,21 +19,26 @@ class UserDetailsProvider with ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  Future<List<Map<String, dynamic>>> fetchUsers(String userId) async {
-    List<Map<String, dynamic>> userList = [];
-    _isLoading = true;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
+  Future<List<Map<String, dynamic>>> fetchUsers(
+      String userId, String? lastUserId) async {
     try {
-      userList = await _userDetailsService.fetchUsers(userId);
-      notifyListeners();
-      _isLoading = false;
-      return userList;
+      List<Map<String, dynamic>> users =
+          await _userDetailsService.fetchUsers(userId, lastUserId);
+      return users;
     } catch (e) {
       print('Error fetching users: $e');
     }
 
-    _isLoading = false;
-    return []; // return empty list when there is an error
+    notifyListeners();
+    return [];
+  }
+
+  Future<int?> getUserCount() async {
+    AggregateQuerySnapshot query =
+        await firestore.collection("users").count().get();
+    return query.count;
   }
 
   Future<List<Map<String, dynamic>>> fetchFriends(String userId) async {
