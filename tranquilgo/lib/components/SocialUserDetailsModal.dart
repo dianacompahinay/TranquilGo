@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_app/components/SocialMessageUser.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/providers/UserProvider.dart';
 
 class UserDetailsModal {
-  static void show(BuildContext context, Map<String, dynamic> user) {
-    showModalBottomSheet(
+  static Future<String?> show(
+      BuildContext context, Map<String, dynamic> user) async {
+    return await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
@@ -114,36 +116,38 @@ class UserDetailsModal {
                       ],
                     ),
                   ),
-                  // MessageUserModal(
-                  //     userId: user["userid"], userName: user["username"]),
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const SizedBox(height: 10),
-                      IconButton(
-                        constraints: const BoxConstraints(),
-                        icon: const Icon(
-                          Icons.email_outlined,
-                          color: Color(0xFF55AC9F),
-                          size: 26,
-                        ),
-                        onPressed: () {
-                          MessageUserModal(user["userid"], user["username"])
-                              .show(context);
-                        },
-                      ),
-                      Transform.translate(
-                        offset: const Offset(0, -8),
-                        child: Text(
-                          'Message Me!',
-                          style: GoogleFonts.inter(
-                            textStyle: const TextStyle(
-                              fontWeight: FontWeight.w400,
-                              fontSize: 11,
-                              color: Color(0xFF656263),
+                      Row(
+                        children: [
+                          IconButton(
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(
+                              Icons.email,
+                              color: Color(0xFF92DBC9),
+                              size: 28,
                             ),
+                            onPressed: () {
+                              MessageUserModal(user["userId"], user["username"])
+                                  .show(context);
+                            },
                           ),
-                        ),
+                          const SizedBox(width: 5),
+                          IconButton(
+                            constraints: const BoxConstraints(),
+                            icon: const Icon(
+                              Icons.person_remove,
+                              color: Color(0xFFC5C5C5),
+                              size: 30,
+                            ),
+                            onPressed: () {
+                              confirmationToUnfriend(
+                                  context, user["userId"], user["username"]);
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -238,5 +242,144 @@ class UserDetailsModal {
         ),
       ],
     );
+  }
+
+  static void removeFriend(
+      BuildContext context, String friendId, String username) async {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
+    String result =
+        await Provider.of<UserDetailsProvider>(context, listen: false)
+            .removeFriend(userId, friendId);
+
+    if (result == "success") {
+      // close dialog and return the friendId to remove
+      Navigator.pop(context);
+      Navigator.pop(context, friendId);
+      showBottomSnackBar(context, "$username has been removed as a friend.");
+    } else {
+      Navigator.pop(context, null);
+      Navigator.pop(context, null);
+      showBottomSnackBar(context, result);
+    }
+  }
+
+  static void confirmationToUnfriend(
+      BuildContext context, String userId, String username) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          backgroundColor: Colors.white,
+          content: Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Text(
+              "Are you sure you want to remove $username as your friend?",
+              style: GoogleFonts.poppins(
+                textStyle: const TextStyle(
+                  color: Color(0xFF464646),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          actions: [
+            Container(
+              padding: EdgeInsets.zero,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // close dialog
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      minimumSize: const Size(120, 32),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                        side: const BorderSide(
+                          color: Color(0xFFB1B1B1),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          color: Color(0xFF4C4B4B),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      removeFriend(context, userId, username);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF55AC9F),
+                      minimumSize: const Size(120, 32),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                    child: Text(
+                      'Confirm',
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  static void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }

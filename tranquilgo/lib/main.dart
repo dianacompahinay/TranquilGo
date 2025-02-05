@@ -72,9 +72,17 @@ class MainApp extends StatelessWidget {
         '/addentry': (context) => const AddJournalPage(),
         '/addlog': (context) => const AddGratitudeLogPage(),
         '/gratitudelogs': (context) => const GratitudeLogs(),
-        '/searchusers': (context) => const FindCompanionsPage(),
+        // '/searchusers': (context) => const FindCompanionsPage(),
         '/notifs': (context) => const NotificationsPage(),
         '/walk': (context) => const WalkingTracker(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/searchusers') {
+          return MaterialPageRoute<String?>(
+            builder: (context) => const FindCompanionsPage(),
+          );
+        }
+        return null;
       },
     );
   }

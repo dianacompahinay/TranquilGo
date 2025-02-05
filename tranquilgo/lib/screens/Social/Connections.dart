@@ -129,8 +129,16 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                             itemCount: users.length,
                             itemBuilder: (context, index) {
                               return GestureDetector(
-                                onTap: () => UserDetailsModal.show(
-                                    context, users[index]),
+                                onTap: () async {
+                                  // UserDetailsModal.show(context, users[index]);
+                                  String? result = await UserDetailsModal.show(
+                                      context, users[index]);
+
+                                  if (result != null && result.isNotEmpty) {
+                                    await initializeFriends();
+                                    setState(() {});
+                                  }
+                                },
                                 child: Container(
                                   margin:
                                       const EdgeInsets.only(bottom: 6, top: 8),
@@ -281,8 +289,13 @@ class _ConnectionsPageState extends State<ConnectionsPage> {
                 width: 55,
                 height: 55,
                 child: FloatingActionButton(
-                  onPressed: () =>
-                      {Navigator.pushNamed(context, '/searchusers')},
+                  onPressed: () async {
+                    String? result =
+                        await Navigator.pushNamed(context, '/searchusers');
+                    if (result != null && result.isNotEmpty) {
+                      initializeFriends();
+                    }
+                  },
                   backgroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(50),

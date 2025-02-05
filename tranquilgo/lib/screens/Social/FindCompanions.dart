@@ -18,6 +18,7 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
   List<Map<String, dynamic>> users = [];
   List<Map<String, dynamic>> filteredUsers = [];
   bool isConnectionFailed = false;
+  bool addedNewFriend = false;
 
   @override
   void initState() {
@@ -109,6 +110,7 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
             .acceptFriendRequest(userId, friendId);
     if (result == "success") {
       setState(() {
+        addedNewFriend = true;
         filteredUsers[index]["status"] = "friend";
         final userIndex = users.indexWhere(
             (user) => user["username"] == filteredUsers[index]["username"]);
@@ -159,7 +161,12 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
               ),
             ),
             onPressed: () {
-              Navigator.pop(context);
+              // to call initialize friends when there are changes
+              if (addedNewFriend) {
+                Navigator.pop(context, "newFriendAdded");
+              } else {
+                Navigator.pop(context);
+              }
             },
           ),
         ),

@@ -129,9 +129,9 @@ class MessageUserModal {
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              minimumSize: const Size(120, 38),
+                              minimumSize: const Size(120, 34),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.0),
+                                borderRadius: BorderRadius.circular(5),
                                 side: const BorderSide(
                                   color: Color(0xFFB1B1B1),
                                   width: 1,
@@ -166,9 +166,9 @@ class MessageUserModal {
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF55AC9F),
-                              minimumSize: const Size(120, 38),
+                              minimumSize: const Size(120, 34),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.0),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                             ),
                             child: Text(
