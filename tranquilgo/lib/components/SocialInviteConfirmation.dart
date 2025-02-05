@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class InviteConfirmationModal {
-  final String userId;
+  final String senderId;
   final String userName;
   final Map<String, dynamic> details;
   final String status;
 
   const InviteConfirmationModal(
-      this.userId, this.userName, this.details, this.status);
+      this.senderId, this.userName, this.details, this.status);
 
   void show(BuildContext context) {
     showDialog(

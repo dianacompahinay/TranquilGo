@@ -54,7 +54,7 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
 
     try {
       // get total user count
-      int totalUsers = await userProvider.getUserCount() ?? 0;
+      int totalUsers = await userProvider.getUsersCount() ?? 0;
       int fetchedCount = 0;
 
       // fetch the first 5 users before the loop

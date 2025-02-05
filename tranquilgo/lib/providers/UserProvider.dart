@@ -21,24 +21,24 @@ class UserDetailsProvider with ChangeNotifier {
 
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
+  Future<int?> getUsersCount() async {
+    AggregateQuerySnapshot query =
+        await firestore.collection("users").count().get();
+    return query.count;
+  }
+
   Future<List<Map<String, dynamic>>> fetchUsers(
       String userId, String? lastUserId) async {
     try {
       List<Map<String, dynamic>> users =
           await _userDetailsService.fetchUsers(userId, lastUserId);
+      notifyListeners();
       return users;
     } catch (e) {
       print('Error fetching users: $e');
     }
 
-    notifyListeners();
     return [];
-  }
-
-  Future<int?> getUserCount() async {
-    AggregateQuerySnapshot query =
-        await firestore.collection("users").count().get();
-    return query.count;
   }
 
   Future<List<Map<String, dynamic>>> fetchFriends(String userId) async {
@@ -75,6 +75,16 @@ class UserDetailsProvider with ChangeNotifier {
       return "success";
     } catch (e) {
       return "Unexpected error occurred while accepting friend request.";
+    }
+  }
+
+  Future<String> rejectFriendRequest(String userId, String friendId) async {
+    try {
+      await _userDetailsService.removeFriend(userId, friendId);
+      notifyListeners();
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while rejecting friend request.";
     }
   }
 

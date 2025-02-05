@@ -3,10 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloudinary_sdk/cloudinary_sdk.dart';
 import 'package:image/image.dart' as img;
+import 'package:my_app/api/notif_service.dart';
 
 class UserDetailsService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final NotificationsService notif = NotificationsService();
 
   // Future<void> createFriendsDocumentsForAllUsers() async {
   //   // Get the list of all users
@@ -145,54 +147,72 @@ class UserDetailsService {
   }
 
   Future<void> createFriendsDocument(String userId, String username) async {
-    await firestore
-        .collection("friends")
-        .doc(userId)
-        .set({"username": username, "friendList": {}});
+    try {
+      await firestore
+          .collection("friends")
+          .doc(userId)
+          .set({"username": username, "friendList": {}});
+    } catch (e) {
+      throw Exception('Failed to create friend user: ${e.toString()}');
+    }
   }
 
   Future<void> sendFriendRequest(String userId, String friendId) async {
-    await firestore.collection("friends").doc(userId).update({
-      "friendList.$friendId": {
-        "status": "request_sent",
-        "dateAdded": FieldValue.serverTimestamp(),
-      }
-    });
+    try {
+      await firestore.collection("friends").doc(userId).update({
+        "friendList.$friendId": {
+          "status": "request_sent",
+          "dateAdded": FieldValue.serverTimestamp(),
+        }
+      });
 
-    await firestore.collection("friends").doc(friendId).update({
-      "friendList.$userId": {
-        "status": "pending_request",
-        "dateAdded": FieldValue.serverTimestamp(),
-      }
-    });
+      await firestore.collection("friends").doc(friendId).update({
+        "friendList.$userId": {
+          "status": "pending_request",
+          "dateAdded": FieldValue.serverTimestamp(),
+        }
+      });
+
+      await notif.createFriendRequestNotif(userId, friendId);
+    } catch (e) {
+      throw Exception('Failed to send friend request: ${e.toString()}');
+    }
   }
 
   Future<void> acceptFriendRequest(String userId, String friendId) async {
-    await firestore.collection("friends").doc(userId).update({
-      "friendList.$friendId": {
-        "status": "friend",
-        "dateAdded": FieldValue.serverTimestamp(),
-      }
-    });
+    try {
+      await firestore.collection("friends").doc(userId).update({
+        "friendList.$friendId": {
+          "status": "friend",
+          "dateAdded": FieldValue.serverTimestamp(),
+        }
+      });
 
-    await firestore.collection("friends").doc(friendId).update({
-      "friendList.$userId": {
-        "status": "friend",
-        "dateAdded": FieldValue.serverTimestamp(),
-      }
-    });
+      await firestore.collection("friends").doc(friendId).update({
+        "friendList.$userId": {
+          "status": "friend",
+          "dateAdded": FieldValue.serverTimestamp(),
+        }
+      });
+    } catch (e) {
+      throw Exception('Failed to accept friend request: ${e.toString()}');
+    }
   }
 
   Future<void> removeFriend(String userId, String friendId) async {
-    await firestore
-        .collection("friends")
-        .doc(userId)
-        .update({"friendList.$friendId": FieldValue.delete()});
+    try {
+      await firestore
+          .collection("friends")
+          .doc(userId)
+          .update({"friendList.$friendId": FieldValue.delete()});
 
-    await firestore
-        .collection("friends")
-        .doc(friendId)
-        .update({"friendList.$userId": FieldValue.delete()});
+      await firestore
+          .collection("friends")
+          .doc(friendId)
+          .update({"friendList.$userId": FieldValue.delete()});
+    } catch (e) {
+      throw Exception('Failed to remove friend: ${e.toString()}');
+    }
   }
 
   Future<String?> uploadProfileImage(String userId, File imageFile) async {

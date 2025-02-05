@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/AuthProvider.dart';
 import 'providers/UserProvider.dart';
+import 'providers/NotifProvider.dart';
 
 import 'screens/Auth/LandingPage.dart';
 import 'screens/Auth/LoginPage.dart';
@@ -35,6 +36,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: ((context) => AuthenticationProvider())),
         ChangeNotifierProvider(create: ((context) => UserDetailsProvider())),
+        ChangeNotifierProvider(create: ((context) => NotificationsProvider())),
       ],
       child: const MainApp(),
     ),

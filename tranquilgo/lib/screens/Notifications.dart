@@ -3,6 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:my_app/components/SocialReceivedMessage.dart';
 import 'package:my_app/components/SocialInviteConfirmation.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:my_app/providers/UserProvider.dart';
+import 'package:my_app/providers/NotifProvider.dart';
+
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
 
@@ -11,73 +16,145 @@ class NotificationsPage extends StatefulWidget {
 }
 
 class NotificationsPageState extends State<NotificationsPage> {
-  int selectedTabIndex = 0;
+  NotificationsProvider notifProvider = NotificationsProvider();
+  List<Map<String, dynamic>> allNotifications = [];
 
-  List<Map<String, dynamic>> allNotifications = [
-    {
-      "type": "friend_request",
-      "userid": "0",
-      "username": "John Doe",
-      "userImage": "assets/images/user.jpg",
-      "time": "2m",
-      "status": "pending",
-      "isRead": false,
-    },
-    {
-      "type": "walk_invitation",
-      "userid": "1",
-      "username": "Alice",
-      "userImage": "assets/images/user.jpg",
-      "details": [
-        {
-          "date": "January 12, 2025",
-          "weekday": "Sunday",
-          "time": "4:00 PM",
-          "location": "Central Park",
-          "message": ""
+  int selectedTabIndex = 0;
+  bool isLoading = false;
+  bool isConnectionFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeNotifications();
+  }
+
+  Future<void> initializeNotifications() async {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // get total user count
+      int totalNotifs = await notifProvider.getUserNotifsCount(userId) ?? 0;
+      int fetchedCount = 0;
+
+      // fetch the first 5 users before the loop
+      List<Map<String, dynamic>> initialNotifs =
+          await notifProvider.fetchNotifications(userId, null);
+
+      if (initialNotifs.isNotEmpty) {
+        fetchedCount += initialNotifs.length;
+        setState(() {
+          allNotifications.addAll(initialNotifs);
+        });
+      }
+      if (fetchedCount == totalNotifs) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+      // continue fetching remaining users (not including the current user)
+      while (fetchedCount < totalNotifs) {
+        List<Map<String, dynamic>> fetchedUsers =
+            await notifProvider.fetchNotifications(
+                userId, allNotifications.last["notificationId"]);
+
+        if (fetchedUsers.isNotEmpty) {
+          fetchedCount += fetchedUsers.length;
+
+          setState(() {
+            allNotifications.addAll(fetchedUsers);
+          });
+          print("fetchedCount: $fetchedCount totalNotifs: $totalNotifs");
+
+          // // when user select another tab, render the recently loaded filtered notifications
+          // if (selectedTabIndex != 0) {
+          //   searchUsers(searchController.text);
+          // }
         }
-      ],
-      "time": "5h",
-      "status": "pending",
-      "isRead": false,
-    },
-    {
-      "type": "message",
-      "userid": "2",
-      "username": "Bob",
-      "userImage": "assets/images/user.jpg",
-      "content": "Hello! How have you been.",
-      "time": "3d",
-      "isRead": false,
-    },
-    {
-      "type": "friend_request",
-      "userid": "3",
-      "username": "Emma",
-      "userImage": "assets/images/user.jpg",
-      "time": "5d",
-      "status": "accepted",
-      "isRead": true,
-    },
-    {
-      "type": "walk_invitation",
-      "userid": "4",
-      "username": "Chris",
-      "userImage": "assets/images/user.jpg",
-      "details": [
-        {
-          "date": "January 3, 2025",
-          "weekday": "Friday",
-          "time": "5:00 PM",
-          "location": "City Square",
-          "message": ""
+
+        if (fetchedCount == totalNotifs) {
+          setState(() {
+            isLoading = false;
+          });
+          break;
         }
-      ],
-      "time": "8d",
-      "status": "accepted",
-      "isRead": true,
-    },
-  ];
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        isConnectionFailed = true;
+      });
+    }
+  }
+  // List<Map<String, dynamic>> allNotifications = [
+  //   {
+  //     "type": "friend_request",
+  //     "senderId": "0",
+  //     "username": "John Doe",
+  //     "profileImage": "assets/images/user.jpg",
+  //     "time": "2m",
+  //     "status": "pending",
+  //     "isRead": false,
+  //   },
+  //   {
+  //     "type": "walk_invitation",
+  //     "senderId": "1",
+  //     "username": "Alice",
+  //     "profileImage": "assets/images/user.jpg",
+  //     "details": [
+  //       {
+  //         "date": "January 12, 2025",
+  //         "weekday": "Sunday",
+  //         "time": "4:00 PM",
+  //         "location": "Central Park",
+  //         "message": ""
+  //       }
+  //     ],
+  //     "time": "5h",
+  //     "status": "pending",
+  //     "isRead": false,
+  //   },
+  //   {
+  //     "type": "message",
+  //     "senderId": "2",
+  //     "username": "Bob",
+  //     "profileImage": "assets/images/user.jpg",
+  //     "content": "Hello! How have you been.",
+  //     "time": "3d",
+  //     "isRead": false,
+  //   },
+  //   {
+  //     "type": "friend_request",
+  //     "senderId": "3",
+  //     "username": "Emma",
+  //     "profileImage": "assets/images/user.jpg",
+  //     "time": "5d",
+  //     "status": "accepted",
+  //     "isRead": true,
+  //   },
+  //   {
+  //     "type": "walk_invitation",
+  //     "senderId": "4",
+  //     "username": "Chris",
+  //     "profileImage": "assets/images/user.jpg",
+  //     "details": [
+  //       {
+  //         "date": "January 3, 2025",
+  //         "weekday": "Friday",
+  //         "time": "5:00 PM",
+  //         "location": "City Square",
+  //         "message": ""
+  //       }
+  //     ],
+  //     "time": "8d",
+  //     "status": "accepted",
+  //     "isRead": true,
+  //   },
+  // ];
 
   @override
   Widget build(BuildContext context) {
@@ -133,32 +210,44 @@ class NotificationsPageState extends State<NotificationsPage> {
             Expanded(
               child: ListView.separated(
                 padding: EdgeInsets.zero,
-                itemCount: filteredNotifications.length,
+                itemCount: filteredNotifications.length + (isLoading ? 1 : 0),
                 separatorBuilder: (context, index) => const Divider(
                     height: 1,
                     indent: 26,
                     endIndent: 8,
                     color: Color(0xFFE1E1E1)),
                 itemBuilder: (context, index) {
+                  if (isLoading && index == filteredNotifications.length) {
+                    return Container(
+                        padding: const EdgeInsets.only(top: 25),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF36B9A5),
+                            strokeWidth: 5,
+                          ),
+                        ));
+                  }
+
                   final notif = filteredNotifications[index];
+
                   return GestureDetector(
                     onTap: () => {
                       if (notif["type"] == "message")
                         {
-                          ReceivedMessageModal(notif["userid"],
+                          ReceivedMessageModal(notif["senderId"],
                                   notif["username"], notif["content"])
                               .show(context),
-                          setReadStatusToTrue(index)
+                          setReadStatusToTrue(index, notif["notifId"])
                         },
                       if (notif["type"] == "walk_invitation")
                         {
                           InviteConfirmationModal(
-                                  notif["userid"],
+                                  notif["senderId"],
                                   notif["username"],
                                   notif["details"][0],
                                   notif["status"])
                               .show(context),
-                          setReadStatusToTrue(index)
+                          setReadStatusToTrue(index, notif["notifId"])
                         }
                     },
                     child: Padding(
@@ -167,24 +256,64 @@ class NotificationsPageState extends State<NotificationsPage> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // User image and unread indicator
                           Stack(
                             children: [
-                              Container(
-                                margin: const EdgeInsets.only(left: 8),
-                                height: 42,
-                                width: 42,
-                                decoration: BoxDecoration(
-                                  image: DecorationImage(
-                                    colorFilter: ColorFilter.mode(
-                                      const Color(0xFFADD8E6).withOpacity(0.5),
-                                      BlendMode.overlay,
+                              Consumer<UserDetailsProvider>(
+                                builder: (context, userDetailsProvider, child) {
+                                  String imageUrl = notif['profileImage'];
+                                  return Container(
+                                    margin: const EdgeInsets.only(left: 8),
+                                    height: 42,
+                                    width: 42,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(50),
                                     ),
-                                    image: AssetImage('${notif["userImage"]}'),
-                                    fit: BoxFit.contain,
-                                  ),
-                                  borderRadius: BorderRadius.circular(50),
-                                ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(50),
+                                      child: imageUrl != "no_image"
+                                          ? Image.network(
+                                              imageUrl,
+                                              fit: BoxFit.cover,
+                                              loadingBuilder: (context, child,
+                                                  loadingProgress) {
+                                                if (loadingProgress == null) {
+                                                  return child;
+                                                }
+                                                return Container(
+                                                  padding:
+                                                      const EdgeInsets.all(12),
+                                                  color: Colors.grey[50],
+                                                  child: Center(
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: Colors.grey[300],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return Image.asset(
+                                                  'assets/images/user.jpg',
+                                                  fit: BoxFit.cover,
+                                                  color: const Color(0xFFADD8E6)
+                                                      .withOpacity(0.5),
+                                                  colorBlendMode:
+                                                      BlendMode.overlay,
+                                                );
+                                              },
+                                            )
+                                          : Image.asset(
+                                              'assets/images/user.jpg',
+                                              fit: BoxFit.cover,
+                                              color: const Color(0xFFADD8E6)
+                                                  .withOpacity(0.5),
+                                              colorBlendMode: BlendMode.overlay,
+                                            ),
+                                    ),
+                                  );
+                                },
                               ),
                               if (!notif["isRead"])
                                 Transform.translate(
@@ -257,8 +386,11 @@ class NotificationsPageState extends State<NotificationsPage> {
                                             horizontal: 8, vertical: 0),
                                         child: TextButton(
                                           onPressed: () => {
-                                            onAccept(index),
-                                            setReadStatusToTrue(index)
+                                            onAccept(
+                                                index,
+                                                notif["receiverId"],
+                                                notif["senderId"],
+                                                notif["notifId"]),
                                           },
                                           style: TextButton.styleFrom(
                                             foregroundColor: Colors.white,
@@ -287,8 +419,11 @@ class NotificationsPageState extends State<NotificationsPage> {
                                             horizontal: 8, vertical: 0),
                                         child: TextButton(
                                           onPressed: () => {
-                                            onDecline(index),
-                                            setReadStatusToTrue(index)
+                                            onDecline(
+                                                index,
+                                                notif["receiverId"],
+                                                notif["senderId"],
+                                                notif["notifId"]),
                                           },
                                           style: TextButton.styleFrom(
                                             foregroundColor:
@@ -516,27 +651,83 @@ class NotificationsPageState extends State<NotificationsPage> {
     });
   }
 
-  void setReadStatusToTrue(int index) {
+  void setReadStatusToTrue(int index, String notificationId) async {
     setState(() {
       filteredNotifications[index]["isRead"] = true;
     });
+    await Provider.of<NotificationsProvider>(context, listen: false)
+        .markAsRead(notificationId);
   }
 
-  void onAccept(int index) {
-    setState(() {
-      filteredNotifications[index]["status"] = "accepted";
-    });
+  void onAccept(int index, String receiverId, String senderId,
+      String notificationId) async {
+    setReadStatusToTrue(index, notificationId);
+
+    String result =
+        await Provider.of<NotificationsProvider>(context, listen: false)
+            .acceptFriendRequest(receiverId, senderId, notificationId);
+
+    if (result == "success") {
+      setState(() {
+        filteredNotifications[index]["status"] = "accepted";
+      });
+    } else {
+      showBottomSnackBar(context, result);
+    }
   }
 
-  void onDecline(int index) {
-    setState(() {
-      filteredNotifications[index]["status"] = "declined";
-    });
+  void onDecline(int index, String receiverId, String senderId,
+      String notificationId) async {
+    setReadStatusToTrue(index, notificationId);
+
+    String result =
+        await Provider.of<NotificationsProvider>(context, listen: false)
+            .rejectFriendRequest(receiverId, senderId, notificationId);
+
+    if (result == "success") {
+      setState(() {
+        filteredNotifications[index]["status"] = "declined";
+      });
+    } else {
+      showBottomSnackBar(context, result);
+    }
   }
 
   void onDelete(int index) {
     setState(() {
       filteredNotifications.removeAt(index);
+    });
+  }
+
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
     });
   }
 }

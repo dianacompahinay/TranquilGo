@@ -3,11 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:my_app/components/SocialMessageUser.dart';
 
 class ReceivedMessageModal {
-  final String userId;
+  final String senderId;
   final String userName;
   final String content;
 
-  ReceivedMessageModal(this.userId, this.userName, this.content);
+  ReceivedMessageModal(this.senderId, this.userName, this.content);
 
   void show(BuildContext context) {
     showDialog(
@@ -92,7 +92,7 @@ class ReceivedMessageModal {
                           onTap: () => {
                             // close the modal first then open the message user modal
                             Navigator.of(context).pop(),
-                            MessageUserModal(userId, userName).show(context)
+                            MessageUserModal(senderId, userName).show(context)
                           },
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.end,
