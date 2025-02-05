@@ -2,7 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
-class GratitudeLogs extends StatelessWidget {
+// class GratitudeLogs extends StatelessWidget {
+
+class GratitudeLogs extends StatefulWidget {
+  const GratitudeLogs({super.key});
+
+  @override
+  _GratitudeLogsState createState() => _GratitudeLogsState();
+}
+
+class _GratitudeLogsState extends State<GratitudeLogs> {
+  bool deleteMode = false;
+
   static const List<Map<String, String>> logs = [
     {'date': '', 'content': ''}, // filler
     {
@@ -44,8 +55,6 @@ class GratitudeLogs extends StatelessWidget {
           'Grateful for the support of friends and family during tough times.'
     },
   ];
-
-  const GratitudeLogs({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -238,13 +247,15 @@ class GratitudeLogs extends StatelessWidget {
               ),
             ],
           ),
+
+          // add log
           Positioned(
-            bottom: 10,
-            right: 10,
+            bottom: 15,
+            right: 15,
             child: SizedBox(
               height: 38,
               child: FloatingActionButton.extended(
-                onPressed: () => {Navigator.pushNamed(context, '/addlog')},
+                onPressed: () => Navigator.pushNamed(context, '/addlog'),
                 label: Text(
                   'Add log',
                   style: GoogleFonts.poppins(
@@ -267,58 +278,237 @@ class GratitudeLogs extends StatelessWidget {
               ),
             ),
           ),
+
+          // delete logs
+          Positioned(
+            bottom: 15,
+            left: 16,
+            child: SizedBox(
+              child: GestureDetector(
+                onTap: () => {
+                  setState(() {
+                    deleteMode = !deleteMode;
+                  })
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(13),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.4),
+                        spreadRadius: 1,
+                        blurRadius: 2,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.delete_forever,
+                    color: deleteMode
+                        ? const Color(0xFFE45151)
+                        : const Color(0xFF8F8F8F),
+                    size: 25,
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
   Widget buildLogCard(Map<String, String> log) {
-    return Container(
-      height: 160,
-      padding: const EdgeInsets.all(14.0),
-      margin: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(7),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.6),
-            spreadRadius: 0,
-            blurRadius: 2,
-            offset: const Offset(0, 1),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 8),
-          Text(
-            log['date']!,
-            style: GoogleFonts.poppins(
-              textStyle: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: Colors.black54,
+    return Stack(
+      children: [
+        Container(
+          height: 160,
+          padding: const EdgeInsets.all(14.0),
+          margin: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(7),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.6),
+                spreadRadius: 0,
+                blurRadius: 2,
+                offset: const Offset(0, 1),
               ),
-            ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: Text(
-              log['content']!,
-              style: GoogleFonts.poppins(
-                textStyle: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.black87,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              Text(
+                log['date']!,
+                style: GoogleFonts.poppins(
+                  textStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black54,
+                  ),
                 ),
               ),
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
+              const SizedBox(height: 8),
+              Expanded(
+                child: Text(
+                  log['content']!,
+                  style: GoogleFonts.poppins(
+                    textStyle: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        deleteMode
+            ? Positioned(
+                top: 5,
+                right: 0,
+                child: IconButton(
+                  // handle delete
+                  onPressed: () =>
+                      confirmationToDelete(context, "logId", log['date']!),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Color(0xFF8F8F8F),
+                    size: 22,
+                  ),
+                ),
+              )
+            : const SizedBox(),
+      ],
+    );
+  }
+
+  static void confirmationToDelete(
+      BuildContext context, String logId, String date) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          backgroundColor: Colors.white,
+          content: Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Text(
+              "Are you sure you want to permanently delete the log from $date?",
+              style: GoogleFonts.poppins(
+                textStyle: const TextStyle(
+                  color: Color(0xFF464646),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+              textAlign: TextAlign.center,
             ),
           ),
-        ],
+          actions: [
+            Container(
+              padding: EdgeInsets.zero,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // close dialog
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      minimumSize: const Size(120, 32),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                        side: const BorderSide(
+                          color: Color(0xFFB1B1B1),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      'Cancel',
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          color: Color(0xFF4C4B4B),
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    onPressed: () {
+                      // delete log
+                      showBottomSnackBar(
+                          context, "Log has been deleted successfully.");
+                      Navigator.of(context).pop(); // close dialog
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF55AC9F),
+                      minimumSize: const Size(120, 32),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                    child: Text(
+                      'Confirm',
+                      style: GoogleFonts.poppins(
+                        textStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  static void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
       ),
     );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }
