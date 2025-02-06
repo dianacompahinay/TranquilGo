@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/api/notif_service.dart';
-import 'package:my_app/providers/UserProvider.dart';
+import 'package:my_app/api/user_service.dart';
 
 class NotificationsProvider with ChangeNotifier {
   final NotificationsService notifService = NotificationsService();
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
-  final UserDetailsProvider userDetailsProvider = UserDetailsProvider();
-
-  get userDetailsService => null;
+  final UserDetailsService userDetailsService = UserDetailsService();
 
   Future<int?> getUserNotifsCount(String userId) async {
     AggregateQuerySnapshot query = await firestore
@@ -40,6 +38,9 @@ class NotificationsProvider with ChangeNotifier {
       notifyListeners();
       await notifService.updateFriendRequestNotif(notificationId, "accepted");
       notifyListeners();
+      await notifService.createFriendRequestUpdateNotif(
+          receiverId, senderId, "accepted");
+      notifyListeners();
 
       return "success";
     } catch (e) {
@@ -57,7 +58,17 @@ class NotificationsProvider with ChangeNotifier {
 
       return "success";
     } catch (e) {
-      return "Unexpected error occurred while declining friend request.";
+      return "Unexpected error occurred while declining friend request. $e";
+    }
+  }
+
+  Future<String> deleteNotif(String notificationId) async {
+    try {
+      await notifService.deleteNotif(notificationId);
+      notifyListeners();
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while deleting the notification.";
     }
   }
 

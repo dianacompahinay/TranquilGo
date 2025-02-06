@@ -21,6 +21,9 @@ class DashboardWithNavigation extends StatefulWidget {
 }
 
 class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<SocialPageState> socialPageKey = GlobalKey<SocialPageState>();
+
   int currentIndex = 0;
 
   final List<String> pagesTitle = [
@@ -30,20 +33,21 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
     'Statistics'
   ];
 
-  // list of pages for each tab
-  final List<Widget> pages = [
-    const Dashboard(),
-    const Mindfulness(),
-    const SocialPage(),
-    StatisticsPage(),
-  ];
-
+  late List<Widget> pages;
   late PageController pageController;
 
   @override
   void initState() {
     super.initState();
     pageController = PageController();
+
+    // list of pages for each tab
+    pages = [
+      const Dashboard(),
+      const Mindfulness(),
+      SocialPage(key: socialPageKey), // Assign the key inside initState
+      StatisticsPage(),
+    ];
 
     // for fetching username in sidebar profile
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -60,8 +64,6 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
     pageController.dispose();
     super.dispose();
   }
-
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
@@ -96,8 +98,14 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                 color: Color(0xFF110000),
               ),
               iconSize: 26,
-              onPressed: () {
-                Navigator.pushNamed(context, '/notifs');
+              onPressed: () async {
+                // Navigator.pushNamed(context, '/notifs');
+                final result = await Navigator.pushNamed(context, '/notifs');
+
+                if (result == "newFriendAdded") {
+                  // call a method in Companions to refresh user list
+                  socialPageKey.currentState?.refreshConnections();
+                }
               },
             ),
           ),

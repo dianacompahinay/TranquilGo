@@ -1,12 +1,14 @@
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:my_app/api/user_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_app/api/notif_service.dart';
 
 class UserDetailsProvider with ChangeNotifier {
   final UserDetailsService _userDetailsService = UserDetailsService();
   final UserDetailsService _authService = UserDetailsService();
+  final NotificationsService _notifService = NotificationsService();
 
   Map<String, dynamic>? _userDetails;
   File? get profileImage => _profileImage;
@@ -72,6 +74,17 @@ class UserDetailsProvider with ChangeNotifier {
     try {
       await _userDetailsService.acceptFriendRequest(userId, friendId);
       notifyListeners();
+
+      // create and update notifications
+      await _notifService.createFriendRequestUpdateNotif(
+          userId, friendId, "accepted");
+      notifyListeners();
+
+      String notificationId =
+          await _notifService.getFriendRequestNotifId(friendId, userId);
+      await _notifService.updateFriendRequestNotif(notificationId, "accepted");
+      notifyListeners();
+
       return "success";
     } catch (e) {
       return "Unexpected error occurred while accepting friend request.";

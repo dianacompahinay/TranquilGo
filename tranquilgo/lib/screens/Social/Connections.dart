@@ -7,13 +7,13 @@ import 'package:provider/provider.dart';
 import 'package:my_app/providers/UserProvider.dart';
 
 class ConnectionsPage extends StatefulWidget {
-  const ConnectionsPage({super.key});
+  const ConnectionsPage({Key? key}) : super(key: key);
 
   @override
-  _ConnectionsPageState createState() => _ConnectionsPageState();
+  ConnectionsPageState createState() => ConnectionsPageState();
 }
 
-class _ConnectionsPageState extends State<ConnectionsPage> {
+class ConnectionsPageState extends State<ConnectionsPage> {
   UserDetailsProvider userList = UserDetailsProvider();
   List<Map<String, dynamic>> users = [];
   bool isConnectionFailed = false;

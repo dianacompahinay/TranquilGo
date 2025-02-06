@@ -22,6 +22,7 @@ class NotificationsPageState extends State<NotificationsPage> {
   int selectedTabIndex = 0;
   bool isLoading = false;
   bool isConnectionFailed = false;
+  bool addedNewFriend = false;
 
   @override
   void initState() {
@@ -58,15 +59,15 @@ class NotificationsPageState extends State<NotificationsPage> {
       }
       // continue fetching remaining users (not including the current user)
       while (fetchedCount < totalNotifs) {
-        List<Map<String, dynamic>> fetchedUsers =
+        List<Map<String, dynamic>> fetchedNotifs =
             await notifProvider.fetchNotifications(
                 userId, allNotifications.last["notificationId"]);
 
-        if (fetchedUsers.isNotEmpty) {
-          fetchedCount += fetchedUsers.length;
+        if (fetchedNotifs.isNotEmpty) {
+          fetchedCount += fetchedNotifs.length;
 
           setState(() {
-            allNotifications.addAll(fetchedUsers);
+            allNotifications.addAll(fetchedNotifs);
           });
           print("fetchedCount: $fetchedCount totalNotifs: $totalNotifs");
 
@@ -182,7 +183,12 @@ class NotificationsPageState extends State<NotificationsPage> {
               ),
             ),
             onPressed: () {
-              Navigator.pop(context);
+              // to call initialize friends when there are changes
+              if (addedNewFriend) {
+                Navigator.pop(context, "newFriendAdded");
+              } else {
+                Navigator.pop(context);
+              }
             },
           ),
         ),
@@ -443,7 +449,8 @@ class NotificationsPageState extends State<NotificationsPage> {
                                   ),
 
                                 // status display (accepted/declined)
-                                if (notif["status"] == "accepted")
+                                if (notif["status"] == "accepted" &&
+                                    notif["type"] != "friend_request_update")
                                   Text(
                                     "Accepted",
                                     style: GoogleFonts.inter(
@@ -452,7 +459,8 @@ class NotificationsPageState extends State<NotificationsPage> {
                                       color: const Color(0xFF888888),
                                     ),
                                   ),
-                                if (notif["status"] == "declined")
+                                if (notif["status"] == "declined" &&
+                                    notif["type"] != "friend_request_update")
                                   Text(
                                     "Declined",
                                     style: GoogleFonts.inter(
@@ -485,9 +493,9 @@ class NotificationsPageState extends State<NotificationsPage> {
                                   ),
                                   onSelected: (value) {
                                     if (value == "toggle_read") {
-                                      toggleReadStatus(index);
+                                      toggleReadStatus(index, notif["notifId"]);
                                     } else if (value == "delete") {
-                                      onDelete(index);
+                                      onDelete(index, notif["notifId"]);
                                     }
                                   },
                                   itemBuilder: (BuildContext context) {
@@ -609,8 +617,8 @@ class NotificationsPageState extends State<NotificationsPage> {
     switch (notif["type"]) {
       case "friend_request":
         return " sent a friend request.";
-      // case "walk_invitation":
-      //   return " is inviting you for a walk. ${notif["details"]}";
+      case "friend_request_update":
+        return " ${notif["status"]} your friend request.";
       case "walk_invitation": // format the invitation details in one text
         final details = notif["details"][0];
         final eventDetails =
@@ -638,17 +646,26 @@ class NotificationsPageState extends State<NotificationsPage> {
       return allNotifications
           .where((notif) =>
               notif["type"] == "friend_request" ||
+              notif["type"] == "friend_request_update" ||
               notif["type"] == "walk_invitation")
           .toList();
     }
     return allNotifications;
   }
 
-  void toggleReadStatus(int index) {
+  void toggleReadStatus(int index, String notificationId) async {
     setState(() {
       filteredNotifications[index]["isRead"] =
           !filteredNotifications[index]["isRead"];
     });
+
+    if (filteredNotifications[index]["isRead"]) {
+      await Provider.of<NotificationsProvider>(context, listen: false)
+          .markAsRead(notificationId);
+    } else {
+      await Provider.of<NotificationsProvider>(context, listen: false)
+          .markAsUnread(notificationId);
+    }
   }
 
   void setReadStatusToTrue(int index, String notificationId) async {
@@ -670,6 +687,7 @@ class NotificationsPageState extends State<NotificationsPage> {
     if (result == "success") {
       setState(() {
         filteredNotifications[index]["status"] = "accepted";
+        addedNewFriend = true;
       });
     } else {
       showBottomSnackBar(context, result);
@@ -693,10 +711,18 @@ class NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  void onDelete(int index) {
-    setState(() {
-      filteredNotifications.removeAt(index);
-    });
+  void onDelete(int index, String notificationId) async {
+    String result =
+        await Provider.of<NotificationsProvider>(context, listen: false)
+            .deleteNotif(notificationId);
+
+    if (result == "success") {
+      setState(() {
+        filteredNotifications.removeAt(index);
+      });
+    } else {
+      showBottomSnackBar(context, result);
+    }
   }
 
   void showBottomSnackBar(BuildContext context, String text) {

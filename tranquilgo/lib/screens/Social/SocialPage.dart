@@ -4,16 +4,21 @@ import 'Connections.dart';
 import 'Leaderboard.dart';
 
 class SocialPage extends StatefulWidget {
-  const SocialPage({super.key});
+  const SocialPage({Key? key}) : super(key: key);
 
   @override
-  _SocialPageState createState() => _SocialPageState();
+  SocialPageState createState() => SocialPageState();
 }
 
-class _SocialPageState extends State<SocialPage> {
+class SocialPageState extends State<SocialPage> {
   int currentIndex = 0; // 0 for connections, 1 for leaderboard
 
-  @override
+  final GlobalKey<ConnectionsPageState> companionsKey =
+      GlobalKey<ConnectionsPageState>();
+  void refreshConnections() {
+    companionsKey.currentState?.initializeFriends();
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -160,7 +165,7 @@ class _SocialPageState extends State<SocialPage> {
             // content area
             Expanded(
               child: currentIndex == 0
-                  ? const ConnectionsPage()
+                  ? ConnectionsPage(key: companionsKey)
                   : const LeaderboardPage(),
             ),
           ],

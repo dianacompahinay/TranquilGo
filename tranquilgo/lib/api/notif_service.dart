@@ -11,7 +11,7 @@ class NotificationsService {
       Query query = firestore
           .collection('notifications')
           .where('receiverId', isEqualTo: receiverId)
-          // .orderBy('createdAt', descending: true)
+          .orderBy('createdAt', descending: true)
           .limit(limit);
 
       if (lastNotifId != null) {
@@ -29,6 +29,7 @@ class NotificationsService {
       if (notifSnapshot.docs.isEmpty) return [];
 
       List<Map<String, dynamic>> notifList = [];
+      Map<String, List<DocumentSnapshot>> friendRequestGroups = {};
 
       for (var notifDoc in notifSnapshot.docs) {
         Map<String, dynamic> data = notifDoc.data() as Map<String, dynamic>;
@@ -50,21 +51,73 @@ class NotificationsService {
             "isRead": data["isRead"] ?? false,
           });
         } else {
-          notifList.add({
-            "notifId": notifDoc.id,
-            "type": data["type"],
-            "receiverId": receiverId,
-            "senderId": data["senderId"],
-            "username": userData["username"],
-            "profileImage": userData.containsKey("profileImage")
-                ? userData['profileImage']
-                : "no_image",
-            "time": elapsedTime,
-            "isRead": data["isRead"] ?? false,
-            ...getNotificationData(data),
-          });
+          if (data["type"] == "friend_request") {
+            String key = "${data["senderId"]}-${data["receiverId"]}";
+
+            // store notifications in a list by sender-receiver pair
+            if (!friendRequestGroups.containsKey(key)) {
+              friendRequestGroups[key] = [];
+            }
+            friendRequestGroups[key]!.add(notifDoc);
+          } else {
+            notifList.add({
+              "notifId": notifDoc.id,
+              "type": data["type"],
+              "receiverId": receiverId,
+              "senderId": data["senderId"],
+              "username": userData["username"],
+              "profileImage": userData.containsKey("profileImage")
+                  ? userData['profileImage']
+                  : "no_image",
+              "time": elapsedTime,
+              "isRead": data["isRead"] ?? false,
+              ...getNotificationData(data),
+            });
+          }
         }
       }
+
+      // process friend request notifications
+      for (var entry in friendRequestGroups.entries) {
+        List<DocumentSnapshot> requests = entry.value;
+
+        // the first document in the query result is the latest
+        DocumentSnapshot latestRequest = requests.first;
+
+        Map<String, dynamic> latestData =
+            latestRequest.data() as Map<String, dynamic>;
+        DateTime createdAt = (latestData['createdAt'] as Timestamp).toDate();
+        String elapsedTime = getElapsedTime(createdAt);
+
+        DocumentSnapshot userDoc = await firestore
+            .collection("users")
+            .doc(latestData["senderId"])
+            .get();
+        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+
+        notifList.add({
+          "notifId": latestRequest.id,
+          "type": latestData["type"],
+          "receiverId": receiverId,
+          "senderId": latestData["senderId"],
+          "username": userData["username"],
+          "profileImage": userData.containsKey("profileImage")
+              ? userData['profileImage']
+              : "no_image",
+          "time": elapsedTime,
+          "isRead": latestData["isRead"] ?? false,
+          ...getNotificationData(latestData),
+        });
+
+        // delete older friend requests (all except the latest)
+        for (int i = 1; i < requests.length; i++) {
+          await firestore
+              .collection("notifications")
+              .doc(requests[i].id)
+              .delete();
+        }
+      }
+
       return notifList;
     } catch (e) {
       throw Exception('Failed to fetch notifications: ${e.toString()}');
@@ -85,6 +138,8 @@ class NotificationsService {
     switch (data["type"]) {
       case "friend_request":
         return {"status": data["status"]};
+      case "friend_request_update":
+        return {"status": data["status"]};
       case "walk_invitation":
         return {"details": data["details"], "status": data["status"]};
       case "message":
@@ -97,19 +152,29 @@ class NotificationsService {
   Future<void> createFriendRequestNotif(
       String senderId, String receiverId) async {
     try {
-      DocumentSnapshot userDoc =
-          await firestore.collection("users").doc(senderId).get();
-      Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-      // store user details in Firestore
       await firestore.collection('notifications').add({
         'type': 'friend_request',
         'senderId': senderId,
         'receiverId': receiverId,
-        'username': userData["username"],
-        'profileImage': userData.containsKey("profileImage")
-            ? userData['profileImage']
-            : "no_image",
         'status': "pending",
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception(
+          'Failed to create the friend request notification: ${e.toString()}');
+    }
+  }
+
+  Future<void> createFriendRequestUpdateNotif(
+      String senderId, String receiverId, String status) async {
+    try {
+      // store user details in Firestore
+      await firestore.collection('notifications').add({
+        'type': 'friend_request_update',
+        'senderId': senderId,
+        'receiverId': receiverId,
+        'status': status,
         'isRead': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -129,6 +194,82 @@ class NotificationsService {
     } catch (e) {
       throw Exception(
           'Unexpected error occurred while updating friend request status: ${e.toString()}');
+    }
+  }
+
+  // Future<String> getFriendRequestNotifId(
+  //     String senderId, String receiverId) async {
+  //   try {
+  //     QuerySnapshot querySnapshot = await firestore
+  //         .collection('notifications')
+  //         .where('senderId', isEqualTo: senderId)
+  //         .where('receiverId', isEqualTo: receiverId)
+  //         .where('type', isEqualTo: 'friend_request')
+  //         .where('status', isEqualTo: 'pending')
+  //         .get();
+
+  //     // find the most recent notification
+  //     QueryDocumentSnapshot latestNotif =
+  //         querySnapshot.docs.first; // Start with the first document
+  //     for (var doc in querySnapshot.docs) {
+  //       if ((doc['createdAt'] as Timestamp)
+  //           .toDate()
+  //           .isAfter((latestNotif['createdAt'] as Timestamp).toDate())) {
+  //         latestNotif = doc;
+  //       }
+  //     }
+
+  //     // delete duplicates (all except the latest)
+  //     for (var doc in querySnapshot.docs) {
+  //       if (doc.id != latestNotif.id) {
+  //         await firestore.collection('notifications').doc(doc.id).delete();
+  //       }
+  //     }
+
+  //     return latestNotif.id; // return the latest remaining notification ID
+  //   } catch (e) {
+  //     throw Exception(
+  //         'Failed to fetch and clean friend request notifications: ${e.toString()}');
+  //   }
+  // }
+
+  Future<String> getFriendRequestNotifId(
+      String senderId, String receiverId) async {
+    try {
+      QuerySnapshot querySnapshot = await firestore
+          .collection('notifications')
+          .where('senderId', isEqualTo: senderId)
+          .where('receiverId', isEqualTo: receiverId)
+          .where('type', isEqualTo: 'friend_request')
+          .where('status', isEqualTo: 'pending')
+          .orderBy('createdAt', descending: true)
+          .get();
+
+      List<QueryDocumentSnapshot> notifDocs = querySnapshot.docs;
+
+      // get the latest notification (most recent)
+      String latestNotifId = notifDocs.first.id;
+
+      // delete the duplicates (all except the latest)
+      for (int i = 1; i < notifDocs.length; i++) {
+        await firestore
+            .collection('notifications')
+            .doc(notifDocs[i].id)
+            .delete();
+      }
+
+      return latestNotifId;
+    } catch (e) {
+      throw Exception(
+          'Failed to fetch and clean friend request notifications: ${e.toString()}');
+    }
+  }
+
+  Future<void> deleteNotif(String notificationId) async {
+    try {
+      await firestore.collection('notifications').doc(notificationId).delete();
+    } catch (e) {
+      throw Exception('Failed to delete the notification: ${e.toString()}');
     }
   }
 

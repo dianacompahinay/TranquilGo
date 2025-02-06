@@ -244,7 +244,7 @@ class UserDetailsModal {
     );
   }
 
-  static void removeFriend(
+  static Future<void> removeFriend(
       BuildContext context, String friendId, String username) async {
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
@@ -269,84 +269,99 @@ class UserDetailsModal {
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          backgroundColor: Colors.white,
-          content: Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: Text(
-              "Are you sure you want to remove $username as your friend?",
-              style: GoogleFonts.poppins(
-                textStyle: const TextStyle(
-                  color: Color(0xFF464646),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 13,
+        bool loadingState = false; // Moved inside the builder
+        return StatefulBuilder(builder: (context, setState) {
+          // StatefulBuilder for UI updates
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            backgroundColor: Colors.white,
+            content: Padding(
+              padding: const EdgeInsets.only(top: 20),
+              child: Text(
+                "Are you sure you want to remove $username as your friend?",
+                style: GoogleFonts.poppins(
+                  textStyle: const TextStyle(
+                    color: Color(0xFF464646),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            actions: [
+              Container(
+                padding: EdgeInsets.zero,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).pop(); // close dialog
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        minimumSize: const Size(120, 32),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5),
+                          side: const BorderSide(
+                            color: Color(0xFFB1B1B1),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.poppins(
+                          textStyle: const TextStyle(
+                            color: Color(0xFF4C4B4B),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        loadingState = true;
+                        await removeFriend(context, userId, username);
+                        loadingState = false;
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF55AC9F),
+                        minimumSize: const Size(120, 32),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(5),
+                        ),
+                      ),
+                      child: loadingState
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              'Confirm',
+                              style: GoogleFonts.poppins(
+                                textStyle: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                    ),
+                  ],
                 ),
               ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          actions: [
-            Container(
-              padding: EdgeInsets.zero,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // close dialog
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      minimumSize: const Size(120, 32),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                        side: const BorderSide(
-                          color: Color(0xFFB1B1B1),
-                          width: 1,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      'Cancel',
-                      style: GoogleFonts.poppins(
-                        textStyle: const TextStyle(
-                          color: Color(0xFF4C4B4B),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                  ElevatedButton(
-                    onPressed: () {
-                      removeFriend(context, userId, username);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF55AC9F),
-                      minimumSize: const Size(120, 32),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    ),
-                    child: Text(
-                      'Confirm',
-                      style: GoogleFonts.poppins(
-                        textStyle: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        );
+            ],
+          );
+        });
       },
     );
   }

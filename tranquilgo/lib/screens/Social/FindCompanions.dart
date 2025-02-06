@@ -113,6 +113,14 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
   }
 
   void addFriend(int index, String friendId) async {
+    setState(() {
+      if (searchController.text.trim().isEmpty) {
+        users[index]["status"] = "loading";
+      } else {
+        searchedUsers[index]["status"] = "loading";
+      }
+    });
+
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
     String result =
@@ -121,11 +129,10 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
 
     if (result == "success") {
       setState(() {
-        users[index]["status"] = "request_sent";
-        final userIndex = users
-            .indexWhere((user) => user["username"] == users[index]["username"]);
-        if (userIndex != -1) {
-          users[userIndex]["status"] = "request_sent";
+        if (searchController.text.trim().isEmpty) {
+          users[index]["status"] = "request_sent";
+        } else {
+          searchedUsers[index]["status"] = "request_sent";
         }
       });
     } else {
@@ -134,6 +141,14 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
   }
 
   void cancelFriendRequest(int index, String friendId) async {
+    setState(() {
+      if (searchController.text.trim().isEmpty) {
+        users[index]["status"] = "loading";
+      } else {
+        searchedUsers[index]["status"] = "loading";
+      }
+    });
+
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
     String result =
@@ -141,11 +156,10 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
             .cancelFriendRequest(userId, friendId);
     if (result == "success") {
       setState(() {
-        users[index]["status"] = "add";
-        final userIndex = users
-            .indexWhere((user) => user["username"] == users[index]["username"]);
-        if (userIndex != -1) {
-          users[userIndex]["status"] = "add";
+        if (searchController.text.trim().isEmpty) {
+          users[index]["status"] = "add";
+        } else {
+          searchedUsers[index]["status"] = "add";
         }
       });
     } else {
@@ -154,6 +168,14 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
   }
 
   void acceptFriend(int index, String friendId) async {
+    setState(() {
+      if (searchController.text.trim().isEmpty) {
+        users[index]["status"] = "loading";
+      } else {
+        searchedUsers[index]["status"] = "loading";
+      }
+    });
+
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
     String result =
@@ -162,11 +184,11 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
     if (result == "success") {
       setState(() {
         addedNewFriend = true;
-        users[index]["status"] = "friend";
-        final userIndex = users
-            .indexWhere((user) => user["username"] == users[index]["username"]);
-        if (userIndex != -1) {
-          users[userIndex]["status"] = "friend";
+
+        if (searchController.text.trim().isEmpty) {
+          users[index]["status"] = "friend";
+        } else {
+          searchedUsers[index]["status"] = "friend";
         }
       });
     } else {
@@ -270,18 +292,16 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
             ),
             const SizedBox(height: 20),
 
-            isLoading
-                ? const SizedBox()
-                : Text(
-                    'Search Result',
-                    style: GoogleFonts.poppins(
-                      textStyle: const TextStyle(
-                        color: Color(0xFF696969),
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
+            Text(
+              'Search Result',
+              style: GoogleFonts.poppins(
+                textStyle: const TextStyle(
+                  color: Color(0xFF696969),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+            ),
 
             // list of users
             isConnectionFailed
@@ -417,47 +437,57 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
                               ),
                             ),
                           ),
-                          trailing: user["status"] == "friend"
-                              ? Image.asset(
-                                  'assets/icons/connected.png',
-                                  width: 24,
-                                  height: 24,
-                                  fit: BoxFit.contain,
+                          trailing: user["status"] == "loading"
+                              ? Container(
+                                  width: 22,
+                                  height: 22,
+                                  margin: const EdgeInsets.only(right: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 3,
+                                    color: Colors.grey[300],
+                                  ),
                                 )
-                              : user["status"] == "request_sent"
-                                  ? GestureDetector(
-                                      onTap: () => cancelFriendRequest(
-                                          index, user['userId']),
-                                      child: Image.asset(
-                                        'assets/icons/request_sent.png',
-                                        width: 25,
-                                        height: 25,
-                                        color: const Color(0xFF73D2C3),
-                                        fit: BoxFit.contain,
-                                      ),
+                              : user["status"] == "friend"
+                                  ? Image.asset(
+                                      'assets/icons/connected.png',
+                                      width: 24,
+                                      height: 24,
+                                      fit: BoxFit.contain,
                                     )
-                                  : user["status"] == "pending_request"
+                                  : user["status"] == "request_sent"
                                       ? GestureDetector(
-                                          onTap: () => acceptFriend(
+                                          onTap: () => cancelFriendRequest(
                                               index, user['userId']),
                                           child: Image.asset(
-                                            'assets/icons/pending_request.png',
+                                            'assets/icons/request_sent.png',
                                             width: 25,
                                             height: 25,
                                             color: const Color(0xFF73D2C3),
                                             fit: BoxFit.contain,
                                           ),
                                         )
-                                      : GestureDetector(
-                                          onTap: () =>
-                                              addFriend(index, user['userId']),
-                                          child: Image.asset(
-                                            'assets/icons/add_user.png',
-                                            width: 24,
-                                            height: 24,
-                                            fit: BoxFit.contain,
-                                          ),
-                                        ),
+                                      : user["status"] == "pending_request"
+                                          ? GestureDetector(
+                                              onTap: () => acceptFriend(
+                                                  index, user['userId']),
+                                              child: Image.asset(
+                                                'assets/icons/pending_request.png',
+                                                width: 25,
+                                                height: 25,
+                                                color: const Color(0xFF73D2C3),
+                                                fit: BoxFit.contain,
+                                              ),
+                                            )
+                                          : GestureDetector(
+                                              onTap: () => addFriend(
+                                                  index, user['userId']),
+                                              child: Image.asset(
+                                                'assets/icons/add_user.png',
+                                                width: 24,
+                                                height: 24,
+                                                fit: BoxFit.contain,
+                                              ),
+                                            ),
                         );
                       },
                     ),
