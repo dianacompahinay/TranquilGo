@@ -1,15 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/NotifProvider.dart';
 
 class MessageUserModal {
-  final String userId;
+  final String receiverId;
   final String userName;
 
-  MessageUserModal(this.userId, this.userName);
+  MessageUserModal(this.receiverId, this.userName);
 
   void show(BuildContext context) {
     final TextEditingController messageController = TextEditingController();
     String? messageError;
+
+    final notificationsProvider =
+        Provider.of<NotificationsProvider>(context, listen: false);
+
+    void onSend(dialogContext) async {
+      try {
+        String currUserId = FirebaseAuth.instance.currentUser!.uid;
+
+        String result = await notificationsProvider.sendMessage(
+            currUserId, receiverId, messageController.text.trim());
+        if (result == "success") {
+          showBottomSnackBar(
+              dialogContext, 'Your message has been sent to $userName.');
+        } else {
+          showBottomSnackBar(dialogContext, result);
+        }
+      } catch (e) {
+        showBottomSnackBar(
+            dialogContext, "Unexpected error occurred while sending message.");
+      }
+
+      Navigator.of(dialogContext).pop();
+    }
 
     showDialog(
       context: context,
@@ -150,18 +176,13 @@ class MessageUserModal {
                             ),
                           ),
                           ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               if (messageController.text.isEmpty) {
                                 setDialogState(() {
                                   messageError = 'Cannot be empty';
                                 });
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('You sent the message'),
-                                  ),
-                                );
-                                Navigator.of(dialogContext).pop();
+                                onSend(dialogContext);
                               }
                             },
                             style: ElevatedButton.styleFrom(
@@ -193,5 +214,37 @@ class MessageUserModal {
         );
       },
     );
+  }
+
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }

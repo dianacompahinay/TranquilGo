@@ -36,7 +36,7 @@ class NotificationsProvider with ChangeNotifier {
     try {
       await userDetailsService.acceptFriendRequest(receiverId, senderId);
       notifyListeners();
-      await notifService.updateFriendRequestNotif(notificationId, "accepted");
+      await notifService.updateRequestNotif(notificationId, "accepted");
       notifyListeners();
       await notifService.createFriendRequestUpdateNotif(
           receiverId, senderId, "accepted");
@@ -53,12 +53,63 @@ class NotificationsProvider with ChangeNotifier {
     try {
       await userDetailsService.removeFriend(receiverId, senderId);
       notifyListeners();
-      await notifService.updateFriendRequestNotif(notificationId, "declined");
+      await notifService.updateRequestNotif(notificationId, "declined");
       notifyListeners();
 
       return "success";
     } catch (e) {
-      return "Unexpected error occurred while declining friend request. $e";
+      return "Unexpected error occurred while declining friend request.";
+    }
+  }
+
+  Future<String> acceptInvitationRequest(String receiverId, String senderId,
+      Map<String, dynamic> details, String notificationId) async {
+    try {
+      await notifService.updateRequestNotif(notificationId, "accepted");
+      notifyListeners();
+      await notifService.createInvitationUpdateNotif(
+          receiverId, senderId, details, "accepted");
+      notifyListeners();
+
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while accepting invitation.";
+    }
+  }
+
+  Future<String> rejectInvitationRequest(
+      String receiverId, String senderId, String notificationId) async {
+    try {
+      await notifService.updateRequestNotif(notificationId, "declined");
+      notifyListeners();
+
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while declining invitation.";
+    }
+  }
+
+  Future<String> sendMessage(
+      String senderId, String receiverId, String content) async {
+    try {
+      await notifService.createMessageNotif(senderId, receiverId, content);
+      notifyListeners();
+
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while sending message.";
+    }
+  }
+
+  Future<String> sendInvitation(
+      String senderId, String receiverId, Map<String, dynamic> details) async {
+    try {
+      await notifService.createInvitationNotif(senderId, receiverId, details);
+      notifyListeners();
+
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while sending invitation.";
     }
   }
 

@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:my_app/providers/NotifProvider.dart';
 
 class InviteConfirmationModal {
+  final String notificationId;
   final String senderId;
+  final String receiverId;
   final String userName;
   final Map<String, dynamic> details;
   final String status;
 
-  const InviteConfirmationModal(
-      this.senderId, this.userName, this.details, this.status);
+  const InviteConfirmationModal(this.notificationId, this.senderId,
+      this.receiverId, this.userName, this.details, this.status);
 
-  void show(BuildContext context) {
-    showDialog(
+  Future<String?> show(BuildContext context) async {
+    return await showDialog(
       context: context,
       barrierDismissible: true, // allow dismiss by tapping outside
       builder: (BuildContext context) {
@@ -189,17 +193,35 @@ class InviteConfirmationModal {
     );
   }
 
-  // accept invitation logic
-  void acceptInvitation(dialogContext) {
-    Navigator.of(dialogContext).pop();
+  void acceptInvitation(dialogContext) async {
+    String result = await Provider.of<NotificationsProvider>(dialogContext,
+            listen: false)
+        .acceptInvitationRequest(receiverId, senderId, details, notificationId);
+
+    if (result == "success") {
+      // returns a value to render the action made in notifications
+      Navigator.pop(dialogContext, "accepted");
+    } else {
+      showBottomSnackBar(dialogContext, result);
+      Navigator.pop(dialogContext);
+    }
   }
 
-  // decline invitation logic
-  void declineInvitation(dialogContext) {
-    Navigator.of(dialogContext).pop();
+  void declineInvitation(dialogContext) async {
+    String result =
+        await Provider.of<NotificationsProvider>(dialogContext, listen: false)
+            .rejectInvitationRequest(receiverId, senderId, notificationId);
+
+    if (result == "success") {
+      // returns a value to render the action made in notifications
+      Navigator.pop(dialogContext, "declined");
+    } else {
+      showBottomSnackBar(dialogContext, result);
+      Navigator.pop(dialogContext);
+    }
   }
 
-  // widget for displaying invitation details
+  // displays invitation details
   Widget invitationDetail(String label, content) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -230,5 +252,37 @@ class InviteConfirmationModal {
         ),
       ],
     );
+  }
+
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }

@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/NotifProvider.dart';
 
 class InviteUser extends StatefulWidget {
-  final String userId;
+  final String receiverId;
   final String userName;
 
-  const InviteUser({Key? key, required this.userId, required this.userName})
+  const InviteUser({Key? key, required this.receiverId, required this.userName})
       : super(key: key);
 
   @override
@@ -25,9 +28,49 @@ class _InviteUserState extends State<InviteUser> {
 
   @override
   Widget build(BuildContext context) {
+    String receiverId = widget.receiverId;
+    String userName = widget.userName;
+
     return GestureDetector(
       onTap: () {
-        // show dialog when tapped
+        void onSend(Function setDialogState) async {
+          // show validation text when required input fields are empty
+          setDialogState(() {
+            dateError = dateController.text.isEmpty ? 'Date is required' : null;
+            timeError = timeController.text.isEmpty ? 'Time is required' : null;
+            locationError =
+                locationController.text.isEmpty ? 'Location is required' : null;
+          });
+
+          if (dateError == null && timeError == null && locationError == null) {
+            Map<String, dynamic> details = {
+              'date': dateController.text.trim(),
+              'time': timeController.text.trim(),
+              'location': locationController.text.trim(),
+              'message': messageController.text.trim(),
+            };
+            Navigator.of(context).pop();
+
+            try {
+              String currUserId = FirebaseAuth.instance.currentUser!.uid;
+              final notificationsProvider =
+                  Provider.of<NotificationsProvider>(context, listen: false);
+
+              String result = await notificationsProvider.sendInvitation(
+                  currUserId, receiverId, details);
+              if (result == "success") {
+                showBottomSnackBar(
+                    context, 'Your invitation has been sent to $userName.');
+              } else {
+                showBottomSnackBar(context, result);
+              }
+            } catch (e) {
+              showBottomSnackBar(context,
+                  "Unexpected error occurred while sending invitation.");
+            }
+          }
+        }
+
         showDialog(
           context: context,
           barrierDismissible: true,
@@ -265,8 +308,9 @@ class _InviteUserState extends State<InviteUser> {
                                 ),
                               ),
                               ElevatedButton(
-                                onPressed: () =>
-                                    validateAndSend(setDialogState),
+                                onPressed: () => {
+                                  onSend(setDialogState),
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF55AC9F),
                                   minimumSize: const Size(120, 34),
@@ -323,21 +367,6 @@ class _InviteUserState extends State<InviteUser> {
         ),
       ),
     );
-  }
-
-  // show validation text when required input fields are empty
-  void validateAndSend(Function setDialogState) {
-    setDialogState(() {
-      dateError = dateController.text.isEmpty ? 'Date is required' : null;
-      timeError = timeController.text.isEmpty ? 'Time is required' : null;
-      locationError =
-          locationController.text.isEmpty ? 'Location is required' : null;
-    });
-
-    if (dateError == null && timeError == null && locationError == null) {
-      // handle successful submission
-      Navigator.of(context).pop();
-    }
   }
 
   // clear input fields
@@ -542,5 +571,37 @@ class _InviteUserState extends State<InviteUser> {
         timeError = null;
       });
     }
+  }
+
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }

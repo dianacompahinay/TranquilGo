@@ -82,7 +82,7 @@ class UserDetailsProvider with ChangeNotifier {
 
       String notificationId =
           await _notifService.getFriendRequestNotifId(friendId, userId);
-      await _notifService.updateFriendRequestNotif(notificationId, "accepted");
+      await _notifService.updateRequestNotif(notificationId, "accepted");
       notifyListeners();
 
       return "success";

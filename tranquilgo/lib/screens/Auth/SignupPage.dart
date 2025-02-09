@@ -409,6 +409,8 @@ class _SignupPageState extends State<SignupPage> {
         usernameError = 'Username must not contain spaces';
       } else if (value.length < 3) {
         usernameError = 'Username must be at least 3 characters';
+      } else if (value.length > 30) {
+        usernameError = 'Username cannot exceed 30 characters';
       } else if (authProvider.usernames.contains(value)) {
         usernameError = 'Username is already taken';
       } else {

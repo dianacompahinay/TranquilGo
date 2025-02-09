@@ -1,11 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class NotificationsService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   Future<List<Map<String, dynamic>>> getNotifications(
       String receiverId, String? lastNotifId) async {
-    int limit = 6;
+    int limit = 5;
 
     try {
       Query query = firestore
@@ -140,13 +141,39 @@ class NotificationsService {
         return {"status": data["status"]};
       case "friend_request_update":
         return {"status": data["status"]};
+      case "invitation_request_update":
+        return {
+          "details": data["details"],
+          "status": data["status"],
+        };
       case "walk_invitation":
-        return {"details": data["details"], "status": data["status"]};
+        return {
+          "details": walkInvitation(data["details"]),
+          "status": data["status"]
+        };
       case "message":
         return {"content": data["content"] ?? ""};
       default:
         return {};
     }
+  }
+
+  Map<String, dynamic> walkInvitation(Map<String, dynamic> details) {
+    // format the details to be displayed in frontend
+    List<String> dateParts = details['date'].split('-');
+    String formattedDateString =
+        "${dateParts[0]}-${dateParts[1].padLeft(2, '0')}-${dateParts[2].padLeft(2, '0')}";
+    DateTime parsedDate = DateTime.parse(formattedDateString);
+    String formattedDate = DateFormat("MMMM d, yyyy").format(parsedDate);
+    String weekday = DateFormat("EEEE").format(parsedDate);
+
+    return {
+      "date": formattedDate,
+      "weekday": weekday,
+      "time": details['time'],
+      "location": details['location'],
+      "message": details['message'],
+    };
   }
 
   Future<void> createFriendRequestNotif(
@@ -184,8 +211,59 @@ class NotificationsService {
     }
   }
 
-  Future<void> updateFriendRequestNotif(
-      String notificationId, String status) async {
+  Future<void> createInvitationUpdateNotif(String senderId, String receiverId,
+      Map<String, dynamic> details, String status) async {
+    try {
+      // store user details in Firestore
+      await firestore.collection('notifications').add({
+        'type': 'invitation_request_update',
+        'senderId': senderId,
+        'receiverId': receiverId,
+        'details': details,
+        'status': status,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception(
+          'Failed to create the friend request notification: ${e.toString()}');
+    }
+  }
+
+  Future<void> createMessageNotif(
+      String senderId, String receiverId, String content) async {
+    try {
+      await firestore.collection('notifications').add({
+        'type': 'message',
+        'senderId': senderId,
+        'receiverId': receiverId,
+        'content': content,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Failed to create the message: ${e.toString()}');
+    }
+  }
+
+  Future<void> createInvitationNotif(
+      String senderId, String receiverId, Map<String, dynamic> details) async {
+    try {
+      await firestore.collection('notifications').add({
+        'type': 'walk_invitation',
+        'senderId': senderId,
+        'receiverId': receiverId,
+        'details': details,
+        'status': 'pending',
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Failed to create the message: ${e.toString()}');
+    }
+  }
+
+  Future<void> updateRequestNotif(String notificationId, String status) async {
     try {
       await firestore
           .collection('notifications')
@@ -193,45 +271,9 @@ class NotificationsService {
           .update({'status': status});
     } catch (e) {
       throw Exception(
-          'Unexpected error occurred while updating friend request status: ${e.toString()}');
+          'Unexpected error occurred while updating request status: ${e.toString()}');
     }
   }
-
-  // Future<String> getFriendRequestNotifId(
-  //     String senderId, String receiverId) async {
-  //   try {
-  //     QuerySnapshot querySnapshot = await firestore
-  //         .collection('notifications')
-  //         .where('senderId', isEqualTo: senderId)
-  //         .where('receiverId', isEqualTo: receiverId)
-  //         .where('type', isEqualTo: 'friend_request')
-  //         .where('status', isEqualTo: 'pending')
-  //         .get();
-
-  //     // find the most recent notification
-  //     QueryDocumentSnapshot latestNotif =
-  //         querySnapshot.docs.first; // Start with the first document
-  //     for (var doc in querySnapshot.docs) {
-  //       if ((doc['createdAt'] as Timestamp)
-  //           .toDate()
-  //           .isAfter((latestNotif['createdAt'] as Timestamp).toDate())) {
-  //         latestNotif = doc;
-  //       }
-  //     }
-
-  //     // delete duplicates (all except the latest)
-  //     for (var doc in querySnapshot.docs) {
-  //       if (doc.id != latestNotif.id) {
-  //         await firestore.collection('notifications').doc(doc.id).delete();
-  //       }
-  //     }
-
-  //     return latestNotif.id; // return the latest remaining notification ID
-  //   } catch (e) {
-  //     throw Exception(
-  //         'Failed to fetch and clean friend request notifications: ${e.toString()}');
-  //   }
-  // }
 
   Future<String> getFriendRequestNotifId(
       String senderId, String receiverId) async {

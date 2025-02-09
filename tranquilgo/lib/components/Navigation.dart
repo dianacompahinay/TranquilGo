@@ -197,12 +197,20 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                             },
                           ),
                           const SizedBox(width: 12),
-                          Text(
-                            "${userDetails == null ? 'Username' : userDetails['username']}",
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w500,
-                              fontSize: 15,
-                              color: Colors.black,
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(right: 5),
+                              child: Text(
+                                "${userDetails == null ? 'Username' : userDetails['username']}",
+                                style: GoogleFonts.inter(
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 15,
+                                  color: Colors.black,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                softWrap: false,
+                              ),
                             ),
                           ),
                         ],

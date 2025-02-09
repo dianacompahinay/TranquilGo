@@ -42,7 +42,7 @@ class NotificationsPageState extends State<NotificationsPage> {
       int totalNotifs = await notifProvider.getUserNotifsCount(userId) ?? 0;
       int fetchedCount = 0;
 
-      // fetch the first 5 users before the loop
+      // fetch the first initial notifs before the loop
       List<Map<String, dynamic>> initialNotifs =
           await notifProvider.fetchNotifications(userId, null);
 
@@ -59,9 +59,8 @@ class NotificationsPageState extends State<NotificationsPage> {
       }
       // continue fetching remaining users (not including the current user)
       while (fetchedCount < totalNotifs) {
-        List<Map<String, dynamic>> fetchedNotifs =
-            await notifProvider.fetchNotifications(
-                userId, allNotifications.last["notificationId"]);
+        List<Map<String, dynamic>> fetchedNotifs = await notifProvider
+            .fetchNotifications(userId, allNotifications.last["notifId"]);
 
         if (fetchedNotifs.isNotEmpty) {
           fetchedCount += fetchedNotifs.length;
@@ -69,12 +68,6 @@ class NotificationsPageState extends State<NotificationsPage> {
           setState(() {
             allNotifications.addAll(fetchedNotifs);
           });
-          print("fetchedCount: $fetchedCount totalNotifs: $totalNotifs");
-
-          // // when user select another tab, render the recently loaded filtered notifications
-          // if (selectedTabIndex != 0) {
-          //   searchUsers(searchController.text);
-          // }
         }
 
         if (fetchedCount == totalNotifs) {
@@ -106,15 +99,15 @@ class NotificationsPageState extends State<NotificationsPage> {
   //     "senderId": "1",
   //     "username": "Alice",
   //     "profileImage": "assets/images/user.jpg",
-  //     "details": [
+  //     "details":
   //       {
   //         "date": "January 12, 2025",
   //         "weekday": "Sunday",
   //         "time": "4:00 PM",
   //         "location": "Central Park",
   //         "message": ""
-  //       }
-  //     ],
+  //       },
+  //
   //     "time": "5h",
   //     "status": "pending",
   //     "isRead": false,
@@ -142,15 +135,14 @@ class NotificationsPageState extends State<NotificationsPage> {
   //     "senderId": "4",
   //     "username": "Chris",
   //     "profileImage": "assets/images/user.jpg",
-  //     "details": [
+  //     "details":
   //       {
   //         "date": "January 3, 2025",
   //         "weekday": "Friday",
   //         "time": "5:00 PM",
   //         "location": "City Square",
   //         "message": ""
-  //       }
-  //     ],
+  //       },
   //     "time": "8d",
   //     "status": "accepted",
   //     "isRead": true,
@@ -225,19 +217,21 @@ class NotificationsPageState extends State<NotificationsPage> {
                 itemBuilder: (context, index) {
                   if (isLoading && index == filteredNotifications.length) {
                     return Container(
-                        padding: const EdgeInsets.only(top: 25),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF36B9A5),
-                            strokeWidth: 5,
-                          ),
-                        ));
+                      padding: const EdgeInsets.only(top: 25),
+                      child: const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF36B9A5),
+                          strokeWidth: 5,
+                        ),
+                      ),
+                    );
                   }
 
                   final notif = filteredNotifications[index];
 
+                  String? result;
                   return GestureDetector(
-                    onTap: () => {
+                    onTap: () async => {
                       if (notif["type"] == "message")
                         {
                           ReceivedMessageModal(notif["senderId"],
@@ -245,18 +239,27 @@ class NotificationsPageState extends State<NotificationsPage> {
                               .show(context),
                           setReadStatusToTrue(index, notif["notifId"])
                         },
-                      if (notif["type"] == "walk_invitation")
+                      if (notif["type"] == "walk_invitation" ||
+                          notif["type"] == "invitation_request_update")
                         {
-                          InviteConfirmationModal(
+                          result = await InviteConfirmationModal(
+                                  notif["notifId"],
                                   notif["senderId"],
+                                  notif["receiverId"],
                                   notif["username"],
-                                  notif["details"][0],
+                                  notif["details"],
                                   notif["status"])
                               .show(context),
+                          if (result != null && result!.isNotEmpty)
+                            {
+                              setState(() {
+                                filteredNotifications[index]["status"] = result;
+                              })
+                            },
                           setReadStatusToTrue(index, notif["notifId"])
                         }
                     },
-                    child: Padding(
+                    child: Container(
                       padding:
                           const EdgeInsets.only(top: 14, bottom: 14, left: 28),
                       child: Row(
@@ -392,11 +395,25 @@ class NotificationsPageState extends State<NotificationsPage> {
                                             horizontal: 8, vertical: 0),
                                         child: TextButton(
                                           onPressed: () => {
-                                            onAccept(
-                                                index,
-                                                notif["receiverId"],
-                                                notif["senderId"],
-                                                notif["notifId"]),
+                                            if (notif["type"] ==
+                                                "friend_request")
+                                              {
+                                                onFriendAccept(
+                                                    index,
+                                                    notif["receiverId"],
+                                                    notif["senderId"],
+                                                    notif["notifId"]),
+                                              }
+                                            else if (notif["type"] ==
+                                                "walk_invitation")
+                                              {
+                                                onInviteAccept(
+                                                    index,
+                                                    notif["receiverId"],
+                                                    notif["senderId"],
+                                                    notif["details"],
+                                                    notif["notifId"])
+                                              }
                                           },
                                           style: TextButton.styleFrom(
                                             foregroundColor: Colors.white,
@@ -450,7 +467,9 @@ class NotificationsPageState extends State<NotificationsPage> {
 
                                 // status display (accepted/declined)
                                 if (notif["status"] == "accepted" &&
-                                    notif["type"] != "friend_request_update")
+                                    (notif["type"] != "friend_request_update" ||
+                                        notif["type"] !=
+                                            "invitation_request_update"))
                                   Text(
                                     "Accepted",
                                     style: GoogleFonts.inter(
@@ -460,7 +479,9 @@ class NotificationsPageState extends State<NotificationsPage> {
                                     ),
                                   ),
                                 if (notif["status"] == "declined" &&
-                                    notif["type"] != "friend_request_update")
+                                    (notif["type"] != "friend_request_update" ||
+                                        notif["type"] !=
+                                            "invitation_request_update"))
                                   Text(
                                     "Declined",
                                     style: GoogleFonts.inter(
@@ -619,8 +640,10 @@ class NotificationsPageState extends State<NotificationsPage> {
         return " sent a friend request.";
       case "friend_request_update":
         return " ${notif["status"]} your friend request.";
+      case "invitation_request_update":
+        return " ${notif["status"]} your walking invitation request.";
       case "walk_invitation": // format the invitation details in one text
-        final details = notif["details"][0];
+        final details = notif["details"];
         final eventDetails =
             "Event is to be set on ${details["date"]} at ${details["time"]}, in ${details["location"]}.";
         final message = details["message"] != null &&
@@ -647,6 +670,7 @@ class NotificationsPageState extends State<NotificationsPage> {
           .where((notif) =>
               notif["type"] == "friend_request" ||
               notif["type"] == "friend_request_update" ||
+              notif["type"] == "invitation_request_update" ||
               notif["type"] == "walk_invitation")
           .toList();
     }
@@ -676,7 +700,7 @@ class NotificationsPageState extends State<NotificationsPage> {
         .markAsRead(notificationId);
   }
 
-  void onAccept(int index, String receiverId, String senderId,
+  void onFriendAccept(int index, String receiverId, String senderId,
       String notificationId) async {
     setReadStatusToTrue(index, notificationId);
 
@@ -694,13 +718,35 @@ class NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
+  void onInviteAccept(int index, String receiverId, String senderId,
+      Map<String, dynamic> details, String notificationId) async {
+    setReadStatusToTrue(index, notificationId);
+
+    String result = await Provider.of<NotificationsProvider>(context,
+            listen: false)
+        .acceptInvitationRequest(receiverId, senderId, details, notificationId);
+
+    if (result == "success") {
+      setState(() {
+        filteredNotifications[index]["status"] = "accepted";
+      });
+    } else {
+      showBottomSnackBar(context, result);
+    }
+  }
+
   void onDecline(int index, String receiverId, String senderId,
       String notificationId) async {
     setReadStatusToTrue(index, notificationId);
 
-    String result =
-        await Provider.of<NotificationsProvider>(context, listen: false)
-            .rejectFriendRequest(receiverId, senderId, notificationId);
+    String result;
+    if (filteredNotifications[index]["type"] == "friend_request") {
+      result = await Provider.of<NotificationsProvider>(context, listen: false)
+          .rejectFriendRequest(receiverId, senderId, notificationId);
+    } else {
+      result = await Provider.of<NotificationsProvider>(context, listen: false)
+          .rejectInvitationRequest(receiverId, senderId, notificationId);
+    }
 
     if (result == "success") {
       setState(() {

@@ -273,7 +273,8 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                       ),
                                       const SizedBox(width: 22),
                                       InviteUser(
-                                          userId: '${users[index]["userid"]}',
+                                          receiverId:
+                                              '${users[index]["userId"]}',
                                           userName:
                                               '${users[index]["username"]}')
                                     ],

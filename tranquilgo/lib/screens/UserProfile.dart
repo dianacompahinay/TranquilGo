@@ -536,6 +536,8 @@ class UserProfilePageState extends State<UserProfilePage> {
         usernameError = 'Username must not contain spaces';
       } else if (value.length < 3) {
         usernameError = 'Username must be at least 3 characters';
+      } else if (value.length > 30) {
+        usernameError = 'Username cannot exceed 30 characters';
       } else {
         usernameError = null;
       }
