@@ -19,6 +19,7 @@ class SocialPageState extends State<SocialPage> {
     companionsKey.currentState?.initializeFriends();
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(

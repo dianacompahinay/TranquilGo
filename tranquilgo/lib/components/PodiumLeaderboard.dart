@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-// ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 import 'package:my_app/screens/Social/Leaderboard.dart';
 

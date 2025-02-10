@@ -5,6 +5,8 @@ import 'package:my_app/components/ProgressBar.dart';
 import 'package:intl/intl.dart';
 
 class StatisticsPage extends StatefulWidget {
+  const StatisticsPage({super.key});
+
   @override
   _StatisticsPageState createState() => _StatisticsPageState();
 }
