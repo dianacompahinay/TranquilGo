@@ -4,173 +4,240 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:my_app/components/PodiumLeaderboard.dart';
 
-class LeaderboardPage extends StatelessWidget {
-  const LeaderboardPage({super.key});
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:my_app/providers/UserProvider.dart';
+
+class LeaderboardPage extends StatefulWidget {
+  const LeaderboardPage({Key? key}) : super(key: key);
+
+  @override
+  LeaderboardPageState createState() => LeaderboardPageState();
+}
+
+class LeaderboardPageState extends State<LeaderboardPage> {
+  UserDetailsProvider userProvider = UserDetailsProvider();
+  List<Map<String, dynamic>> topUsers = [];
+  bool isConnectionFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeLeaderboard();
+  }
+
+  Future<void> initializeLeaderboard() async {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
+    try {
+      List<Map<String, dynamic>> fetchedUsers =
+          await userProvider.fetchTopUsers(userId);
+      setState(() {
+        topUsers = fetchedUsers;
+      });
+    } catch (e) {
+      setState(() {
+        isConnectionFailed = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // initial list of users with steps
-    final List<Map<String, dynamic>> users = [
-      {
-        "username": "user_1",
-        "steps": 1234117,
-        "userImage": 'assets/images/user.jpg'
-      },
-      {
-        "username": "user_2",
-        "steps": 931275,
-        "userImage": 'assets/images/user.jpg'
-      },
-      {
-        "username": "user_3",
-        "steps": 534631,
-        "userImage": 'assets/images/user.jpg'
-      },
-      {
-        "username": "user_4",
-        "steps": 431275,
-        "userImage": 'assets/images/user.jpg'
-      },
-      {
-        "username": "user_5",
-        "steps": 402562,
-        "userImage": 'assets/images/user.jpg'
-      },
-      {
-        "username": "user_6",
-        "steps": 211756,
-        "userImage": 'assets/images/user.jpg'
-      },
-      {
-        "username": "user_7",
-        "steps": 150000,
-        "userImage": 'assets/images/user.jpg'
-      },
-    ];
-
-    // sort users by steps (highest first) and limit to top 10
-    final sortedUsers = List<Map<String, dynamic>>.from(users)
-      ..sort((a, b) => b["steps"].compareTo(a["steps"]))
-      ..sublist(0, users.length > 10 ? 10 : users.length);
+    // final List<Map<String, dynamic>> users = [
+    //   {
+    //     "username": "user_1",
+    //     "steps": 1234117,
+    //     "profileImage": 'assets/images/user.jpg'
+    //   },
+    //   {
+    //     "username": "user_2",
+    //     "steps": 931275,
+    //     "profileImage": 'assets/images/user.jpg'
+    //   },
+    //   {
+    //     "username": "user_3",
+    //     "steps": 534631,
+    //     "profileImage": 'assets/images/user.jpg'
+    //   },
+    //   {
+    //     "username": "user_4",
+    //     "steps": 431275,
+    //     "profileImage": 'assets/images/user.jpg'
+    //   },
+    //   {
+    //     "username": "user_5",
+    //     "steps": 402562,
+    //     "profileImage": 'assets/images/user.jpg'
+    //   },
+    //   {
+    //     "username": "user_6",
+    //     "steps": 211756,
+    //     "profileImage": 'assets/images/user.jpg'
+    //   },
+    //   {
+    //     "username": "user_7",
+    //     "steps": 150000,
+    //     "profileImage": 'assets/images/user.jpg'
+    //   },
+    // ];
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            // top 3 podium with image
-            PodiumWidgetWithImage(topUsers: sortedUsers.take(3).toList()),
-
-            // remaining leaderboard
-            ListView.builder(
-              physics: const NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              // limit to top 10 ranking
-              itemCount: sortedUsers.length > 7
-                  ? 7
-                  : sortedUsers.length > 3
-                      ? sortedUsers.length - 3
-                      : 0,
-              itemBuilder: (context, index) {
-                final user = sortedUsers[index + 3];
-                return Container(
-                  margin: const EdgeInsets.fromLTRB(2, 8, 2, 6),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFDFDFD),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.2),
-                        spreadRadius: 0.2,
-                        blurRadius: 2,
-                        offset: const Offset(0, 1.2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: userProvider.isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF36B9A5),
+                strokeWidth: 5,
+              ),
+            )
+          : isConnectionFailed
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // rank
-                      Container(
-                        height: 18,
-                        width: 18,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFBBBBBB),
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          textAlign: TextAlign.center,
-                          "${index + 4}",
-                          style: GoogleFonts.inter(
-                            textStyle: const TextStyle(
-                              color: Color(0xFF484848),
-                              fontWeight: FontWeight.w500,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ),
+                      Image.asset(
+                        'assets/icons/error.png',
+                        width: 32,
+                        height: 32,
+                        fit: BoxFit.contain,
+                        color: const Color(0xFF999999),
                       ),
-
-                      const SizedBox(width: 12),
-
-                      // user image
-                      TopUserImage(img: user["userImage"], size: 38),
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
-                          child: Text(
-                            user["username"],
-                            style: GoogleFonts.inter(
-                              textStyle: const TextStyle(
-                                color: Color(0xFF656263),
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
-                              ),
-                            ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Connection Failed",
+                        style: GoogleFonts.poppins(
+                          textStyle: const TextStyle(
+                            color: Color(0xFF999999),
+                            fontWeight: FontWeight.w400,
+                            fontSize: 14,
                           ),
                         ),
-                      ),
-                      // total step count
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            NumberFormat.decimalPattern().format(user["steps"]),
-                            style: GoogleFonts.inter(
-                              textStyle: const TextStyle(
-                                color: Color(0xFF7A7A7A),
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            "steps",
-                            style: GoogleFonts.inter(
-                              textStyle: const TextStyle(
-                                color: Color(0xFFC2C2C2),
-                                fontWeight: FontWeight.w500,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
+                )
+              : SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+                      // top 3 podium with image
+                      PodiumWidgetWithImage(
+                          topUsers: topUsers.take(3).toList()),
+
+                      // remaining leaderboard
+                      ListView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        // limit to top 10 ranking
+                        itemCount: topUsers.length > 7
+                            ? 7
+                            : topUsers.length > 3
+                                ? topUsers.length - 3
+                                : 0,
+                        itemBuilder: (context, index) {
+                          final user = topUsers[index + 3];
+                          return Container(
+                            margin: const EdgeInsets.fromLTRB(2, 8, 2, 6),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFDFDFD),
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  spreadRadius: 0.2,
+                                  blurRadius: 2,
+                                  offset: const Offset(0, 1.2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                // rank
+                                Container(
+                                  height: 18,
+                                  width: 18,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: const Color(0xFFBBBBBB),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    textAlign: TextAlign.center,
+                                    "${index + 4}",
+                                    style: GoogleFonts.inter(
+                                      textStyle: const TextStyle(
+                                        color: Color(0xFF484848),
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(width: 12),
+
+                                // user image
+                                TopUserImage(
+                                    img: user["profileImage"], size: 38),
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 18),
+                                    child: Text(
+                                      user["username"],
+                                      style: GoogleFonts.inter(
+                                        textStyle: const TextStyle(
+                                          color: Color(0xFF656263),
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // total step count
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      NumberFormat.decimalPattern()
+                                          .format(user["steps"]),
+                                      style: GoogleFonts.inter(
+                                        textStyle: const TextStyle(
+                                          color: Color(0xFF7A7A7A),
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      "steps",
+                                      style: GoogleFonts.inter(
+                                        textStyle: const TextStyle(
+                                          color: Color(0xFFC2C2C2),
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
     );
   }
 }
@@ -184,14 +251,9 @@ class TopUserImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<bool>(
-      future: doesAssetExist(img),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator(); // loading indicator
-        }
-
-        final imageExists = snapshot.data ?? false;
+    return Consumer<UserDetailsProvider>(
+      builder: (context, userDetailsProvider, child) {
+        String imageUrl = img;
 
         return Container(
           height: size,
@@ -210,24 +272,44 @@ class TopUserImage extends StatelessWidget {
               ),
             ],
             borderRadius: BorderRadius.circular(50),
-            image: imageExists
-                ? DecorationImage(
-                    colorFilter: ColorFilter.mode(
-                      const Color(0xFFADD8E6).withOpacity(0.5),
-                      BlendMode.overlay,
-                    ),
-                    image: AssetImage(img),
-                    fit: BoxFit.contain,
-                  )
-                : null,
           ),
-          child: !imageExists
-              ? const Icon(
-                  Icons.person,
-                  color: Colors.green,
-                  size: 20,
-                )
-              : null, // add icon only if the image doesn't exist
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(50),
+            child: imageUrl != "no_image"
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) {
+                        return child;
+                      }
+                      return Container(
+                        padding: const EdgeInsets.all(12),
+                        color: Colors.grey[50],
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.grey[300],
+                          ),
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Image.asset(
+                        'assets/images/user.jpg',
+                        fit: BoxFit.cover,
+                        color: const Color(0xFFADD8E6).withOpacity(0.5),
+                        colorBlendMode: BlendMode.overlay,
+                      );
+                    },
+                  )
+                : Image.asset(
+                    'assets/images/user.jpg',
+                    fit: BoxFit.cover,
+                    color: const Color(0xFFADD8E6).withOpacity(0.5),
+                    colorBlendMode: BlendMode.overlay,
+                  ),
+          ),
         );
       },
     );

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/api/user_service.dart';
+// import 'package:my_app/api/activity_service.dart';
 
 class AuthService {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
@@ -49,6 +50,7 @@ class AuthService {
         'name': name,
         'username': username,
         'email': email,
+        'steps': 0,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -59,6 +61,9 @@ class AuthService {
 
       UserDetailsService users = UserDetailsService();
       users.createFriendsDocument(userId, username);
+
+      // ActivityService weeklyActivity = ActivityService();
+      // weeklyActivity.createWeeklyActivityForNewUser(userId);
 
       return userCredential.user;
     } catch (e) {

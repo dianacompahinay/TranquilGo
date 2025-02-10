@@ -146,6 +146,71 @@ class UserDetailsService {
     }
   }
 
+  Future<List<Map<String, dynamic>>> fetchTopUsers(String userId) async {
+    List<Map<String, dynamic>> leaderboard = [];
+
+    try {
+      // add the current user in the list
+      DocumentSnapshot currentUserDoc =
+          await firestore.collection("users").doc(userId).get();
+
+      Map<String, dynamic> userData =
+          currentUserDoc.data() as Map<String, dynamic>;
+
+      String currUserImage = userData.containsKey("profileImage")
+          ? userData["profileImage"]
+          : "no_image";
+
+      leaderboard.add({
+        "profileImage": currUserImage,
+        "username": currentUserDoc['username'],
+        "steps": currentUserDoc['steps'],
+      });
+
+      // add friends in the list
+      DocumentSnapshot userDoc =
+          await firestore.collection("friends").doc(userId).get();
+
+      if (userDoc.exists) {
+        Map<String, dynamic> connections = userDoc['friendList'];
+
+        for (var friendId in connections.keys) {
+          // fetch the friend's details from users collection
+          DocumentSnapshot friendDoc =
+              await firestore.collection("users").doc(friendId).get();
+
+          if (friendDoc.exists) {
+            if (connections[friendId]["status"] == "friend") {
+              Map<String, dynamic> friendData =
+                  friendDoc.data() as Map<String, dynamic>;
+
+              String userImage = friendData.containsKey("profileImage")
+                  ? friendDoc["profileImage"]
+                  : "no_image";
+
+              leaderboard.add({
+                "profileImage": userImage,
+                "username": friendDoc['username'],
+                "steps": friendDoc['steps'],
+              });
+            }
+          }
+        }
+
+        // sort users by steps (highest first) and limit to top 10
+        final sortedUsers = List<Map<String, dynamic>>.from(leaderboard)
+          ..sort((a, b) => b["steps"].compareTo(a["steps"]))
+          ..sublist(0, leaderboard.length > 10 ? 10 : leaderboard.length);
+
+        return sortedUsers;
+      } else {
+        throw Exception("User document not found");
+      }
+    } catch (e) {
+      throw Exception("Error fetching friends: $e");
+    }
+  }
+
   Future<void> createFriendsDocument(String userId, String username) async {
     try {
       await firestore

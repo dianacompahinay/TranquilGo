@@ -74,7 +74,7 @@ class PodiumWidgetWithImage extends StatelessWidget {
                     const SizedBox(width: 12),
 
                     // user image
-                    TopUserImage(img: user["userImage"], size: 34),
+                    TopUserImage(img: user["profileImage"], size: 34),
                     Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -150,19 +150,19 @@ class PodiumWidgetWithImage extends StatelessWidget {
               Positioned(
                 top: 38,
                 left: 120,
-                child: TopUserImage(img: topUsers[0]["userImage"], size: 34),
+                child: TopUserImage(img: topUsers[0]["profileImage"], size: 34),
               ),
             if (topUsers.length > 1)
               Positioned(
                 top: 60,
                 left: 62,
-                child: TopUserImage(img: topUsers[1]["userImage"], size: 34),
+                child: TopUserImage(img: topUsers[1]["profileImage"], size: 34),
               ),
             if (topUsers.length > 2)
               Positioned(
                 top: 75,
                 right: 62,
-                child: TopUserImage(img: topUsers[2]["userImage"], size: 34),
+                child: TopUserImage(img: topUsers[2]["profileImage"], size: 34),
               ),
           ],
         );

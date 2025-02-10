@@ -60,6 +60,23 @@ class UserDetailsProvider with ChangeNotifier {
     return []; // return empty list when there is an error
   }
 
+  Future<List<Map<String, dynamic>>> fetchTopUsers(String userId) async {
+    List<Map<String, dynamic>> userList = [];
+    _isLoading = true;
+
+    try {
+      userList = await _userDetailsService.fetchTopUsers(userId);
+      notifyListeners();
+      _isLoading = false;
+      return userList;
+    } catch (e) {
+      print('Error fetching top users: $e');
+    }
+
+    _isLoading = false;
+    return []; // return empty list when there is an error
+  }
+
   Future<String> sendFriendRequest(String userId, String friendId) async {
     try {
       await _userDetailsService.sendFriendRequest(userId, friendId);
