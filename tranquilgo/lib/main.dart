@@ -5,6 +5,7 @@ import 'firebase_options.dart';
 import 'providers/AuthProvider.dart';
 import 'providers/UserProvider.dart';
 import 'providers/NotifProvider.dart';
+import 'providers/MindfulnessProvider.dart';
 
 import 'screens/Auth/LandingPage.dart';
 import 'screens/Auth/LoginPage.dart';
@@ -37,6 +38,7 @@ void main() async {
         ChangeNotifierProvider(create: ((context) => AuthenticationProvider())),
         ChangeNotifierProvider(create: ((context) => UserDetailsProvider())),
         ChangeNotifierProvider(create: ((context) => NotificationsProvider())),
+        ChangeNotifierProvider(create: ((context) => MindfulnessProvider())),
       ],
       child: const MainApp(),
     ),
@@ -72,7 +74,6 @@ class MainApp extends StatelessWidget {
         '/moodhistory': (context) => const MoodTrackingHistory(),
         '/journalnotes': (context) => const JournalNotes(),
         '/addentry': (context) => const AddJournalPage(),
-        '/addlog': (context) => const AddGratitudeLogPage(),
         '/gratitudelogs': (context) => const GratitudeLogs(),
         '/walk': (context) => const WalkingTracker(),
       },
@@ -85,6 +86,11 @@ class MainApp extends StatelessWidget {
         if (settings.name == '/notifs') {
           return MaterialPageRoute<String?>(
             builder: (context) => const NotificationsPage(),
+          );
+        }
+        if (settings.name == '/addlog') {
+          return MaterialPageRoute<String?>(
+            builder: (context) => const AddGratitudeLogPage(),
           );
         }
         return null;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-
-// class GratitudeLogs extends StatelessWidget {
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/MindfulnessProvider.dart';
 
 class GratitudeLogs extends StatefulWidget {
   const GratitudeLogs({super.key});
@@ -12,49 +12,152 @@ class GratitudeLogs extends StatefulWidget {
 }
 
 class _GratitudeLogsState extends State<GratitudeLogs> {
+  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
+  List<Map<String, dynamic>> logs = [];
+  bool fetchLoading = false;
+  bool deleteLoading = false;
+  bool isConnectionFailed = false;
   bool deleteMode = false;
 
-  static const List<Map<String, String>> logs = [
-    {'date': '', 'content': ''}, // filler
-    {
-      'date': 'Aug 12, 2024',
-      'content':
-          'Appreciating the beauty of nature and the peacefulness it brings'
-    },
-    {
-      'date': 'Aug 9, 2024',
-      'content': 'Thankful for the fresh air and the time to clear my mind.'
-    },
-    {
-      'date': 'Aug 8, 2024',
-      'content':
-          'Grateful for my health and the things I often take for granted.'
-    },
-    {
-      'date': 'Aug 5, 2024',
-      'content':
-          'Thankful for the opportunities to grow and become a better version of myself.'
-    },
-    {
-      'date': 'July 30, 2024',
-      'content': 'Thankful for the little moments of joy that brighten my day.'
-    },
-    {
-      'date': 'July 25, 2024',
-      'content':
-          'Grateful for the time spent away from screens and in the present moment.'
-    },
-    {
-      'date': 'July 22, 2024',
-      'content':
-          'Appreciating the beauty of nature and the peacefulness it brings.'
-    },
-    {
-      'date': 'July 19, 2024',
-      'content':
-          'Grateful for the support of friends and family during tough times.'
-    },
-  ];
+  // List<Map<String, String>> logs = [
+  //   {'logId': '', 'date': '', 'content': ''}, // filler
+  //   {
+  //     'logId': '1',
+  //     'date': 'Aug 12, 2024',
+  //     'content':
+  //         'Appreciating the beauty of nature and the peacefulness it brings'
+  //   },
+  //   {
+  //     'logId': '2',
+  //     'date': 'Aug 9, 2024',
+  //     'content': 'Thankful for the fresh air and the time to clear my mind.'
+  //   },
+  //   {
+  //     'logId': '3',
+  //     'date': 'Aug 8, 2024',
+  //     'content':
+  //         'Grateful for my health and the things I often take for granted.'
+  //   },
+  //   {
+  //     'logId': '4',
+  //     'date': 'Aug 5, 2024',
+  //     'content':
+  //         'Thankful for the opportunities to grow and become a better version of myself.'
+  //   },
+  //   {
+  //     'logId': '5',
+  //     'date': 'July 30, 2024',
+  //     'content': 'Thankful for the little moments of joy that brighten my day.'
+  //   },
+  //   {
+  //     'logId': '6',
+  //     'date': 'July 25, 2024',
+  //     'content':
+  //         'Grateful for the time spent away from screens and in the present moment.'
+  //   },
+  //   {
+  //     'logId': '7',
+  //     'date': 'July 22, 2024',
+  //     'content':
+  //         'Appreciating the beauty of nature and the peacefulness it brings.'
+  //   },
+  //   {
+  //     'logId': '8',
+  //     'date': 'July 19, 2024',
+  //     'content':
+  //         'Grateful for the support of friends and family during tough times.'
+  //   },
+  // ];
+
+  @override
+  void initState() {
+    super.initState();
+    initializeLogs();
+  }
+
+  Future<void> initializeLogs() async {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
+    setState(() {
+      fetchLoading = true;
+      logs = [];
+    });
+
+    try {
+      int totalLogs = await mindfulnessProvider.getUserLogsCount(userId) ?? 0;
+      int fetchedCount = 0;
+
+      // fetch the first batch of logs
+      List<Map<String, dynamic>> initialLogs =
+          await mindfulnessProvider.fetchLogs(userId, null);
+
+      if (initialLogs.isNotEmpty) {
+        fetchedCount += initialLogs.length;
+        setState(() {
+          logs = [
+            {'logId': '', 'date': '', 'content': ''},
+            ...initialLogs
+          ];
+        });
+      }
+
+      if (fetchedCount == totalLogs) {
+        setState(() {
+          fetchLoading = false;
+        });
+      }
+
+      // continue fetching remaining logs in batches
+      while (fetchedCount < totalLogs) {
+        List<Map<String, dynamic>> fetchedLogs =
+            await mindfulnessProvider.fetchLogs(userId, logs.last["logId"]);
+
+        if (fetchedLogs.isNotEmpty) {
+          fetchedCount += fetchedLogs.length;
+          setState(() {
+            logs.addAll(fetchedLogs);
+          });
+        }
+
+        if (fetchedCount == totalLogs) {
+          setState(() {
+            fetchLoading = false;
+          });
+          break;
+        }
+      }
+    } catch (e) {
+      setState(() {
+        fetchLoading = false;
+        isConnectionFailed = true;
+      });
+    }
+  }
+
+  void deleteLog(BuildContext context, String logId, int index) async {
+    setState(() {
+      deleteLoading = true;
+    });
+
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
+    String result = await mindfulnessProvider.deleteLog(userId, logId);
+
+    if (result == "success") {
+      setState(() {
+        logs.removeAt(index);
+      });
+      showBottomSnackBar(context, "Log has been deleted successfully.");
+    } else {
+      showBottomSnackBar(context, result);
+    }
+
+    setState(() {
+      deleteLoading = false;
+    });
+
+    Navigator.of(context).pop(); // close dialog
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,108 +239,162 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                               ),
                             ),
                           ),
-                          MasonryGridView.count(
-                            padding: const EdgeInsets.only(top: 10),
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 16.0,
-                            crossAxisSpacing: 16.0,
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: logs.length,
-                            itemBuilder: (BuildContext context, int index) {
-                              if (index == 0) {
-                                return Container(
-                                  margin: const EdgeInsets.symmetric(
-                                      horizontal: 2, vertical: 2),
-                                  height: 70,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(7),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.6),
-                                        spreadRadius: 0,
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ],
-                                  ),
+                          logs.isEmpty && !fetchLoading
+                              ? SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.75,
                                   child: Center(
-                                    child: Text(
-                                      'Positivity',
-                                      style: GoogleFonts.poppins(
-                                        textStyle: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF696969),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Image.asset(
+                                          'assets/icons/rainy.png',
+                                          width: 32,
+                                          height: 32,
+                                          fit: BoxFit.contain,
+                                          color: const Color(0xFF999999),
                                         ),
-                                      ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          "It's empty here...",
+                                          style: GoogleFonts.poppins(
+                                            textStyle: const TextStyle(
+                                              color: Color(0xFF999999),
+                                              fontWeight: FontWeight.w400,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                );
-                              } else {
-                                return GestureDetector(
-                                  onTap: () {
-                                    showDialog(
-                                      context: context,
-                                      builder: (BuildContext context) {
-                                        return AlertDialog(
-                                          backgroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(5),
-                                          ),
-                                          titlePadding:
-                                              const EdgeInsets.fromLTRB(
-                                                  20, 10, 10, 8),
-                                          contentPadding:
-                                              const EdgeInsets.fromLTRB(
-                                                  20, 0, 26, 26),
-                                          title: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                logs[index]['date']!,
-                                                style: GoogleFonts.poppins(
-                                                  textStyle: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                              ),
-                                              IconButton(
-                                                icon: const Icon(Icons.close,
-                                                    color: Colors.grey),
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                          content: SizedBox(
-                                            height: 170,
-                                            child: SingleChildScrollView(
-                                              child: Text(
-                                                logs[index]['content']!,
-                                                style: GoogleFonts.poppins(
-                                                  textStyle: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
+                                )
+                              : MasonryGridView.count(
+                                  padding: const EdgeInsets.only(top: 10),
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 16.0,
+                                  crossAxisSpacing: 16.0,
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: logs.length,
+                                  itemBuilder:
+                                      (BuildContext context, int index) {
+                                    if (index == 0) {
+                                      return Container(
+                                        margin: const EdgeInsets.symmetric(
+                                            horizontal: 2, vertical: 2),
+                                        height: 70,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius:
+                                              BorderRadius.circular(7),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color:
+                                                  Colors.grey.withOpacity(0.6),
+                                              spreadRadius: 0,
+                                              blurRadius: 2,
+                                              offset: const Offset(0, 1),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            'Positivity',
+                                            style: GoogleFonts.poppins(
+                                              textStyle: const TextStyle(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF696969),
                                               ),
                                             ),
                                           ),
-                                        );
-                                      },
-                                    );
+                                        ),
+                                      );
+                                    } else {
+                                      return GestureDetector(
+                                        onTap: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (BuildContext context) {
+                                              return AlertDialog(
+                                                backgroundColor: Colors.white,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(5),
+                                                ),
+                                                titlePadding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        20, 10, 10, 8),
+                                                contentPadding:
+                                                    const EdgeInsets.fromLTRB(
+                                                        20, 0, 26, 26),
+                                                title: Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    Text(
+                                                      logs[index]['date']!,
+                                                      style:
+                                                          GoogleFonts.poppins(
+                                                        textStyle:
+                                                            const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 16,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    IconButton(
+                                                      icon: const Icon(
+                                                          Icons.close,
+                                                          color: Colors.grey),
+                                                      onPressed: () {
+                                                        Navigator.pop(context);
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                                content: SizedBox(
+                                                  height: 170,
+                                                  child: SingleChildScrollView(
+                                                    child: Text(
+                                                      logs[index]['content']!,
+                                                      style:
+                                                          GoogleFonts.poppins(
+                                                        textStyle:
+                                                            const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Colors.black,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                        child: buildLogCard(logs[index], index),
+                                      );
+                                    }
                                   },
-                                  child: buildLogCard(logs[index]),
-                                );
-                              }
-                            },
-                          ),
+                                ),
+                          fetchLoading
+                              ? SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.15,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Color(0xFF36B9A5),
+                                      strokeWidth: 5,
+                                    ),
+                                  ),
+                                )
+                              : const SizedBox(),
                           const SizedBox(height: 50),
                         ],
                       ),
@@ -255,7 +412,14 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
             child: SizedBox(
               height: 38,
               child: FloatingActionButton.extended(
-                onPressed: () => Navigator.pushNamed(context, '/addlog'),
+                onPressed: () async {
+                  String? result =
+                      await Navigator.pushNamed(context, '/addlog');
+
+                  if (result != null && result.isNotEmpty) {
+                    initializeLogs();
+                  }
+                },
                 label: Text(
                   'Add log',
                   style: GoogleFonts.poppins(
@@ -320,11 +484,12 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
     );
   }
 
-  Widget buildLogCard(Map<String, String> log) {
+  Widget buildLogCard(Map<String, dynamic> log, int index) {
     return Stack(
       children: [
         Container(
           height: 160,
+          width: double.infinity,
           padding: const EdgeInsets.all(14.0),
           margin: const EdgeInsets.all(2),
           decoration: BoxDecoration(
@@ -376,8 +541,8 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                 right: 0,
                 child: IconButton(
                   // handle delete
-                  onPressed: () =>
-                      confirmationToDelete(context, "logId", log['date']!),
+                  onPressed: () => confirmationToDelete(
+                      context, log['logId']!, log['date']!, index),
                   icon: const Icon(
                     Icons.delete_outline,
                     color: Color(0xFF8F8F8F),
@@ -390,8 +555,8 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
     );
   }
 
-  static void confirmationToDelete(
-      BuildContext context, String logId, String date) {
+  void confirmationToDelete(
+      BuildContext context, String logId, String date, int index) {
     showDialog(
       context: context,
       builder: (context) {
@@ -415,72 +580,76 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
             ),
           ),
           actions: [
-            Container(
-              padding: EdgeInsets.zero,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // close dialog
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      minimumSize: const Size(120, 32),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                        side: const BorderSide(
-                          color: Color(0xFFB1B1B1),
-                          width: 1,
-                        ),
-                      ),
+            deleteLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF36B9A5),
+                      strokeWidth: 5,
                     ),
-                    child: Text(
-                      'Cancel',
-                      style: GoogleFonts.poppins(
-                        textStyle: const TextStyle(
-                          color: Color(0xFF4C4B4B),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
+                  )
+                : Container(
+                    padding: EdgeInsets.zero,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(); // close dialog
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            minimumSize: const Size(120, 32),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                              side: const BorderSide(
+                                color: Color(0xFFB1B1B1),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                color: Color(0xFF4C4B4B),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        ElevatedButton(
+                          onPressed: () {
+                            deleteLog(context, logId, index);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF55AC9F),
+                            minimumSize: const Size(120, 32),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          child: Text(
+                            'Confirm',
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  ElevatedButton(
-                    onPressed: () {
-                      // delete log
-                      showBottomSnackBar(
-                          context, "Log has been deleted successfully.");
-                      Navigator.of(context).pop(); // close dialog
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF55AC9F),
-                      minimumSize: const Size(120, 32),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(5),
-                      ),
-                    ),
-                    child: Text(
-                      'Confirm',
-                      style: GoogleFonts.poppins(
-                        textStyle: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         );
       },
     );
   }
 
-  static void showBottomSnackBar(BuildContext context, String text) {
+  void showBottomSnackBar(BuildContext context, String text) {
     final overlay = Overlay.of(context);
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(

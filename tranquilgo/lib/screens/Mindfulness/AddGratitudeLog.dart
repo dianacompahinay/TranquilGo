@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart'; // Import intl package
+import 'package:intl/intl.dart';
+import 'package:my_app/providers/MindfulnessProvider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AddGratitudeLogPage extends StatefulWidget {
   const AddGratitudeLogPage({super.key});
@@ -10,10 +12,24 @@ class AddGratitudeLogPage extends StatefulWidget {
 }
 
 class _AddGratitudeLogPageState extends State<AddGratitudeLogPage> {
-  final TextEditingController _contentController = TextEditingController();
+  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
+  final TextEditingController contentController = TextEditingController();
+  bool isLoading = false;
 
-  void saveEntry() {
-    Navigator.pop(context);
+  void saveEntry() async {
+    setState(() {
+      isLoading = true;
+    });
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    String result =
+        await mindfulnessProvider.addLog(userId, contentController.text);
+    if (result != "success") {
+      showBottomSnackBar(context, result);
+    }
+    setState(() {
+      isLoading = false;
+    });
+    Navigator.pop(context, 'newLog');
   }
 
   @override
@@ -92,7 +108,7 @@ class _AddGratitudeLogPageState extends State<AddGratitudeLogPage> {
                 // text area
                 Expanded(
                   child: TextField(
-                    controller: _contentController,
+                    controller: contentController,
                     maxLines: null,
                     expands: true,
                     decoration: InputDecoration(
@@ -114,7 +130,7 @@ class _AddGratitudeLogPageState extends State<AddGratitudeLogPage> {
               bottom: 0,
               right: 0,
               child: ElevatedButton(
-                onPressed: saveEntry,
+                onPressed: isLoading ? null : saveEntry,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF55AC9F),
                   padding:
@@ -123,21 +139,62 @@ class _AddGratitudeLogPageState extends State<AddGratitudeLogPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: Text(
-                  'Save',
-                  style: GoogleFonts.poppins(
-                    textStyle: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                child: isLoading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 4,
+                        ),
+                      )
+                    : Text(
+                        'Save',
+                        style: GoogleFonts.poppins(
+                          textStyle: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }
