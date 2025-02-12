@@ -3,44 +3,50 @@ import 'package:google_fonts/google_fonts.dart';
 // ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
 
-class JournalNotes extends StatefulWidget {
-  const JournalNotes({super.key});
+class JournalEntries extends StatefulWidget {
+  const JournalEntries({super.key});
 
   @override
-  _JournalNotesState createState() => _JournalNotesState();
+  _JournalEntriesState createState() => _JournalEntriesState();
 }
 
-class _JournalNotesState extends State<JournalNotes> {
+class _JournalEntriesState extends State<JournalEntries> {
   // list of journal entries with DateTime
   List<Map<String, dynamic>> journalEntries = [
     {
+      'entryId': '1',
       'date': DateTime(2024, 8, 12),
       'images': <String>[
         'assets/images/scenery1.jpg',
+        'assets/images/scenery2.jpg',
         'assets/images/scenery2.jpg'
       ],
       'content':
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
     },
     {
+      'entryId': '1',
       'date': DateTime(2024, 8, 11),
       'images': <String>[],
       'content':
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
     },
     {
+      'entryId': '1',
       'date': DateTime(2024, 8, 9),
       'images': <String>['assets/images/scenery3.jpg'],
       'content':
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
     },
     {
+      'entryId': '1',
       'date': DateTime(2024, 9, 20),
       'images': <String>[],
       'content':
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor.',
     },
     {
+      'entryId': '1',
       'date': DateTime(2025, 1, 1),
       'images': <String>[
         'assets/images/scenery1.jpg',
@@ -50,12 +56,14 @@ class _JournalNotesState extends State<JournalNotes> {
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
     },
     {
+      'entryId': '1',
       'date': DateTime(2025, 1, 3),
       'images': <String>['assets/images/scenery3.jpg'],
       'content':
           'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
     },
     {
+      'entryId': '1',
       'date': DateTime(2025, 1, 6),
       'images': <String>[],
       'content':
@@ -281,6 +289,7 @@ class _JournalNotesState extends State<JournalNotes> {
                           for (var i = 0; i < filteredEntries.length; i++)
                             journalEntry(
                               index: i,
+                              entryId: filteredEntries[i]['entryId'],
                               date: filteredEntries[i]['date'],
                               images: filteredEntries[i]['images'],
                               content: filteredEntries[i]['content'],
@@ -422,6 +431,7 @@ class _JournalNotesState extends State<JournalNotes> {
   // create journal entries
   Widget journalEntry({
     required int index,
+    required String entryId,
     required DateTime date,
     required List<String> images,
     required String content,
@@ -450,13 +460,25 @@ class _JournalNotesState extends State<JournalNotes> {
                 color: Color(0xFF767676),
                 size: 22,
               ),
-              // onSelected: (value) {
-              //   isAscending = value == 'Ascending';
-              //   sortEntries();
-              // },
+              onSelected: (value) {
+                if (value == 'View') {
+                  Navigator.pushNamed(
+                    context,
+                    '/viewentry',
+                    arguments: {
+                      'entryId': entryId,
+                      'date': date,
+                      'images': images,
+                      'content': content
+                    },
+                  );
+                } else if (value == 'Delete') {
+                  // delete entry
+                }
+              },
               itemBuilder: (context) => [
                 PopupMenuItem<String>(
-                  value: 'Descending',
+                  value: 'View',
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: const Text(
@@ -466,7 +488,7 @@ class _JournalNotesState extends State<JournalNotes> {
                   ),
                 ),
                 PopupMenuItem<String>(
-                  value: 'Ascending',
+                  value: 'Delete',
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: const Text(

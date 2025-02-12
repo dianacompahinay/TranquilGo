@@ -21,7 +21,7 @@ import 'screens/UserProfile.dart';
 import 'screens/Mindfulness/MoodRecord.dart';
 import 'screens/Mindfulness/MoodHistory.dart';
 import 'screens/Mindfulness/GratitudeLogs.dart';
-import 'screens/Mindfulness/JournalNotes.dart';
+import 'screens/Mindfulness/JournalEntries.dart';
 import 'screens/Mindfulness/AddJournal.dart';
 import 'screens/Mindfulness/AddGratitudeLog.dart';
 
@@ -94,7 +94,7 @@ class MainApp extends StatelessWidget {
         '/user': (context) => const UserProfilePage(),
         '/moodrecord': (context) => const MoodRecord(),
         '/moodhistory': (context) => const MoodTrackingHistory(),
-        '/journalnotes': (context) => const JournalNotes(),
+        '/journalentries': (context) => const JournalEntries(),
         '/addentry': (context) => const AddJournalPage(),
         '/addlog': (context) => const AddGratitudeLogPage(),
         '/gratitudelogs': (context) => const GratitudeLogs(),

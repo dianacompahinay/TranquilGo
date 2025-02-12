@@ -12,7 +12,7 @@ class AddJournalPage extends StatefulWidget {
 }
 
 class _AddJournalPageState extends State<AddJournalPage> {
-  final TextEditingController _contentController = TextEditingController();
+  final TextEditingController contentController = TextEditingController();
   final ImagePicker picker = ImagePicker();
   final List<File> images = []; // list to store captured images
 
@@ -66,12 +66,12 @@ class _AddJournalPageState extends State<AddJournalPage> {
       ),
       body: Container(
         padding:
-            const EdgeInsets.only(left: 26, right: 26, top: 10, bottom: 24),
+            const EdgeInsets.only(left: 26, right: 26, top: 10, bottom: 16),
         decoration: const BoxDecoration(color: Colors.white),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
 
             // formatted date
             Text(
@@ -90,7 +90,7 @@ class _AddJournalPageState extends State<AddJournalPage> {
             // text area
             Expanded(
               child: TextField(
-                controller: _contentController,
+                controller: contentController,
                 maxLines: null,
                 expands: true,
                 decoration: InputDecoration(
@@ -159,7 +159,7 @@ class _AddJournalPageState extends State<AddJournalPage> {
                       ],
                     ),
                   )
-                : const Spacer(),
+                : const SizedBox(),
 
             // button row
             Row(

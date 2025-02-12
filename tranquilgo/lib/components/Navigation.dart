@@ -287,7 +287,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
                   item('Mood Record', 'assets/icons/sidebar_mood.png',
                       '/moodrecord'),
                   item('Journal Notes', 'assets/icons/sidebar_logs.png',
-                      '/journalnotes'),
+                      '/journalentries'),
                   item('Gratitude Logs', 'assets/icons/sidebar_notes.png',
                       '/gratitudelogs'),
                 ],
@@ -370,7 +370,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
     final navigationMap = {
       "home": 0,
       "/moodrecord": 1,
-      "/journalnotes": 1,
+      "/journalentries": 1,
       "/gratitudelogs": 1,
       "social": 2,
       "progress": 3

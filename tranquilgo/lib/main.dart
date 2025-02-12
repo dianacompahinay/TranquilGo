@@ -19,7 +19,8 @@ import 'screens/UserProfile.dart';
 import 'screens/Mindfulness/MoodRecord.dart';
 import 'screens/Mindfulness/MoodHistory.dart';
 import 'screens/Mindfulness/GratitudeLogs.dart';
-import 'screens/Mindfulness/JournalNotes.dart';
+import 'screens/Mindfulness/JournalEntries.dart';
+import 'screens/Mindfulness/ViewJournal.dart';
 import 'screens/Mindfulness/AddJournal.dart';
 import 'screens/Mindfulness/AddGratitudeLog.dart';
 
@@ -72,8 +73,7 @@ class MainApp extends StatelessWidget {
         '/user': (context) => const UserProfilePage(),
         '/moodrecord': (context) => const MoodRecord(),
         '/moodhistory': (context) => const MoodTrackingHistory(),
-        '/journalnotes': (context) => const JournalNotes(),
-        '/addentry': (context) => const AddJournalPage(),
+        '/journalentries': (context) => const JournalEntries(),
         '/gratitudelogs': (context) => const GratitudeLogs(),
         '/walk': (context) => const WalkingTracker(),
       },
@@ -91,6 +91,18 @@ class MainApp extends StatelessWidget {
         if (settings.name == '/addlog') {
           return MaterialPageRoute<String?>(
             builder: (context) => const AddGratitudeLogPage(),
+          );
+        }
+        if (settings.name == '/addentry') {
+          return MaterialPageRoute<String?>(
+            builder: (context) => const AddJournalPage(),
+          );
+        }
+        if (settings.name == '/viewentry') {
+          final args = settings.arguments as Map<String, dynamic>?;
+          return MaterialPageRoute<String?>(
+            builder: (context) => ViewJournalPage(arguments: args),
+            settings: settings,
           );
         }
         return null;

@@ -93,7 +93,7 @@ class _MindfulnessState extends State<Mindfulness> {
             buildMenuItem(
               title: "Journal Notes",
               iconPath: "assets/icons/logs_filled.png",
-              route: "/journalnotes",
+              route: "/journalentries",
             ),
             buildMenuItem(
               title: "Gratitude Logs",
