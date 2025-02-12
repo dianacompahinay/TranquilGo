@@ -99,6 +99,7 @@ class MainApp extends StatelessWidget {
           );
         }
         if (settings.name == '/viewentry') {
+          // pass arguments to the page
           final args = settings.arguments as Map<String, dynamic>?;
           return MaterialPageRoute<String?>(
             builder: (context) => ViewJournalPage(arguments: args),

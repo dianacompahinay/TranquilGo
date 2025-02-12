@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/MindfulnessProvider.dart';
+
 class AddJournalPage extends StatefulWidget {
   const AddJournalPage({super.key});
 
@@ -12,9 +15,27 @@ class AddJournalPage extends StatefulWidget {
 }
 
 class _AddJournalPageState extends State<AddJournalPage> {
+  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
   final TextEditingController contentController = TextEditingController();
   final ImagePicker picker = ImagePicker();
   final List<File> images = []; // list to store captured images
+  bool isLoading = false;
+
+  void saveEntry() async {
+    setState(() {
+      isLoading = true;
+    });
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    String result = await mindfulnessProvider.addEntry(
+        userId, images, contentController.text);
+    if (result != "success") {
+      showBottomSnackBar(context, result);
+    }
+    setState(() {
+      isLoading = false;
+    });
+    Navigator.pop(context, 'newEntry');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,7 +217,7 @@ class _AddJournalPageState extends State<AddJournalPage> {
 
                 // save button
                 ElevatedButton(
-                  onPressed: saveEntry,
+                  onPressed: isLoading ? null : saveEntry,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF55AC9F),
                     padding:
@@ -205,16 +226,25 @@ class _AddJournalPageState extends State<AddJournalPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(
-                    'Save',
-                    style: GoogleFonts.poppins(
-                      textStyle: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 4,
+                          ),
+                        )
+                      : Text(
+                          'Save',
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -267,7 +297,35 @@ class _AddJournalPageState extends State<AddJournalPage> {
     });
   }
 
-  void saveEntry() {
-    Navigator.pop(context);
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }

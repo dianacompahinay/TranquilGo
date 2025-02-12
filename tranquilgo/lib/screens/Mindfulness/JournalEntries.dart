@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// ignore: depend_on_referenced_packages
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/MindfulnessProvider.dart';
 
 class JournalEntries extends StatefulWidget {
   const JournalEntries({super.key});
@@ -11,75 +12,126 @@ class JournalEntries extends StatefulWidget {
 }
 
 class _JournalEntriesState extends State<JournalEntries> {
-  // list of journal entries with DateTime
-  List<Map<String, dynamic>> journalEntries = [
-    {
-      'entryId': '1',
-      'date': DateTime(2024, 8, 12),
-      'images': <String>[
-        'assets/images/scenery1.jpg',
-        'assets/images/scenery2.jpg',
-        'assets/images/scenery2.jpg'
-      ],
-      'content':
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
-    },
-    {
-      'entryId': '1',
-      'date': DateTime(2024, 8, 11),
-      'images': <String>[],
-      'content':
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
-    },
-    {
-      'entryId': '1',
-      'date': DateTime(2024, 8, 9),
-      'images': <String>['assets/images/scenery3.jpg'],
-      'content':
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
-    },
-    {
-      'entryId': '1',
-      'date': DateTime(2024, 9, 20),
-      'images': <String>[],
-      'content':
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor.',
-    },
-    {
-      'entryId': '1',
-      'date': DateTime(2025, 1, 1),
-      'images': <String>[
-        'assets/images/scenery1.jpg',
-        'assets/images/scenery2.jpg'
-      ],
-      'content':
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
-    },
-    {
-      'entryId': '1',
-      'date': DateTime(2025, 1, 3),
-      'images': <String>['assets/images/scenery3.jpg'],
-      'content':
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
-    },
-    {
-      'entryId': '1',
-      'date': DateTime(2025, 1, 6),
-      'images': <String>[],
-      'content':
-          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor.',
-    },
-  ];
+  final userId = FirebaseAuth.instance.currentUser!.uid;
 
-  bool isAscending = true;
-  Map<int, bool> expandedTexts = {}; // track expanded state
+  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
+  List<Map<String, dynamic>> journalEntries = [];
+
+  bool isAscending = false;
+  Map<int, bool> expandedTexts = {}; // for see more and show less
   DateTime? selectedMonth = DateTime.now();
+  DateTime? startingMonthTab;
+
+  bool fetchLoading = false;
+  bool loadingMonthTab = false;
+  bool isConnectionFailed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    getStartingMonthTab();
+  }
+
+  Future<void> getStartingMonthTab() async {
+    setState(() {
+      loadingMonthTab = true;
+    });
+    try {
+      DateTime? fetchMonth = await mindfulnessProvider.getUserCreatedAt(userId);
+      if (fetchMonth != null) {
+        setState(() {
+          startingMonthTab = fetchMonth;
+        });
+        initializeEntries();
+      }
+    } catch (e) {
+      setState(() {
+        isConnectionFailed = true;
+      });
+    }
+    setState(() {
+      loadingMonthTab = false;
+    });
+  }
+
+  Future<void> initializeEntries() async {
+    setState(() {
+      fetchLoading = true;
+      journalEntries = [];
+    });
+
+    try {
+      int totalEntries = await mindfulnessProvider.getUserEntriesCount(
+              userId, selectedMonth!) ??
+          0;
+
+      int fetchedCount = 0;
+
+      // fetch the first batch of entries
+      List<Map<String, dynamic>> initialEntries =
+          await mindfulnessProvider.fetchEntries(userId, null, selectedMonth!);
+
+      if (initialEntries.isNotEmpty) {
+        fetchedCount += initialEntries.length;
+        setState(() {
+          journalEntries = initialEntries;
+        });
+      }
+
+      if (fetchedCount == totalEntries) {
+        setState(() {
+          fetchLoading = false;
+        });
+      }
+
+      // continue fetching remaining entries in batches
+      while (fetchedCount < totalEntries) {
+        List<Map<String, dynamic>> fetchedEntries =
+            await mindfulnessProvider.fetchEntries(
+                userId, journalEntries.last["entryId"], selectedMonth!);
+
+        if (fetchedEntries.isNotEmpty) {
+          fetchedCount += fetchedEntries.length;
+          setState(() {
+            journalEntries.addAll(fetchedEntries);
+            // sort entries every fetch, relevant specially when sorting is specified
+            sortEntries();
+          });
+        }
+
+        if (fetchedCount == totalEntries) {
+          setState(() {
+            fetchLoading = false;
+          });
+          break;
+        }
+      }
+    } catch (e) {
+      setState(() {
+        fetchLoading = false;
+        isConnectionFailed = true;
+      });
+    }
+  }
+
+  // // list of journal entries with DateTime
+  // List<Map<String, dynamic>> journalEntries = [
+  //   {
+  //     'entryId': '1',
+  //     'date': January 22, 2025 at 10:29:45 PM UTC+8,  // timestamp
+  //     'images': <String>[
+  //       // imgUrls
+  //     ],
+  //     'content':
+  //         'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
+  //   },
+  //   ]
 
   void sortEntries() {
     setState(() {
       journalEntries.sort((a, b) => isAscending
-          ? a['date'].compareTo(b['date'])
-          : b['date'].compareTo(a['date']));
+          ? a['timestamp'].compareTo(b['timestamp'])
+          : b['timestamp'].compareTo(a['timestamp']));
     });
   }
 
@@ -102,28 +154,6 @@ class _JournalEntriesState extends State<JournalEntries> {
         ),
       ),
     );
-  }
-
-  void addNewEntry() {
-    // setState(() {
-    //   journalEntries.add({
-    //     'date': DateTime.now(),
-    //     'images': <String>[],
-    //     'content': 'New journal entry content...',
-    //   });
-    // });
-    Navigator.pushNamed(context, '/addentry');
-  }
-
-  // filter journal entries by selected month
-  List<Map<String, dynamic>> get filteredEntries {
-    if (selectedMonth == null) return journalEntries;
-
-    return journalEntries.where((entry) {
-      final entryDate = entry['date'];
-      return entryDate.month == selectedMonth!.month &&
-          entryDate.year == selectedMonth!.year;
-    }).toList();
   }
 
   @override
@@ -211,8 +241,28 @@ class _JournalEntriesState extends State<JournalEntries> {
                             scrollDirection: Axis.horizontal,
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.start,
-                              children: generateMonthTabs(DateTime.now(),
-                                  DateTime(2024, 8), selectedMonth),
+                              children: loadingMonthTab
+                                  ? [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 34, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[100],
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 3,
+                                            color: Colors.grey[300],
+                                          ),
+                                        ),
+                                      ),
+                                    ]
+                                  : generateMonthTabs(DateTime.now(),
+                                      startingMonthTab!, selectedMonth),
                             ),
                           ),
                           const SizedBox(height: 15),
@@ -248,7 +298,9 @@ class _JournalEntriesState extends State<JournalEntries> {
                                 icon: const Icon(Icons.sort,
                                     color: Color(0xFF606060)),
                                 onSelected: (value) {
-                                  isAscending = value == 'Ascending';
+                                  setState(() {
+                                    isAscending = value == 'Ascending';
+                                  });
                                   sortEntries();
                                 },
                                 itemBuilder: (context) => [
@@ -285,44 +337,112 @@ class _JournalEntriesState extends State<JournalEntries> {
                             ],
                           ),
 
-                          // dynamically load journal entries
-                          for (var i = 0; i < filteredEntries.length; i++)
-                            journalEntry(
-                              index: i,
-                              entryId: filteredEntries[i]['entryId'],
-                              date: filteredEntries[i]['date'],
-                              images: filteredEntries[i]['images'],
-                              content: filteredEntries[i]['content'],
-                            ),
-                          const SizedBox(height: 45),
-
-                          if (filteredEntries.isEmpty)
-                            Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Image.asset(
-                                    'assets/icons/rainy.png',
-                                    width: 32,
-                                    height: 32,
-                                    fit: BoxFit.contain,
-                                    color: const Color(0xFF999999),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    "It's empty here...",
-                                    style: GoogleFonts.poppins(
-                                      textStyle: const TextStyle(
-                                        color: Color(0xFF999999),
-                                        fontWeight: FontWeight.w400,
-                                        fontSize: 14,
-                                      ),
+                          isConnectionFailed
+                              ? SizedBox(
+                                  height:
+                                      MediaQuery.of(context).size.height * 0.5,
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Image.asset(
+                                          'assets/icons/error.png',
+                                          width: 32,
+                                          height: 32,
+                                          fit: BoxFit.contain,
+                                          color: const Color(0xFF999999),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          "Connection Failed",
+                                          style: GoogleFonts.poppins(
+                                            textStyle: const TextStyle(
+                                              color: Color(0xFF999999),
+                                              fontWeight: FontWeight.w400,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
                                     ),
-                                    textAlign: TextAlign.center,
                                   ),
-                                ],
-                              ),
-                            ),
+                                )
+                              : journalEntries.isEmpty &&
+                                      !fetchLoading &&
+                                      !loadingMonthTab
+                                  ? SizedBox(
+                                      height:
+                                          MediaQuery.of(context).size.height *
+                                              0.5,
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Image.asset(
+                                              'assets/icons/rainy.png',
+                                              width: 32,
+                                              height: 32,
+                                              fit: BoxFit.contain,
+                                              color: const Color(0xFF999999),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              "It's empty here...",
+                                              style: GoogleFonts.poppins(
+                                                textStyle: const TextStyle(
+                                                  color: Color(0xFF999999),
+                                                  fontWeight: FontWeight.w400,
+                                                  fontSize: 14,
+                                                ),
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    )
+                                  :
+                                  // load journal entries
+                                  Column(
+                                      children: [
+                                        ...journalEntries
+                                            .asMap()
+                                            .entries
+                                            .map((entry) {
+                                          int i = entry.key;
+                                          var data = entry.value;
+
+                                          return journalEntry(
+                                            index: i,
+                                            entryId: data['entryId'],
+                                            date: data['date'],
+                                            images: data['images'],
+                                            content: data['content'],
+                                            updatedAt: data['updatedAt'],
+                                          );
+                                        }).toList(),
+                                        fetchLoading
+                                            ? SizedBox(
+                                                height: MediaQuery.of(context)
+                                                        .size
+                                                        .height *
+                                                    0.15,
+                                                child: const Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    color: Color(0xFF36B9A5),
+                                                    strokeWidth: 5,
+                                                  ),
+                                                ),
+                                              )
+                                            : const SizedBox(),
+                                        const SizedBox(height: 45),
+                                      ],
+                                    ),
+                          const SizedBox(height: 45),
                         ],
                       ),
                     ),
@@ -338,7 +458,13 @@ class _JournalEntriesState extends State<JournalEntries> {
             child: SizedBox(
               height: 38,
               child: FloatingActionButton.extended(
-                onPressed: addNewEntry,
+                onPressed: () async {
+                  String? result =
+                      await Navigator.pushNamed(context, '/addentry');
+                  if (result != null && result.isNotEmpty) {
+                    initializeEntries();
+                  }
+                },
                 label: Text(
                   'Add entry',
                   style: GoogleFonts.poppins(
@@ -369,11 +495,16 @@ class _JournalEntriesState extends State<JournalEntries> {
   // create month tabs
   Widget monthTab(String label, DateTime monthDate, {bool isActive = false}) {
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedMonth = monthDate;
-        });
-      },
+      onTap:
+          // to prevent rendering of entries from another month while fetching
+          fetchLoading
+              ? null
+              : () {
+                  setState(() {
+                    selectedMonth = monthDate;
+                  });
+                  initializeEntries();
+                },
       child: Container(
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -432,11 +563,11 @@ class _JournalEntriesState extends State<JournalEntries> {
   Widget journalEntry({
     required int index,
     required String entryId,
-    required DateTime date,
+    required String date,
     required List<String> images,
     required String content,
+    required String? updatedAt,
   }) {
-    final dateFormatted = DateFormat('EEEE, dd MMMM yyyy').format(date);
     final isExpanded = expandedTexts[index] ?? false;
 
     return Column(
@@ -447,7 +578,7 @@ class _JournalEntriesState extends State<JournalEntries> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              dateFormatted,
+              date,
               style: GoogleFonts.poppins(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -460,20 +591,33 @@ class _JournalEntriesState extends State<JournalEntries> {
                 color: Color(0xFF767676),
                 size: 22,
               ),
-              onSelected: (value) {
+              onSelected: (value) async {
                 if (value == 'View') {
-                  Navigator.pushNamed(
+                  String? result = await Navigator.pushNamed(
                     context,
                     '/viewentry',
                     arguments: {
                       'entryId': entryId,
                       'date': date,
                       'images': images,
-                      'content': content
+                      'content': content,
+                      'updatedAt': updatedAt
                     },
                   );
+                  if (result != null && result.isNotEmpty) {
+                    initializeEntries();
+                  }
                 } else if (value == 'Delete') {
-                  // delete entry
+                  String result =
+                      await mindfulnessProvider.deleteEntry(userId, entryId);
+                  if (result != "success") {
+                    showBottomSnackBar(context, result);
+                  } else {
+                    setState(() {
+                      journalEntries
+                          .removeWhere((entry) => entry['entryId'] == entryId);
+                    });
+                  }
                 }
               },
               itemBuilder: (context) => [
@@ -513,17 +657,44 @@ class _JournalEntriesState extends State<JournalEntries> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: images.map<Widget>((imagePath) {
+              children: images.map<Widget>((imageUrl) {
                 return GestureDetector(
-                  onTap: () => showImageModal(imagePath),
+                  onTap: () => showImageModal(imageUrl),
                   child: Container(
                     margin: const EdgeInsets.only(left: 2, right: 8),
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      image: DecorationImage(
-                          image: AssetImage(imagePath), fit: BoxFit.cover),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            color: Colors.grey[100],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: Icon(
+                              Icons.broken_image,
+                              color: Colors.grey[600],
+                              size: 50,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 );
@@ -547,12 +718,15 @@ class _JournalEntriesState extends State<JournalEntries> {
                 TextSpan(
                   text: isExpanded
                       ? content
-                      : '${content.substring(0, 150)}...', // truncated text
+                      : content.length > 150
+                          ? '${content.substring(0, 150)}...'
+                          : content,
                 ),
-                TextSpan(
-                  text: isExpanded ? ' Show less' : ' See more',
-                  style: TextStyle(color: Colors.grey[600]),
-                ),
+                if (content.length > 150)
+                  TextSpan(
+                    text: isExpanded ? ' Show less' : ' See more',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
               ],
             ),
           ),
@@ -560,5 +734,37 @@ class _JournalEntriesState extends State<JournalEntries> {
         const SizedBox(height: 18),
       ],
     );
+  }
+
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }

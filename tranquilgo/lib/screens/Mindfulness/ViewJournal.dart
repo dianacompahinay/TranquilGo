@@ -1,7 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/MindfulnessProvider.dart';
 
 class ViewJournalPage extends StatefulWidget {
   final Map<String, dynamic>? arguments;
@@ -13,13 +14,19 @@ class ViewJournalPage extends StatefulWidget {
 }
 
 class _ViewJournalPageState extends State<ViewJournalPage> {
+  final userId = FirebaseAuth.instance.currentUser!.uid;
+  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
   TextEditingController contentController = TextEditingController();
-  bool isEditable = false;
 
   String? entryId;
-  DateTime? date;
+  String? date;
   List<String> images = [];
   String? content;
+  String? updatedAt;
+
+  bool isEditable = false;
+  bool isLoading = false;
+  bool isUpdated = false;
 
   @override
   void initState() {
@@ -32,14 +39,33 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
         date = widget.arguments?['date'];
         images = List<String>.from(widget.arguments?['images'] ?? []);
         contentController.text = widget.arguments?['content'] ?? "";
+        updatedAt = widget.arguments?['updatedAt'];
       });
     }
   }
 
+  void saveEntry() async {
+    setState(() {
+      isLoading = true;
+      isUpdated = true;
+      isEditable = false;
+    });
+
+    String result = await mindfulnessProvider.editEntry(
+        userId, entryId!, images, contentController.text);
+    if (result != "success") {
+      setState(() {
+        isUpdated = false;
+      });
+      showBottomSnackBar(context, result);
+    }
+    setState(() {
+      isLoading = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    String formattedDate = DateFormat('EEEE, dd MMMM yyyy').format(date!);
-
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
@@ -66,7 +92,11 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
               ),
             ),
             onPressed: () {
-              Navigator.pop(context);
+              if (isUpdated) {
+                Navigator.pop(context, 'entryUpdated');
+              } else {
+                Navigator.pop(context);
+              }
             },
           ),
         ),
@@ -90,13 +120,18 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
                 color: Color(0xFF767676),
                 size: 24,
               ),
-              onSelected: (value) {
+              onSelected: (value) async {
                 if (value == 'Edit') {
                   setState(() {
                     isEditable = true;
                   });
                 } else if (value == 'Delete') {
-                  // delete entry
+                  String result =
+                      await mindfulnessProvider.deleteEntry(userId, entryId!);
+                  if (result != "success") {
+                    showBottomSnackBar(context, result);
+                  }
+                  Navigator.pop(context, 'entryDeleted');
                 }
               },
               itemBuilder: (context) => [
@@ -149,7 +184,7 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
 
                         // formatted date
                         Text(
-                          formattedDate,
+                          date!,
                           style: GoogleFonts.poppins(
                               fontSize: 16,
                               color: const Color(0xFF5B5B5B),
@@ -170,13 +205,12 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
                                 children:
                                     images.asMap().entries.map<Widget>((entry) {
                                   int index = entry.key;
-                                  String imagePath = entry.value;
+                                  String imageUrl = entry.value;
 
                                   return Stack(
                                     children: [
                                       GestureDetector(
-                                        onTap: () =>
-                                            showImageModal(File(imagePath)),
+                                        onTap: () => showImageModal(imageUrl),
                                         child: Container(
                                           margin: const EdgeInsets.only(
                                               left: 2, right: 8),
@@ -185,9 +219,43 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
                                           decoration: BoxDecoration(
                                             borderRadius:
                                                 BorderRadius.circular(8),
-                                            image: DecorationImage(
-                                                image: AssetImage(imagePath),
-                                                fit: BoxFit.cover),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            child: Image.network(
+                                              imageUrl,
+                                              fit: BoxFit.cover,
+                                              loadingBuilder: (context, child,
+                                                  loadingProgress) {
+                                                if (loadingProgress == null) {
+                                                  return child;
+                                                }
+                                                return Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    value: loadingProgress
+                                                                .expectedTotalBytes !=
+                                                            null
+                                                        ? loadingProgress
+                                                                .cumulativeBytesLoaded /
+                                                            (loadingProgress
+                                                                    .expectedTotalBytes ??
+                                                                1)
+                                                        : null,
+                                                  ),
+                                                );
+                                              },
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                return const Center(
+                                                  child: Icon(
+                                                      Icons.broken_image,
+                                                      size: 40,
+                                                      color: Colors.grey),
+                                                );
+                                              },
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -196,8 +264,7 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
                                           right: 16,
                                           top: 12,
                                           child: GestureDetector(
-                                            onTap: () => removeImage(
-                                                index), // remove image at index
+                                            onTap: () => removeImage(index),
                                             child: Container(
                                               width: 26,
                                               height: 26,
@@ -244,6 +311,23 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
                     ),
                   ),
                 ),
+                if (!isUpdated && updatedAt != null && !isEditable)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 3,
+                    child: Center(
+                      child: Text("Updated last: $updatedAt",
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              color: Color(0xFF979797),
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                            ),
+                          ),
+                          textAlign: TextAlign.center),
+                    ),
+                  ),
                 // button row
                 if (isEditable)
                   Positioned(
@@ -252,12 +336,7 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
                     child:
                         // save button
                         ElevatedButton(
-                      onPressed: () {
-                        saveEntry();
-                        setState(() {
-                          isEditable = false;
-                        });
-                      },
+                      onPressed: isLoading ? null : saveEntry,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF55AC9F),
                         padding: const EdgeInsets.symmetric(
@@ -266,16 +345,25 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: Text(
-                        'Save',
-                        style: GoogleFonts.poppins(
-                          textStyle: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 4,
+                              ),
+                            )
+                          : Text(
+                              'Save',
+                              style: GoogleFonts.poppins(
+                                textStyle: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
                     ),
                   ),
               ],
@@ -286,27 +374,32 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
     );
   }
 
-  void showImageModal(File image) {
+  void showImageModal(String imageUrl) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        child: Stack(
-          children: [
-            Image(
-              image: FileImage(image),
-              fit: BoxFit.cover,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(
+                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                );
+              },
             ),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -316,7 +409,35 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
     });
   }
 
-  void saveEntry() {
-    // Navigator.pop(context);
+  void showBottomSnackBar(BuildContext context, String text) {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+    });
   }
 }
