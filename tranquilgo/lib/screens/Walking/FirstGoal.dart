@@ -213,7 +213,8 @@ class _FirstGoalState extends State<FirstGoal> {
                                               },
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor: Colors.white,
-                                                minimumSize: const Size(60, 38),
+                                                minimumSize:
+                                                    const Size(120, 38),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(5),
@@ -262,7 +263,8 @@ class _FirstGoalState extends State<FirstGoal> {
                                               style: ElevatedButton.styleFrom(
                                                 backgroundColor:
                                                     const Color(0xFF55AC9F),
-                                                minimumSize: const Size(60, 38),
+                                                minimumSize:
+                                                    const Size(120, 38),
                                                 shape: RoundedRectangleBorder(
                                                   borderRadius:
                                                       BorderRadius.circular(5),
@@ -289,13 +291,6 @@ class _FirstGoalState extends State<FirstGoal> {
                             },
                           );
                         }
-                        // else {
-                        //   ScaffoldMessenger.of(context).showSnackBar(
-                        //     SnackBar(
-                        //       content: Text('You selected: ${options[index]}'),
-                        //     ),
-                        //   );
-                        // }
                       },
                       child: Container(
                         margin: const EdgeInsets.symmetric(

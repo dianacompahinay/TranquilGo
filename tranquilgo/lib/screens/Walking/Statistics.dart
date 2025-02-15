@@ -45,12 +45,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFCFCFC),
+                  color: const Color(0xFF73D2C3),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: const Color(0xFF888888),
-                    width: 1,
-                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.grey.withOpacity(0.2),
@@ -69,7 +65,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           width: 20,
                           height: 20,
                           fit: BoxFit.contain,
-                          color: const Color(0xFF616161),
+                          color: const Color(0xFFFFFFFF),
                         ),
                         const SizedBox(width: 5),
                         Text(
@@ -77,7 +73,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           style: GoogleFonts.manrope(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF666666),
+                            color: const Color(0xFFFFFFFF),
                           ),
                         ),
                       ],
@@ -91,7 +87,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                           style: GoogleFonts.manrope(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF666666),
+                            color: const Color(0xFFFFFFFF),
                           ),
                         ),
                         const SizedBox(width: 2),
@@ -103,7 +99,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                             style: GoogleFonts.manrope(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF8C8C8C),
+                              color: const Color(0xFFFFFFFF),
                             ),
                           ),
                         ),

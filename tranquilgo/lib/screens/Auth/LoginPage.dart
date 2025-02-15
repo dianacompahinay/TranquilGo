@@ -345,6 +345,9 @@ class _LoginPageState extends State<LoginPage> {
         if (result == 'success') {
           // navigate to the next screen on success
           Navigator.pushReplacementNamed(context, '/home');
+
+          // if first set goal is empty?
+          // Navigator.pushReplacementNamed(context, '/firstgoal');
         } else {
           // show error message in snackbar
           showBottomSnackBar(context, result);

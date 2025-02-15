@@ -20,11 +20,11 @@ class _MindfulnessState extends State<Mindfulness> {
             const EdgeInsets.only(left: 25, right: 25, top: 13, bottom: 13),
         margin: const EdgeInsets.only(top: 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF9F9F9),
-          borderRadius: BorderRadius.circular(10),
+          color: const Color(0xFFF3F5F5),
+          borderRadius: BorderRadius.circular(8),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withOpacity(0.3),
               blurRadius: 2,
               offset: const Offset(0, 1),
             ),
@@ -81,7 +81,7 @@ class _MindfulnessState extends State<Mindfulness> {
                   image: const AssetImage('assets/images/mindfulness.png'),
                   fit: BoxFit.cover,
                 ),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
               ),
             ),
             const SizedBox(height: 8),
