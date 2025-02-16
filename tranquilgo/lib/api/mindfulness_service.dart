@@ -14,6 +14,180 @@ class MindfulnessService {
     cloudName: 'de8e3mj0x',
   );
 
+  // MOOD RECORD
+
+  Future<double> getWeeklyAverageMood(String userId) async {
+    try {
+      DateTime now = DateTime.now();
+
+      // get the current start and end of the week
+      DateTime startOfWeek =
+          DateTime(now.year, now.month, now.day - (now.weekday - 1));
+      DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
+
+      CollectionReference moodCollection = firestore
+          .collection('mindfulness')
+          .doc(userId)
+          .collection('mood_record');
+
+      QuerySnapshot moodSnapshot = await moodCollection.get();
+
+      List<double> weeklyMoods = [];
+
+      for (QueryDocumentSnapshot doc in moodSnapshot.docs) {
+        List<String> parts = doc.id.split('-');
+        int month = int.parse(parts[0]);
+        int year = int.parse(parts[1]);
+
+        Map<String, dynamic> moods = doc.get('moods');
+
+        moods.forEach((date, moodValue) {
+          double moodDouble = (moodValue as num).toDouble();
+          DateTime moodDate = DateTime(year, month, int.parse(date));
+
+          // filter only records from monday to sunday of this week
+          if (moodDate.isAfter(
+                  startOfWeek.subtract(const Duration(milliseconds: 1))) &&
+              moodDate
+                  .isBefore(endOfWeek.add(const Duration(milliseconds: 1)))) {
+            weeklyMoods.add(moodDouble);
+          }
+        });
+      }
+
+      if (weeklyMoods.isEmpty) return 0;
+
+      // get the average
+      double averageMood =
+          weeklyMoods.reduce((a, b) => a + b) / weeklyMoods.length;
+      return double.parse(averageMood.toStringAsFixed(1));
+    } catch (e) {
+      throw Exception('Failed to calculate weekly average mood');
+    }
+  }
+
+  Future<Map<DateTime, int>> fetchAllMoodRecords(String userId) async {
+    try {
+      CollectionReference moodCollection = firestore
+          .collection('mindfulness')
+          .doc(userId)
+          .collection('mood_record');
+
+      QuerySnapshot moodSnapshot = await moodCollection.get();
+
+      Map<DateTime, int> moodData = {};
+
+      for (QueryDocumentSnapshot doc in moodSnapshot.docs) {
+        // extract month and year from the ID
+        List<String> parts = doc.id.split('-');
+        int month = int.parse(parts[0]);
+        int year = int.parse(parts[1]);
+
+        // mood data map
+        Map<String, dynamic> moods = doc.get('moods');
+
+        moods.forEach((date, moodValue) {
+          int roundedMood = (moodValue as num).round();
+
+          DateTime moodDate = DateTime(year, month, int.parse(date));
+          moodData[moodDate] = roundedMood;
+        });
+      }
+
+      return moodData;
+    } catch (e) {
+      throw Exception('Failed to fetch all mood records');
+    }
+  }
+
+  Future<Map<DateTime, int>> fetchPerMonthMoodRecords(
+      String userId, int month, int year) async {
+    try {
+      String monthYear = '${month.toString().padLeft(2, '0')}-$year';
+
+      DocumentReference moodDocRef = firestore
+          .collection('mindfulness')
+          .doc(userId)
+          .collection('mood_record')
+          .doc(monthYear);
+
+      DocumentSnapshot moodSnapshot = await moodDocRef.get();
+
+      Map<DateTime, int> moodData = {};
+
+      if (moodSnapshot.exists) {
+        Map<String, dynamic> moods = moodSnapshot.get('moods');
+
+        moods.forEach((date, moodValue) {
+          int roundedMood = (moodValue as num).round();
+          DateTime moodDate = DateTime(year, month, int.parse(date));
+          moodData[moodDate] = roundedMood;
+        });
+      }
+
+      return moodData;
+    } catch (e) {
+      print('Error fetching mood records: $e');
+      throw Exception('Failed to fetch mood records');
+    }
+  }
+
+  Future<void> saveMoodRecord(String userId, int selectedMood) async {
+    try {
+      DateTime now = DateTime.now();
+      String monthYear = DateFormat('MM-yyyy').format(now);
+      String date = DateFormat('dd').format(now);
+
+      DocumentReference moodDocRef = firestore
+          .collection('mindfulness')
+          .doc(userId)
+          .collection('mood_record')
+          .doc(monthYear);
+
+      DocumentSnapshot moodSnapshot = await moodDocRef.get();
+
+      // if multiple activities are recorded in a day, the mood value is averaged
+      // daily_mood field is included to maintain the day's average
+
+      double newSum = selectedMood.toDouble();
+      double newAvg = selectedMood.toDouble();
+      int newCount = 1;
+
+      if (moodSnapshot.exists && moodSnapshot.data() != null) {
+        Map<String, dynamic> data = moodSnapshot.data() as Map<String, dynamic>;
+
+        if (data.containsKey('daily_mood')) {
+          Map<String, dynamic> dailyMood = data['daily_mood'];
+
+          String lastUpdatedDate = dailyMood['current_date'] ?? "";
+          if (lastUpdatedDate == date) {
+            // if same day, update sum and count
+            double prevSum = (dailyMood['sum'] as num).toDouble();
+            int prevCount = (dailyMood['count'] as num).toInt();
+
+            newSum = prevSum + selectedMood;
+            newCount = prevCount + 1;
+            newAvg = newSum / newCount;
+          }
+        }
+      }
+
+      await moodDocRef.set({
+        'daily_mood': {
+          'current_date': date, // track the last updated date
+          'sum': newSum,
+          'count': newCount,
+          'average': newAvg,
+        },
+        'moods': {
+          date: newAvg, // save daily average in moods map
+        },
+      }, SetOptions(merge: true));
+    } catch (e) {
+      throw Exception('Failed to save mood record: ${e.toString()}');
+    }
+  }
+
   // JOURNAL ENTRIES
 
   Future<DateTime?> getUserCreatedAt(String userId) async {

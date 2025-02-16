@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:math';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/MindfulnessProvider.dart';
+
 class ActivityForm extends StatefulWidget {
   final List<XFile> capturedImages;
 
@@ -14,16 +17,21 @@ class ActivityForm extends StatefulWidget {
 }
 
 class _ActivityFormState extends State<ActivityForm> {
+  final userId = FirebaseAuth.instance.currentUser!.uid;
+  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
+
   late List<XFile> capturedImages = widget.capturedImages;
   final List<File> images = []; // list to store images
 
-  bool isButtonClicked = false;
-
-  final TextEditingController reflectionController = TextEditingController();
+  final TextEditingController reflectionJournalController =
+      TextEditingController();
   final TextEditingController gratitudeController = TextEditingController();
 
   int? confidenceLevel;
   int? selectedMood;
+
+  bool isButtonClicked = false;
+  bool isLoading = false;
 
   @override
   void initState() {
@@ -34,6 +42,62 @@ class _ActivityFormState extends State<ActivityForm> {
       setState(() {
         images.add(imageFile);
       });
+    }
+  }
+
+  void onSave() async {
+    setState(() {
+      isButtonClicked = true;
+    });
+
+    // print("Confidence Level: $confidenceLevel");
+    // print("Selected Mood: $selectedMood");
+
+    bool hasError = false;
+
+    if (confidenceLevel != null && selectedMood != null) {
+      setState(() {
+        isLoading = true;
+      });
+
+      // plus 1 since selectedMood is index but mood is 1 to 5
+      String result =
+          await mindfulnessProvider.saveMoodRecord(userId, selectedMood! + 1);
+      if (result != "success") {
+        hasError = true;
+      }
+
+      if (reflectionJournalController.text.trim().isNotEmpty ||
+          images.isNotEmpty) {
+        String result = await mindfulnessProvider.addEntry(
+            userId, images, reflectionJournalController.text);
+        if (result != "success") {
+          hasError = true;
+        }
+      }
+
+      if (gratitudeController.text.trim().isNotEmpty) {
+        String result =
+            await mindfulnessProvider.addLog(userId, gratitudeController.text);
+        if (result != "success") {
+          hasError = true;
+        }
+      }
+
+      if (hasError) {
+        showSnackBar(context,
+            "Unexpected error occurred while saving some details in activity form.");
+      } else {
+        showSnackBar(context, getRandomMotivationalMessage());
+      }
+
+      setState(() {
+        isLoading = false;
+      });
+
+      // close the page and return to the main page
+      Navigator.of(context).pop();
+      Navigator.of(context).pop();
     }
   }
 
@@ -116,16 +180,6 @@ class _ActivityFormState extends State<ActivityForm> {
                             ],
                           ),
                         ),
-                        // Text(
-                        //   "How confident are you in completing a similar training next week, despite its duration?",
-                        //   style: GoogleFonts.poppins(
-                        //     textStyle: const TextStyle(
-                        //       fontSize: 12.5,
-                        //       color: Color(0xFF555555),
-                        //       fontWeight: FontWeight.w500,
-                        //     ),
-                        //   ),
-                        // ),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -225,16 +279,6 @@ class _ActivityFormState extends State<ActivityForm> {
                                   ],
                                 ),
                               ),
-                              // Text(
-                              //   "How do you feel after your walk?",
-                              //   style: GoogleFonts.poppins(
-                              //     textStyle: const TextStyle(
-                              //       fontSize: 13,
-                              //       color: Color(0xFF555555),
-                              //       fontWeight: FontWeight.w500,
-                              //     ),
-                              //   ),
-                              // ),
                               const SizedBox(height: 8),
                               Row(
                                 mainAxisAlignment:
@@ -377,7 +421,7 @@ class _ActivityFormState extends State<ActivityForm> {
                               ),
                               const SizedBox(height: 8),
                               TextField(
-                                controller: reflectionController,
+                                controller: reflectionJournalController,
                                 maxLines: 3,
                                 decoration: InputDecoration(
                                   contentPadding: const EdgeInsets.all(10),
@@ -430,25 +474,7 @@ class _ActivityFormState extends State<ActivityForm> {
                               ),
                               const SizedBox(height: 24),
                               ElevatedButton(
-                                onPressed: () {
-                                  // save logic here
-                                  print("Confidence Level: $confidenceLevel");
-                                  print("Selected Mood: $selectedMood");
-
-                                  setState(() {
-                                    isButtonClicked = true;
-                                  });
-
-                                  if (confidenceLevel != null &&
-                                      selectedMood != null) {
-                                    showSnackBar(context,
-                                        getRandomMotivationalMessage());
-
-                                    // close the page and return to the main page
-                                    Navigator.of(context).pop();
-                                    Navigator.of(context).pop();
-                                  }
-                                },
+                                onPressed: isLoading ? null : onSave,
                                 style: ElevatedButton.styleFrom(
                                   padding:
                                       const EdgeInsets.symmetric(vertical: 12),
@@ -458,18 +484,27 @@ class _ActivityFormState extends State<ActivityForm> {
                                     borderRadius: BorderRadius.circular(5),
                                   ),
                                 ),
-                                child: Center(
-                                  child: Text(
-                                    "Save",
-                                    style: GoogleFonts.poppins(
-                                      textStyle: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
+                                child: isLoading
+                                    ? const SizedBox(
+                                        width: 22,
+                                        height: 22,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 4,
+                                        ),
+                                      )
+                                    : Center(
+                                        child: Text(
+                                          "Save",
+                                          style: GoogleFonts.poppins(
+                                            textStyle: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                ),
                               ),
                               const SizedBox(height: 24),
                             ],

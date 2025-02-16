@@ -7,6 +7,54 @@ import 'package:my_app/api/mindfulness_service.dart';
 class MindfulnessProvider with ChangeNotifier {
   final MindfulnessService service = MindfulnessService();
 
+  // MOOD RECORDS
+
+  Future<double> fetchtWeeklyAverageMood(String userId) async {
+    try {
+      double record = await service.getWeeklyAverageMood(userId);
+      notifyListeners();
+
+      return record;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<Map<DateTime, int>> fetchAllMoodRecords(String userId) async {
+    try {
+      Map<DateTime, int> record = await service.fetchAllMoodRecords(userId);
+      notifyListeners();
+
+      return record;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<Map<DateTime, int>> fetchPerMonthMoodRecords(
+      String userId, int month, int year) async {
+    try {
+      Map<DateTime, int> record =
+          await service.fetchPerMonthMoodRecords(userId, month, year);
+      notifyListeners();
+
+      return record;
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<String> saveMoodRecord(String userId, int selectedMood) async {
+    try {
+      await service.saveMoodRecord(userId, selectedMood);
+      notifyListeners();
+
+      return "success";
+    } catch (e) {
+      return "Unexpected error occurred while saving the mood record.";
+    }
+  }
+
   // JOURNAL ENTRIES
 
   Future<DateTime?> getUserCreatedAt(String userId) async {

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/providers/UserProvider.dart';
+import 'package:my_app/providers/MindfulnessProvider.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -13,16 +14,32 @@ class Dashboard extends StatefulWidget {
 }
 
 class DashboardState extends State<Dashboard> {
+  final userId = FirebaseAuth.instance.currentUser!.uid;
+  UserDetailsProvider userProvider = UserDetailsProvider();
+  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
+
+  double? mood;
+
+  bool isLoading = false;
+
   @override
   void initState() {
     super.initState();
-
+    initializeOverview();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId != null) {
-        Provider.of<UserDetailsProvider>(context, listen: false)
-            .fetchUserDetails(userId);
-      }
+      userProvider.fetchUserDetails(userId);
+    });
+  }
+
+  void initializeOverview() async {
+    setState(() {
+      isLoading = true;
+    });
+    double moodRating =
+        await mindfulnessProvider.fetchtWeeklyAverageMood(userId);
+    setState(() {
+      mood = moodRating;
+      isLoading = false;
     });
   }
 
@@ -122,13 +139,13 @@ class DashboardState extends State<Dashboard> {
                   mainAxisSpacing: 14,
                   childAspectRatio: 1.2,
                   children: [
-                    _buildStatsCard('Avg Steps', '2088', 'footprint',
+                    buildStatsCard('Avg Steps', '2088', 'footprint',
                         const Color(0xFFE7F3EC)),
-                    _buildStatsCard('Total Distance', '7.57 Km', 'distance',
+                    buildStatsCard('Total Distance', '7.57 Km', 'distance',
                         const Color(0xFFF5F5F5)),
-                    _buildStatsCard(
+                    buildStatsCard(
                         'Streak', '7 days', 'streak', const Color(0xFFF5F5F5)),
-                    _buildStatsCard('Mood Tracking', '4.5', 'mood',
+                    buildStatsCard('Mood Tracking', '$mood', 'mood',
                         const Color(0xFFE7F3EC)),
                   ],
                 ),
@@ -206,7 +223,7 @@ class DashboardState extends State<Dashboard> {
     );
   }
 
-  Widget _buildStatsCard(
+  Widget buildStatsCard(
       String title, String value, String str, Color backgroundColor) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -244,17 +261,27 @@ class DashboardState extends State<Dashboard> {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            // data
-            value,
-            style: GoogleFonts.manrope(
-              textStyle: const TextStyle(
-                color: Colors.black,
-                fontSize: 20,
-                fontWeight: FontWeight.w300,
-              ),
-            ),
-          ),
+          isLoading
+              ? Container(
+                  margin: const EdgeInsets.only(top: 10),
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    color: Colors.grey[300],
+                  ),
+                )
+              : Text(
+                  // data
+                  value,
+                  style: GoogleFonts.manrope(
+                    textStyle: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w300,
+                    ),
+                  ),
+                ),
         ],
       ),
     );
