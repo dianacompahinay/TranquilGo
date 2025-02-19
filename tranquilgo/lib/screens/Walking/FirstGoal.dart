@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/ActivityProvider.dart';
 
 class FirstGoal extends StatefulWidget {
   const FirstGoal({super.key});
@@ -10,7 +12,8 @@ class FirstGoal extends StatefulWidget {
 
 class _FirstGoalState extends State<FirstGoal> {
   int selectedIndex = -1; // initialize with -1 (no selection)
-  String inputSteps = ''; // store the input steps for the last option
+  int inputSteps = 0; // store the input steps for the last option
+  bool isLoading = false;
 
   List<String> options = [
     '2000 steps: 20-30 mins',
@@ -21,6 +24,55 @@ class _FirstGoalState extends State<FirstGoal> {
     '10000 steps: 100-150 mins (recommended)',
     'Set own number of steps',
   ];
+
+  void saveGoal() async {
+    setState(() {
+      isLoading = true;
+    });
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    ActivityProvider activityProvider = ActivityProvider();
+
+    int targetSteps = 0;
+    switch (selectedIndex) {
+      case 0:
+        targetSteps = 2000;
+        break;
+      case 1:
+        targetSteps = 3000;
+        break;
+      case 2:
+        targetSteps = 4000;
+        break;
+      case 3:
+        targetSteps = 6000;
+        break;
+      case 4:
+        targetSteps = 8000;
+        break;
+      case 5:
+        targetSteps = 10000;
+        break;
+      case 6:
+        targetSteps = inputSteps;
+        break;
+      default:
+        break;
+    }
+
+    String result =
+        await activityProvider.createFirstWeeklyGoal(userId, targetSteps);
+    if (result == "success") {
+      // proceed to the next screen
+      Navigator.pushNamed(context, '/getstarted');
+    } else {
+      showTopSnackBar(context,
+          "Unexpected error occured. Failed to create first weekly goal.");
+      Navigator.pushNamed(context, '/home');
+    }
+    setState(() {
+      isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +119,7 @@ class _FirstGoalState extends State<FirstGoal> {
                 ),
               ),
 
-              // Options List
+              // options List
               Expanded(
                 child: ListView.builder(
                   itemCount: options.length,
@@ -245,10 +297,11 @@ class _FirstGoalState extends State<FirstGoal> {
                                                     int.parse(input) >= 1000) {
                                                   setState(() {
                                                     inputSteps =
-                                                        '$input steps'; // save the input
+                                                        int.tryParse(input)!;
+
                                                     options[options.length -
                                                             1] =
-                                                        inputSteps; // update the last option
+                                                        '$input steps'; // update the last option
                                                   });
 
                                                   Navigator.of(context)
@@ -330,18 +383,20 @@ class _FirstGoalState extends State<FirstGoal> {
               Padding(
                 padding: const EdgeInsets.all(25.0),
                 child: ElevatedButton(
-                  onPressed: () {
-                    // not allow to continue if there's no selection or input at the last selection is empty
-                    if (selectedIndex == -1 ||
-                        (selectedIndex == options.length - 1 &&
-                            inputSteps.isEmpty)) {
-                      // show an alert to indicate the error
-                      showTopSnackBar(context);
-                    } else {
-                      // proceed to the next screen
-                      Navigator.pushNamed(context, '/getstarted');
-                    }
-                  },
+                  onPressed: isLoading
+                      ? null
+                      : () {
+                          // not allow to continue if there's no selection or input at the last selection is empty
+                          if (selectedIndex == -1 ||
+                              (selectedIndex == options.length - 1 &&
+                                  inputSteps == 0)) {
+                            // show an alert to indicate the error
+                            showTopSnackBar(context,
+                                "Please select an option or enter a valid input.");
+                          } else {
+                            saveGoal();
+                          }
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF55AC9F),
                     minimumSize: const Size(double.infinity, 48),
@@ -349,16 +404,25 @@ class _FirstGoalState extends State<FirstGoal> {
                       borderRadius: BorderRadius.circular(5),
                     ),
                   ),
-                  child: Text(
-                    'Continue',
-                    style: GoogleFonts.poppins(
-                      textStyle: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 4,
+                          ),
+                        )
+                      : Text(
+                          'Continue',
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -368,7 +432,7 @@ class _FirstGoalState extends State<FirstGoal> {
     );
   }
 
-  void showTopSnackBar(BuildContext context) {
+  void showTopSnackBar(BuildContext context, String content) {
     final overlay = Overlay.of(context);
     final overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -379,11 +443,11 @@ class _FirstGoalState extends State<FirstGoal> {
           elevation: 4,
           borderRadius: BorderRadius.circular(8),
           color: const Color(0xFF2BB1C0),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             child: Text(
-              "Please select an option or enter a valid input.",
-              style: TextStyle(
+              content,
+              style: const TextStyle(
                   color: Color(0xFFFFFFFF),
                   fontSize: 13.5,
                   fontWeight: FontWeight.bold),

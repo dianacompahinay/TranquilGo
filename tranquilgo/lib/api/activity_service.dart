@@ -3,6 +3,70 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ActivityService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
+  Future<void> createWeeklyGoalForNewUser(
+      String userId, int targetSteps) async {
+    DateTime today = DateTime.now();
+    DateTime sunday = getSundayOfCurrentWeek();
+    String startDate = formatDate(today);
+    String endDate = formatDate(sunday);
+
+    try {
+      QuerySnapshot existingGoal = await firestore
+          .collection('weeklygoal')
+          .where(FieldPath.documentId, isEqualTo: userId)
+          .limit(1)
+          .get();
+
+      if (existingGoal.docs.isEmpty) {
+        await firestore.collection('weeklygoal').doc(userId).set({
+          'startDate': startDate,
+          'endDate': endDate,
+          'targetSteps': targetSteps,
+          'weeklyHistory': {
+            "$startDate - $endDate": targetSteps,
+          },
+        });
+      }
+    } catch (e) {
+      throw Exception('Failed to create first weekly goal: ${e.toString()}');
+    }
+  }
+
+  Future<bool> checkIfWeeklyGoalExists(String userId) async {
+    try {
+      DocumentSnapshot docSnapshot =
+          await firestore.collection('weeklygoal').doc(userId).get();
+      return docSnapshot.exists;
+    } catch (e) {
+      throw Exception('Failed to check weekly goal: ${e.toString()}');
+    }
+  }
+
+  Future<void> updateWeeklyGoal(String userId, int targetSteps) async {
+    DateTime monday = getMondayOfCurrentWeek();
+    DateTime sunday = getSundayOfCurrentWeek();
+    String startDate = formatDate(monday);
+    String endDate = formatDate(sunday);
+
+    try {
+      DocumentReference docRef = firestore.collection('weeklygoal').doc(userId);
+
+      // check if document exists
+      DocumentSnapshot docSnapshot = await docRef.get();
+      if (docSnapshot.exists) {
+        // update
+        await docRef.set({
+          'startDate': startDate,
+          'endDate': endDate,
+          'targetSteps': targetSteps,
+          'weeklyHistory': {"$startDate - $endDate": targetSteps}
+        }, SetOptions(merge: true)); // retains existing history
+      }
+    } catch (e) {
+      throw Exception('Failed to update weekly goal: ${e.toString()}');
+    }
+  }
+
   Future<void> createWeeklyActivityForAllUsers() async {
     DateTime monday = getMondayOfCurrentWeek();
     DateTime sunday = getSundayOfCurrentWeek();

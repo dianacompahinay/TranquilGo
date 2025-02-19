@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/providers/AuthProvider.dart';
+import 'package:my_app/providers/ActivityProvider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -343,11 +345,21 @@ class _LoginPageState extends State<LoginPage> {
         final result = await authProvider.login(username, password);
 
         if (result == 'success') {
-          // navigate to the next screen on success
-          Navigator.pushReplacementNamed(context, '/home');
+          final userId = FirebaseAuth.instance.currentUser!.uid;
+          ActivityProvider activityProvider = ActivityProvider();
 
-          // if first set goal is empty?
-          // Navigator.pushReplacementNamed(context, '/firstgoal');
+          bool? hasGoal =
+              await activityProvider.checkIfWeeklyGoalExists(userId);
+
+          if (hasGoal == true) {
+            // navigate to the next screen on success
+            Navigator.pushReplacementNamed(context, '/home');
+          } else if (hasGoal == false) {
+            Navigator.pushReplacementNamed(context, '/firstgoal');
+          } else {
+            showBottomSnackBar(
+                context, "Unexpected error occured in the app."); // null
+          }
         } else {
           // show error message in snackbar
           showBottomSnackBar(context, result);
