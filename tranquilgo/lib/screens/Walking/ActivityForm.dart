@@ -5,12 +5,29 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/providers/MindfulnessProvider.dart';
+import 'package:my_app/providers/ActivityProvider.dart';
 
 class ActivityForm extends StatefulWidget {
+  final Timestamp startTime;
+  final Timestamp endTime;
+  final int steps;
+  final int duration;
+  final double distance;
+  final double avgSpeed;
   final List<XFile> capturedImages;
 
-  const ActivityForm({super.key, required this.capturedImages});
+  const ActivityForm({
+    super.key,
+    required this.startTime,
+    required this.endTime,
+    required this.steps,
+    required this.duration,
+    required this.distance,
+    required this.avgSpeed,
+    required this.capturedImages,
+  });
 
   @override
   State<ActivityForm> createState() => _ActivityFormState();
@@ -19,10 +36,17 @@ class ActivityForm extends StatefulWidget {
 class _ActivityFormState extends State<ActivityForm> {
   final userId = FirebaseAuth.instance.currentUser!.uid;
   MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
+  ActivityProvider activityProvider = ActivityProvider();
 
+  late int steps = widget.steps;
+  late int duration = widget.duration;
+  late double distance = widget.distance;
+  late double avgSpeed = widget.avgSpeed;
+  late Timestamp startTime = widget.startTime;
+  late Timestamp endTime = widget.endTime;
   late List<XFile> capturedImages = widget.capturedImages;
-  final List<File> images = []; // list to store images
 
+  final List<File> images = []; // list to store images
   final TextEditingController reflectionJournalController =
       TextEditingController();
   final TextEditingController gratitudeController = TextEditingController();
@@ -50,9 +74,6 @@ class _ActivityFormState extends State<ActivityForm> {
       isButtonClicked = true;
     });
 
-    // print("Confidence Level: $confidenceLevel");
-    // print("Selected Mood: $selectedMood");
-
     bool hasError = false;
 
     if (confidenceLevel != null && selectedMood != null) {
@@ -60,10 +81,24 @@ class _ActivityFormState extends State<ActivityForm> {
         isLoading = true;
       });
 
+      DateTime date = DateTime.now();
+
+      String result1 = await activityProvider.createActivity(
+        userId,
+        date,
+        startTime,
+        endTime,
+        duration,
+        steps,
+        distance,
+        avgSpeed,
+        confidenceLevel! + 1,
+      );
+
       // plus 1 since selectedMood is index but mood is 1 to 5
-      String result =
+      String result2 =
           await mindfulnessProvider.saveMoodRecord(userId, selectedMood! + 1);
-      if (result != "success") {
+      if (result1 != "success" || result2 != "success") {
         hasError = true;
       }
 
@@ -86,7 +121,7 @@ class _ActivityFormState extends State<ActivityForm> {
 
       if (hasError) {
         showSnackBar(context,
-            "Unexpected error occurred while saving some details in activity form.");
+            "Unexpected error occurred while saving activity details.");
       } else {
         showSnackBar(context, getRandomMotivationalMessage());
       }
@@ -150,11 +185,11 @@ class _ActivityFormState extends State<ActivityForm> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            infoCard("Steps", "675"),
+                            infoCard("Steps", "$steps"),
                             const SizedBox(width: 10),
-                            infoCard("Time", "0:08:12"),
+                            infoCard("Time", formatDuration(duration)),
                             const SizedBox(width: 10),
-                            infoCard("Distance", "0.5"),
+                            infoCard("Distance", roundOffDouble(distance, 2)),
                           ],
                         ),
                         const SizedBox(height: 20),
@@ -613,6 +648,21 @@ class _ActivityFormState extends State<ActivityForm> {
     setState(() {
       images.removeAt(index);
     });
+  }
+
+  String formatDuration(int seconds) {
+    int hours = seconds ~/ 3600;
+    int minutes = (seconds % 3600) ~/ 60;
+    int secs = seconds % 60;
+
+    return "${hours.toString()}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}";
+  }
+
+  String roundOffDouble(double value, int decimals) {
+    return value
+        .toStringAsFixed(decimals)
+        .replaceAll(RegExp(r"0*$"), "")
+        .replaceAll(RegExp(r"\.$"), "");
   }
 
   void showSnackBar(BuildContext context, String message) {

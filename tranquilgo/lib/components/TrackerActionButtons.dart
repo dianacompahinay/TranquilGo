@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/screens/Walking/ActivityForm.dart';
 import 'package:image_picker/image_picker.dart';
 
-class ActionButtons extends StatelessWidget {
+class ActionButtons extends StatefulWidget {
   final String buttonState;
   final VoidCallback onStart;
   final VoidCallback onPause;
@@ -23,6 +25,70 @@ class ActionButtons extends StatelessWidget {
     required this.capturedImages,
     Key? key,
   }) : super(key: key);
+
+  @override
+  State<ActionButtons> createState() => _ActionButtonsState();
+}
+
+class _ActionButtonsState extends State<ActionButtons> {
+  late String buttonState = widget.buttonState;
+
+  Timestamp? startTime;
+  int timeDuration = 0; // duration in seconds
+  Timer? timer;
+
+  int steps = 675;
+  double distance = 0.5;
+  late double avgSpeed = 5.2;
+
+  @override
+  void initState() {
+    super.initState();
+    buttonState = widget.buttonState;
+  }
+
+  void startTimer() {
+    timer?.cancel(); // ensure no duplicate timers
+    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        timeDuration++;
+      });
+    });
+  }
+
+  void handleStart() {
+    setState(() {
+      buttonState = 'pause';
+      startTime = Timestamp.now();
+      timeDuration = 0;
+    });
+    startTimer();
+    widget.onStart();
+  }
+
+  void handlePause() {
+    setState(() {
+      buttonState = 'resume';
+    });
+    timer?.cancel();
+    widget.onPause();
+  }
+
+  void handleResume() {
+    setState(() {
+      buttonState = 'pause';
+    });
+    startTimer();
+    widget.onResume();
+  }
+
+  void handleFinish() {
+    setState(() {
+      buttonState = 'start';
+    });
+    timer?.cancel();
+    widget.onFinish();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +118,7 @@ class ActionButtons extends StatelessWidget {
           size: 35,
           color: Colors.white,
         ),
-        onPressed: onStart,
+        onPressed: handleStart,
       ),
     );
   }
@@ -73,7 +139,7 @@ class ActionButtons extends StatelessWidget {
               Icons.square_rounded,
               color: Colors.white,
             ),
-            onPressed: onPause,
+            onPressed: handlePause,
           ),
         ),
         Positioned(
@@ -100,7 +166,7 @@ class ActionButtons extends StatelessWidget {
                 size: 35,
                 color: const Color(0xFF636363),
                 backgroundColor: const Color(0xFFF8F8F8),
-                onPressed: onResume,
+                onPressed: handleResume,
               ),
               const SizedBox(width: 20),
               buildIconButton(
@@ -109,14 +175,21 @@ class ActionButtons extends StatelessWidget {
                 color: Colors.white,
                 backgroundColor: const Color(0xFF71B9B0),
                 onPressed: () {
-                  if (progress == 0) {
-                    onFinish();
+                  if (widget.progress == 0) {
+                    handleFinish;
                   } else {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            ActivityForm(capturedImages: capturedImages ?? []),
+                        builder: (context) => ActivityForm(
+                          startTime: startTime!,
+                          endTime: Timestamp.now(),
+                          duration: timeDuration,
+                          steps: steps,
+                          distance: distance,
+                          avgSpeed: avgSpeed,
+                          capturedImages: widget.capturedImages ?? [],
+                        ),
                       ),
                     );
                   }
@@ -181,7 +254,7 @@ class ActionButtons extends StatelessWidget {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: onSwitchMap,
+            onTap: widget.onSwitchMap,
             splashColor: const Color(0xFF71B9B0).withOpacity(0.75),
             borderRadius: BorderRadius.circular(25),
             child: Ink(

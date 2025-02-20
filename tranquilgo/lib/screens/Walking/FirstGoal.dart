@@ -61,6 +61,7 @@ class _FirstGoalState extends State<FirstGoal> {
 
     String result =
         await activityProvider.createFirstWeeklyGoal(userId, targetSteps);
+    await activityProvider.createWeeklyActivity(userId);
     if (result == "success") {
       // proceed to the next screen
       Navigator.pushNamed(context, '/getstarted');

@@ -10,6 +10,7 @@ import 'package:my_app/screens/Walking/Statistics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/providers/UserProvider.dart';
+import 'package:my_app/providers/ActivityProvider.dart';
 
 class DashboardWithNavigation extends StatefulWidget {
   const DashboardWithNavigation({super.key});
@@ -39,6 +40,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
   @override
   void initState() {
     super.initState();
+    updateWeeklyGoalActivity();
     pageController = PageController();
 
     // list of pages for each tab
@@ -57,6 +59,19 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
             .fetchUserDetails(userId);
       }
     });
+  }
+
+  void updateWeeklyGoalActivity() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
+    // check if today is Monday
+    DateTime now = DateTime.now();
+    if (now.weekday == DateTime.monday) {
+      ActivityProvider activityProvider = ActivityProvider();
+      await activityProvider.updateWeeklyGoal(userId);
+      await activityProvider.updateWeeklyActivity(userId);
+    }
   }
 
   @override

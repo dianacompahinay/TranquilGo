@@ -1,11 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:my_app/api/activity_service.dart';
 
 class ActivityProvider with ChangeNotifier {
   final ActivityService activityService = ActivityService();
-  bool _isLoading = false;
-
-  bool get isLoading => _isLoading;
 
   Future<bool?> checkIfWeeklyGoalExists(String userId) async {
     try {
@@ -25,9 +23,9 @@ class ActivityProvider with ChangeNotifier {
     }
   }
 
-  Future<String> updateWeeklyGoal(String userId, int targetSteps) async {
+  Future<String> updateWeeklyGoal(String userId) async {
     try {
-      await activityService.updateWeeklyGoal(userId, targetSteps);
+      await activityService.updateWeeklyGoal(userId);
       notifyListeners();
       return 'success';
     } catch (e) {
@@ -35,19 +33,44 @@ class ActivityProvider with ChangeNotifier {
     }
   }
 
-  Future<void> createWeeklyActivityForAllUsers() async {
-    _isLoading = true;
-    notifyListeners();
-
+  Future<String> createWeeklyActivity(String userId) async {
     try {
-      await activityService.createWeeklyActivityForAllUsers();
-    } catch (error) {
-      if (kDebugMode) {
-        print("Error creating weekly activity: $error");
-      }
-    } finally {
-      _isLoading = false;
+      await activityService.createWeeklyActivityForNewUser(userId);
       notifyListeners();
+      return 'success';
+    } catch (e) {
+      return 'failed';
+    }
+  }
+
+  Future<String> updateWeeklyActivity(String userId) async {
+    try {
+      await activityService.updateWeeklyActivity(userId);
+      notifyListeners();
+      return 'success';
+    } catch (e) {
+      return 'failed';
+    }
+  }
+
+  Future<String> createActivity(
+    String userId,
+    DateTime date,
+    Timestamp startTime,
+    Timestamp endTime,
+    int timeDuration,
+    int numSteps,
+    double distanceCovered,
+    double avgSpeed,
+    int seScore,
+  ) async {
+    try {
+      await activityService.createActivity(userId, date, startTime, endTime,
+          timeDuration, numSteps, distanceCovered, avgSpeed, seScore);
+      notifyListeners();
+      return 'success';
+    } catch (e) {
+      return 'failed';
     }
   }
 }
