@@ -46,9 +46,7 @@ class ConnectionsPageState extends State<ConnectionsPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final userProvider =
             Provider.of<UserDetailsProvider>(context, listen: false);
-        if (userProvider.friends.isEmpty) {
-          userProvider.fetchFriends(userId);
-        }
+        userProvider.fetchFriends(userId);
       });
     } catch (e) {
       setState(() {
@@ -138,6 +136,11 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                       context, userProvider.friends[index]);
 
                                   if (result != null && result.isNotEmpty) {
+                                    final userProvider =
+                                        Provider.of<UserDetailsProvider>(
+                                            context,
+                                            listen: false);
+                                    userProvider.setFetchToFalse();
                                     await initializeFriends();
                                     setState(() {});
                                   }
@@ -299,6 +302,10 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                     String? result =
                         await Navigator.pushNamed(context, '/searchusers');
                     if (result != null && result.isNotEmpty) {
+                      final userProvider = Provider.of<UserDetailsProvider>(
+                          context,
+                          listen: false);
+                      userProvider.setFetchToFalse();
                       initializeFriends();
                     }
                   },

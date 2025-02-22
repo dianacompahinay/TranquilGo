@@ -6,7 +6,7 @@ class NotificationsService {
 
   Future<List<Map<String, dynamic>>> getNotifications(
       String receiverId, String? lastNotifId) async {
-    int limit = 5;
+    int limit = 8;
 
     try {
       Query query = firestore
@@ -30,7 +30,7 @@ class NotificationsService {
       if (notifSnapshot.docs.isEmpty) return [];
 
       List<Map<String, dynamic>> notifList = [];
-      Map<String, List<DocumentSnapshot>> friendRequestGroups = {};
+      Map<String, List<String>> friendRequestGroups = {};
 
       for (var notifDoc in notifSnapshot.docs) {
         Map<String, dynamic> data = notifDoc.data() as Map<String, dynamic>;
@@ -52,70 +52,52 @@ class NotificationsService {
             "isRead": data["isRead"] ?? false,
           });
         } else {
-          if (data["type"] == "friend_request") {
+          if (data["type"] == "friend_request" && data["status"] == "pending") {
             String key = "${data["senderId"]}-${data["receiverId"]}";
-
             // store notifications in a list by sender-receiver pair
             if (!friendRequestGroups.containsKey(key)) {
               friendRequestGroups[key] = [];
             }
-            friendRequestGroups[key]!.add(notifDoc);
-          } else {
-            notifList.add({
-              "notifId": notifDoc.id,
-              "type": data["type"],
-              "receiverId": receiverId,
-              "senderId": data["senderId"],
-              "username": userData["username"],
-              "profileImage": userData.containsKey("profileImage")
-                  ? userData['profileImage']
-                  : "no_image",
-              "time": elapsedTime,
-              "isRead": data["isRead"] ?? false,
-              ...getNotificationData(data),
-            });
+            friendRequestGroups[key]!.add(notifDoc.id);
           }
+
+          notifList.add({
+            "notifId": notifDoc.id,
+            "type": data["type"],
+            "receiverId": receiverId,
+            "senderId": data["senderId"],
+            "username": userData["username"],
+            "profileImage": userData.containsKey("profileImage")
+                ? userData['profileImage']
+                : "no_image",
+            "time": elapsedTime,
+            "isRead": data["isRead"] ?? false,
+            ...getNotificationData(data),
+          });
         }
       }
 
       // process friend request notifications
+      // additional logic to avoid multiple pending friend request from the same user
+
       for (var entry in friendRequestGroups.entries) {
-        List<DocumentSnapshot> requests = entry.value;
+        List<String> notifIds = entry.value;
 
         // the first document in the query result is the latest
-        DocumentSnapshot latestRequest = requests.first;
+        String latestNotif = notifIds.first;
 
-        Map<String, dynamic> latestData =
-            latestRequest.data() as Map<String, dynamic>;
-        DateTime createdAt = (latestData['createdAt'] as Timestamp).toDate();
-        String elapsedTime = getElapsedTime(createdAt);
-
-        DocumentSnapshot userDoc = await firestore
-            .collection("users")
-            .doc(latestData["senderId"])
-            .get();
-        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
-
-        notifList.add({
-          "notifId": latestRequest.id,
-          "type": latestData["type"],
-          "receiverId": receiverId,
-          "senderId": latestData["senderId"],
-          "username": userData["username"],
-          "profileImage": userData.containsKey("profileImage")
-              ? userData['profileImage']
-              : "no_image",
-          "time": elapsedTime,
-          "isRead": latestData["isRead"] ?? false,
-          ...getNotificationData(latestData),
-        });
+        notifList.removeWhere((notif) =>
+            notif["type"] == "friend_request" &&
+            notif["notifId"] != latestNotif);
 
         // delete older friend requests (all except the latest)
-        for (int i = 1; i < requests.length; i++) {
-          await firestore
-              .collection("notifications")
-              .doc(requests[i].id)
-              .delete();
+        for (int i = 0; i < notifIds.length; i++) {
+          if (notifIds[i] != latestNotif) {
+            await firestore
+                .collection("notifications")
+                .doc(notifIds[i])
+                .delete();
+          }
         }
       }
 
@@ -293,11 +275,13 @@ class NotificationsService {
       String latestNotifId = notifDocs.first.id;
 
       // delete the duplicates (all except the latest)
-      for (int i = 1; i < notifDocs.length; i++) {
-        await firestore
-            .collection('notifications')
-            .doc(notifDocs[i].id)
-            .delete();
+      for (int i = 0; i < notifDocs.length; i++) {
+        if (notifDocs[i].id != latestNotifId) {
+          await firestore
+              .collection("notifications")
+              .doc(notifDocs[i].id)
+              .delete();
+        }
       }
 
       return latestNotifId;

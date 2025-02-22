@@ -7,6 +7,20 @@ class NotificationsProvider with ChangeNotifier {
   final NotificationsService notifService = NotificationsService();
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final UserDetailsService userDetailsService = UserDetailsService();
+  List<Map<String, dynamic>> _allNotifications = [];
+  bool _isLoading = false;
+
+  bool isNotifsFetched = false;
+
+  List<Map<String, dynamic>> get allNotifications => _allNotifications;
+  bool get notifsFetched => isNotifsFetched;
+  bool get isLoading => _isLoading;
+
+  void clearUserData() {
+    _allNotifications.clear();
+    isNotifsFetched = false;
+    notifyListeners();
+  }
 
   Future<int?> getUserNotifsCount(String userId) async {
     AggregateQuerySnapshot query = await firestore
@@ -29,6 +43,53 @@ class NotificationsProvider with ChangeNotifier {
     }
 
     return [];
+  }
+
+  Future<void> initializeNotifications(String userId) async {
+    if (isNotifsFetched) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      isNotifsFetched = true;
+
+      // get total user count
+      int totalNotifs = await getUserNotifsCount(userId) ?? 0;
+      int fetchedCount = 0;
+      _allNotifications.clear();
+
+      // fetch the first initial notifs before the loop
+      List<Map<String, dynamic>> initialNotifs =
+          await fetchNotifications(userId, null);
+
+      if (initialNotifs.isNotEmpty) {
+        fetchedCount += initialNotifs.length;
+        _allNotifications.addAll(initialNotifs);
+        totalNotifs = await getUserNotifsCount(userId) ?? 0;
+      }
+
+      // continue fetching remaining notifs
+      while (fetchedCount < totalNotifs) {
+        List<Map<String, dynamic>> fetchedNotifs =
+            await fetchNotifications(userId, _allNotifications.last["notifId"]);
+
+        if (fetchedNotifs.isNotEmpty) {
+          fetchedCount += fetchedNotifs.length;
+          _allNotifications.addAll(fetchedNotifs);
+          totalNotifs = await getUserNotifsCount(userId) ?? 0;
+        }
+
+        if (fetchedCount >= totalNotifs || fetchedNotifs.isEmpty) {
+          break;
+        }
+      }
+    } catch (e) {
+      print("Error initializing notifications: $e");
+    }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<String> acceptFriendRequest(
@@ -77,10 +138,13 @@ class NotificationsProvider with ChangeNotifier {
     }
   }
 
-  Future<String> rejectInvitationRequest(
-      String receiverId, String senderId, String notificationId) async {
+  Future<String> rejectInvitationRequest(String receiverId, String senderId,
+      Map<String, dynamic> details, String notificationId) async {
     try {
       await notifService.updateRequestNotif(notificationId, "declined");
+      notifyListeners();
+      await notifService.createInvitationUpdateNotif(
+          receiverId, senderId, details, "declined");
       notifyListeners();
 
       return "success";

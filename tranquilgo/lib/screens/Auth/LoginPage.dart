@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_app/providers/NotifProvider.dart';
+import 'package:my_app/providers/UserProvider.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/providers/AuthProvider.dart';
@@ -342,6 +344,15 @@ class _LoginPageState extends State<LoginPage> {
       try {
         final authProvider =
             Provider.of<AuthenticationProvider>(context, listen: false);
+
+        // clear user data to reload fetch in database
+        final userProvider =
+            Provider.of<UserDetailsProvider>(context, listen: false);
+        final notifProvider =
+            Provider.of<NotificationsProvider>(context, listen: false);
+        userProvider.clearUserData();
+        notifProvider.clearUserData();
+
         final result = await authProvider.login(username, password);
 
         if (result == 'success') {

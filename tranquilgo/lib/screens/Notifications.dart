@@ -12,145 +12,38 @@ class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
 
   @override
-  NotificationsPageState createState() => NotificationsPageState();
+  _NotificationsPageState createState() => _NotificationsPageState();
 }
 
-class NotificationsPageState extends State<NotificationsPage> {
-  NotificationsProvider notifProvider = NotificationsProvider();
-  List<Map<String, dynamic>> allNotifications = [];
-
+class _NotificationsPageState extends State<NotificationsPage> {
   int selectedTabIndex = 0;
-  bool isLoading = false;
   bool isConnectionFailed = false;
   bool addedNewFriend = false;
 
   @override
-  void initState() {
-    super.initState();
-    initializeNotifications();
-  }
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final notifProvider =
+          Provider.of<NotificationsProvider>(context, listen: false);
+      final userId = FirebaseAuth.instance.currentUser!.uid;
 
-  Future<void> initializeNotifications() async {
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-
-    setState(() {
-      isLoading = true;
+      try {
+        if (!notifProvider.isNotifsFetched) {
+          notifProvider.initializeNotifications(userId);
+        }
+      } catch (e) {
+        setState(() {
+          isConnectionFailed = true;
+        });
+      }
     });
-
-    try {
-      // get total user count
-      int totalNotifs = await notifProvider.getUserNotifsCount(userId) ?? 0;
-      int fetchedCount = 0;
-
-      // fetch the first initial notifs before the loop
-      List<Map<String, dynamic>> initialNotifs =
-          await notifProvider.fetchNotifications(userId, null);
-
-      if (initialNotifs.isNotEmpty) {
-        fetchedCount += initialNotifs.length;
-        setState(() {
-          allNotifications.addAll(initialNotifs);
-        });
-      }
-      if (fetchedCount == totalNotifs) {
-        setState(() {
-          isLoading = false;
-        });
-      }
-      // continue fetching remaining users (not including the current user)
-      while (fetchedCount < totalNotifs) {
-        List<Map<String, dynamic>> fetchedNotifs = await notifProvider
-            .fetchNotifications(userId, allNotifications.last["notifId"]);
-
-        if (fetchedNotifs.isNotEmpty) {
-          fetchedCount += fetchedNotifs.length;
-
-          setState(() {
-            allNotifications.addAll(fetchedNotifs);
-          });
-        }
-
-        if (fetchedCount == totalNotifs) {
-          setState(() {
-            isLoading = false;
-          });
-          break;
-        }
-      }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-        isConnectionFailed = true;
-      });
-    }
   }
-  // List<Map<String, dynamic>> allNotifications = [
-  //   {
-  //     "type": "friend_request",
-  //     "senderId": "0",
-  //     "username": "John Doe",
-  //     "profileImage": "assets/images/user.jpg",
-  //     "time": "2m",
-  //     "status": "pending",
-  //     "isRead": false,
-  //   },
-  //   {
-  //     "type": "walk_invitation",
-  //     "senderId": "1",
-  //     "username": "Alice",
-  //     "profileImage": "assets/images/user.jpg",
-  //     "details":
-  //       {
-  //         "date": "January 12, 2025",
-  //         "weekday": "Sunday",
-  //         "time": "4:00 PM",
-  //         "location": "Central Park",
-  //         "message": ""
-  //       },
-  //
-  //     "time": "5h",
-  //     "status": "pending",
-  //     "isRead": false,
-  //   },
-  //   {
-  //     "type": "message",
-  //     "senderId": "2",
-  //     "username": "Bob",
-  //     "profileImage": "assets/images/user.jpg",
-  //     "content": "Hello! How have you been.",
-  //     "time": "3d",
-  //     "isRead": false,
-  //   },
-  //   {
-  //     "type": "friend_request",
-  //     "senderId": "3",
-  //     "username": "Emma",
-  //     "profileImage": "assets/images/user.jpg",
-  //     "time": "5d",
-  //     "status": "accepted",
-  //     "isRead": true,
-  //   },
-  //   {
-  //     "type": "walk_invitation",
-  //     "senderId": "4",
-  //     "username": "Chris",
-  //     "profileImage": "assets/images/user.jpg",
-  //     "details":
-  //       {
-  //         "date": "January 3, 2025",
-  //         "weekday": "Friday",
-  //         "time": "5:00 PM",
-  //         "location": "City Square",
-  //         "message": ""
-  //       },
-  //     "time": "8d",
-  //     "status": "accepted",
-  //     "isRead": true,
-  //   },
-  // ];
 
   @override
   Widget build(BuildContext context) {
+    final notifProvider = Provider.of<NotificationsProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -205,358 +98,429 @@ class NotificationsPageState extends State<NotificationsPage> {
           children: [
             const SizedBox(height: 10),
             buildTabs(),
-            Expanded(
-              child: ListView.separated(
-                padding: EdgeInsets.zero,
-                itemCount: filteredNotifications.length + (isLoading ? 1 : 0),
-                separatorBuilder: (context, index) => const Divider(
-                    height: 1,
-                    indent: 26,
-                    endIndent: 8,
-                    color: Color(0xFFE1E1E1)),
-                itemBuilder: (context, index) {
-                  if (isLoading && index == filteredNotifications.length) {
-                    return Container(
-                      padding: const EdgeInsets.only(top: 25),
-                      child: const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF36B9A5),
-                          strokeWidth: 5,
+            isConnectionFailed
+                ? SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.6,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/icons/error.png',
+                          width: 32,
+                          height: 32,
+                          fit: BoxFit.contain,
+                          color: const Color(0xFF999999),
                         ),
-                      ),
-                    );
-                  }
-
-                  final notif = filteredNotifications[index];
-
-                  String? result;
-                  return GestureDetector(
-                    onTap: () async => {
-                      if (notif["type"] == "message")
-                        {
-                          ReceivedMessageModal(notif["senderId"],
-                                  notif["username"], notif["content"])
-                              .show(context),
-                          setReadStatusToTrue(index, notif["notifId"])
-                        },
-                      if (notif["type"] == "walk_invitation" ||
-                          notif["type"] == "invitation_request_update")
-                        {
-                          result = await InviteConfirmationModal(
-                                  notif["notifId"],
-                                  notif["senderId"],
-                                  notif["receiverId"],
-                                  notif["username"],
-                                  notif["details"],
-                                  notif["status"])
-                              .show(context),
-                          if (result != null && result!.isNotEmpty)
-                            {
-                              setState(() {
-                                filteredNotifications[index]["status"] = result;
-                              })
-                            },
-                          setReadStatusToTrue(index, notif["notifId"])
-                        }
-                    },
-                    child: Container(
-                      padding:
-                          const EdgeInsets.only(top: 14, bottom: 14, left: 28),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Stack(
-                            children: [
-                              Consumer<UserDetailsProvider>(
-                                builder: (context, userDetailsProvider, child) {
-                                  String imageUrl = notif['profileImage'];
-                                  return Container(
-                                    margin: const EdgeInsets.only(left: 8),
-                                    height: 42,
-                                    width: 42,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(50),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(50),
-                                      child: imageUrl != "no_image"
-                                          ? Image.network(
-                                              imageUrl,
-                                              fit: BoxFit.cover,
-                                              loadingBuilder: (context, child,
-                                                  loadingProgress) {
-                                                if (loadingProgress == null) {
-                                                  return child;
-                                                }
-                                                return Container(
-                                                  padding:
-                                                      const EdgeInsets.all(12),
-                                                  color: Colors.grey[50],
-                                                  child: Center(
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: Colors.grey[300],
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                return Image.asset(
-                                                  'assets/images/user.jpg',
-                                                  fit: BoxFit.cover,
-                                                  color: const Color(0xFFADD8E6)
-                                                      .withOpacity(0.5),
-                                                  colorBlendMode:
-                                                      BlendMode.overlay,
-                                                );
-                                              },
-                                            )
-                                          : Image.asset(
-                                              'assets/images/user.jpg',
-                                              fit: BoxFit.cover,
-                                              color: const Color(0xFFADD8E6)
-                                                  .withOpacity(0.5),
-                                              colorBlendMode: BlendMode.overlay,
-                                            ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              if (!notif["isRead"])
-                                Transform.translate(
-                                  offset: const Offset(-18, 16),
-                                  child: Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: const BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: Color(0xFF73D2C3),
-                                    ),
-                                  ),
-                                ),
-                            ],
+                        const SizedBox(height: 8),
+                        Text(
+                          "Connection Failed",
+                          style: GoogleFonts.poppins(
+                            textStyle: const TextStyle(
+                              color: Color(0xFF999999),
+                              fontWeight: FontWeight.w400,
+                              fontSize: 14,
+                            ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  )
+                : Expanded(
+                    child: ListView.separated(
+                      padding: EdgeInsets.zero,
+                      itemCount: filteredNotifications.length +
+                          (notifProvider.isLoading ? 1 : 0),
+                      separatorBuilder: (context, index) => const Divider(
+                          height: 1,
+                          indent: 26,
+                          endIndent: 8,
+                          color: Color(0xFFE1E1E1)),
+                      itemBuilder: (context, index) {
+                        if (notifProvider.isLoading &&
+                            index == filteredNotifications.length) {
+                          return Container(
+                            padding: const EdgeInsets.only(top: 25),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF36B9A5),
+                                strokeWidth: 5,
+                              ),
+                            ),
+                          );
+                        }
+
+                        final notif = filteredNotifications[index];
+
+                        String? result;
+                        return GestureDetector(
+                          onTap: () async => {
+                            if (notif["type"] == "message")
+                              {
+                                ReceivedMessageModal(notif["senderId"],
+                                        notif["username"], notif["content"])
+                                    .show(context),
+                                setReadStatusToTrue(index, notif["notifId"])
+                              },
+                            if (notif["type"] == "walk_invitation" ||
+                                notif["type"] == "invitation_request_update")
+                              {
+                                result = await InviteConfirmationModal(
+                                        notif["notifId"],
+                                        notif["senderId"],
+                                        notif["receiverId"],
+                                        notif["username"],
+                                        notif["details"],
+                                        notif["status"])
+                                    .show(context),
+                                if (result != null && result!.isNotEmpty)
+                                  {
+                                    setState(() {
+                                      filteredNotifications[index]["status"] =
+                                          result;
+                                    })
+                                  },
+                                setReadStatusToTrue(index, notif["notifId"])
+                              }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.only(
+                                top: 14, bottom: 14, left: 28),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const SizedBox(height: 3),
-                                // username and notification details
-                                Text.rich(
-                                  TextSpan(
-                                    text: notif["username"],
-                                    style: GoogleFonts.inter(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
+                                Stack(
+                                  children: [
+                                    Consumer<UserDetailsProvider>(
+                                      builder: (context, userDetailsProvider,
+                                          child) {
+                                        String imageUrl = notif['profileImage'];
+                                        return Container(
+                                          margin:
+                                              const EdgeInsets.only(left: 8),
+                                          height: 42,
+                                          width: 42,
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(50),
+                                          ),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(50),
+                                            child: imageUrl != "no_image"
+                                                ? Image.network(
+                                                    imageUrl,
+                                                    fit: BoxFit.cover,
+                                                    loadingBuilder: (context,
+                                                        child,
+                                                        loadingProgress) {
+                                                      if (loadingProgress ==
+                                                          null) {
+                                                        return child;
+                                                      }
+                                                      return Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(12),
+                                                        color: Colors.grey[50],
+                                                        child: Center(
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                            strokeWidth: 2,
+                                                            color: Colors
+                                                                .grey[300],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                    errorBuilder: (context,
+                                                        error, stackTrace) {
+                                                      return Image.asset(
+                                                        'assets/images/user.jpg',
+                                                        fit: BoxFit.cover,
+                                                        color: const Color(
+                                                                0xFFADD8E6)
+                                                            .withOpacity(0.5),
+                                                        colorBlendMode:
+                                                            BlendMode.overlay,
+                                                      );
+                                                    },
+                                                  )
+                                                : Image.asset(
+                                                    'assets/images/user.jpg',
+                                                    fit: BoxFit.cover,
+                                                    color:
+                                                        const Color(0xFFADD8E6)
+                                                            .withOpacity(0.5),
+                                                    colorBlendMode:
+                                                        BlendMode.overlay,
+                                                  ),
+                                          ),
+                                        );
+                                      },
                                     ),
-                                    children: [
-                                      TextSpan(
-                                        text: getNotificationDetails(notif),
-                                        style: GoogleFonts.inter(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w400,
+                                    if (!notif["isRead"])
+                                      Transform.translate(
+                                        offset: const Offset(-18, 16),
+                                        child: Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: const BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Color(0xFF73D2C3),
+                                          ),
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
+                                  ],
                                 ),
-                                const SizedBox(height: 4),
-                                // message content (if applicable)
-                                if (notif["type"] == "message")
-                                  Text(
-                                    "\"${notif["content"]}\"",
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500,
-                                      color: const Color(0xFF727272),
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                // action buttons for requests
-                                if (notif["type"] != "message" &&
-                                    notif["status"] == "pending")
-                                  Row(
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Container(
-                                        margin: const EdgeInsets.only(top: 10),
-                                        height: 30,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF6BC7B9),
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 0),
-                                        child: TextButton(
-                                          onPressed: () => {
-                                            if (notif["type"] ==
-                                                "friend_request")
-                                              {
-                                                onFriendAccept(
-                                                    index,
-                                                    notif["receiverId"],
-                                                    notif["senderId"],
-                                                    notif["notifId"]),
-                                              }
-                                            else if (notif["type"] ==
-                                                "walk_invitation")
-                                              {
-                                                onInviteAccept(
-                                                    index,
-                                                    notif["receiverId"],
-                                                    notif["senderId"],
-                                                    notif["details"],
-                                                    notif["notifId"])
-                                              }
-                                          },
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: Colors.white,
-                                            padding: EdgeInsets.zero,
+                                      const SizedBox(height: 3),
+                                      // username and notification details
+                                      Text.rich(
+                                        TextSpan(
+                                          text: notif["username"],
+                                          style: GoogleFonts.inter(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
                                           ),
-                                          child: Text(
-                                            "Accept",
-                                            style: GoogleFonts.inter(
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 13,
+                                          children: [
+                                            TextSpan(
+                                              text:
+                                                  getNotificationDetails(notif),
+                                              style: GoogleFonts.inter(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w400,
+                                              ),
                                             ),
-                                          ),
+                                          ],
                                         ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        margin: const EdgeInsets.only(top: 10),
-                                        height: 30,
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                              color: const Color(0xFFBBBFC6)),
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 0),
-                                        child: TextButton(
-                                          onPressed: () => {
-                                            onDecline(
-                                                index,
-                                                notif["receiverId"],
-                                                notif["senderId"],
-                                                notif["notifId"]),
-                                          },
-                                          style: TextButton.styleFrom(
-                                            foregroundColor:
-                                                const Color(0xFF475569),
-                                            padding: EdgeInsets.zero,
+                                      const SizedBox(height: 4),
+                                      // message content (if applicable)
+                                      if (notif["type"] == "message")
+                                        Text(
+                                          "\"${notif["content"]}\"",
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF727272),
                                           ),
-                                          child: Text(
-                                            "Decline",
-                                            style: GoogleFonts.inter(
-                                              fontWeight: FontWeight.w500,
-                                              fontSize: 13,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      // action buttons for requests
+                                      if (notif["type"] != "message" &&
+                                          notif["status"] == "pending")
+                                        Row(
+                                          children: [
+                                            Container(
+                                              margin: const EdgeInsets.only(
+                                                  top: 10),
+                                              height: 30,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF6BC7B9),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 0),
+                                              child: TextButton(
+                                                onPressed: () => {
+                                                  if (notif["type"] ==
+                                                      "friend_request")
+                                                    {
+                                                      onFriendAccept(
+                                                          index,
+                                                          notif["receiverId"],
+                                                          notif["senderId"],
+                                                          notif["notifId"]),
+                                                    }
+                                                  else if (notif["type"] ==
+                                                      "walk_invitation")
+                                                    {
+                                                      onInviteAccept(
+                                                          index,
+                                                          notif["receiverId"],
+                                                          notif["senderId"],
+                                                          notif["details"],
+                                                          notif["notifId"])
+                                                    }
+                                                },
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor: Colors.white,
+                                                  padding: EdgeInsets.zero,
+                                                ),
+                                                child: Text(
+                                                  "Accept",
+                                                  style: GoogleFonts.inter(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ),
                                             ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              margin: const EdgeInsets.only(
+                                                  top: 10),
+                                              height: 30,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                    color: const Color(
+                                                        0xFFBBBFC6)),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 0),
+                                              child: TextButton(
+                                                onPressed: () => {
+                                                  if (notif["type"] ==
+                                                      "friend_request")
+                                                    {
+                                                      onDecline(
+                                                          index,
+                                                          notif["receiverId"],
+                                                          notif["senderId"],
+                                                          notif["notifId"]),
+                                                    }
+                                                  else if (notif["type"] ==
+                                                      "walk_invitation")
+                                                    {
+                                                      onInviteDecline(
+                                                          index,
+                                                          notif["receiverId"],
+                                                          notif["senderId"],
+                                                          notif["details"],
+                                                          notif["notifId"])
+                                                    }
+                                                },
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor:
+                                                      const Color(0xFF475569),
+                                                  padding: EdgeInsets.zero,
+                                                ),
+                                                child: Text(
+                                                  "Decline",
+                                                  style: GoogleFonts.inter(
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+
+                                      // status display (accepted/declined)
+                                      if (notif["status"] == "accepted" &&
+                                          (notif["type"] !=
+                                                  "friend_request_update" &&
+                                              notif["type"] !=
+                                                  "invitation_request_update"))
+                                        Text(
+                                          "Accepted",
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF888888),
                                           ),
                                         ),
-                                      ),
+                                      if (notif["status"] == "declined" &&
+                                          (notif["type"] !=
+                                                  "friend_request_update" &&
+                                              notif["type"] !=
+                                                  "invitation_request_update"))
+                                        Text(
+                                          "Declined",
+                                          style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF888888),
+                                          ),
+                                        ),
                                     ],
                                   ),
-
-                                // status display (accepted/declined)
-                                if (notif["status"] == "accepted" &&
-                                    (notif["type"] != "friend_request_update" ||
-                                        notif["type"] !=
-                                            "invitation_request_update"))
-                                  Text(
-                                    "Accepted",
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF888888),
+                                ),
+                                // time elapsed and popup menu
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      notif["time"],
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: const Color(0xFF546466),
+                                      ),
                                     ),
-                                  ),
-                                if (notif["status"] == "declined" &&
-                                    (notif["type"] != "friend_request_update" ||
-                                        notif["type"] !=
-                                            "invitation_request_update"))
-                                  Text(
-                                    "Declined",
-                                    style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: const Color(0xFF888888),
+                                    Transform.translate(
+                                      offset: const Offset(0, -12),
+                                      child: PopupMenuButton<String>(
+                                        padding: EdgeInsets.zero,
+                                        icon: const Icon(
+                                          Icons.more_horiz,
+                                          color: Color(0xFF1E293B),
+                                        ),
+                                        onSelected: (value) {
+                                          if (value == "toggle_read") {
+                                            toggleReadStatus(
+                                                index, notif["notifId"]);
+                                          } else if (value == "delete") {
+                                            onDelete(index, notif["notifId"]);
+                                          }
+                                        },
+                                        itemBuilder: (BuildContext context) {
+                                          return [
+                                            PopupMenuItem<String>(
+                                              value: 'toggle_read',
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 10),
+                                                child: Text(
+                                                  notif["isRead"]
+                                                      ? "Mark as Unread"
+                                                      : "Mark as Read",
+                                                ),
+                                              ),
+                                            ),
+                                            PopupMenuItem<String>(
+                                              value: 'delete',
+                                              child: Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 10),
+                                                  child: const Text("Delete")),
+                                            ),
+                                          ];
+                                        },
+                                        color: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(5),
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
-                          // time elapsed and popup menu
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                notif["time"],
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: const Color(0xFF546466),
-                                ),
-                              ),
-                              Transform.translate(
-                                offset: const Offset(0, -12),
-                                child: PopupMenuButton<String>(
-                                  padding: EdgeInsets.zero,
-                                  icon: const Icon(
-                                    Icons.more_horiz,
-                                    color: Color(0xFF1E293B),
-                                  ),
-                                  onSelected: (value) {
-                                    if (value == "toggle_read") {
-                                      toggleReadStatus(index, notif["notifId"]);
-                                    } else if (value == "delete") {
-                                      onDelete(index, notif["notifId"]);
-                                    }
-                                  },
-                                  itemBuilder: (BuildContext context) {
-                                    return [
-                                      PopupMenuItem<String>(
-                                        value: 'toggle_read',
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 10),
-                                          child: Text(
-                                            notif["isRead"]
-                                                ? "Mark as Unread"
-                                                : "Mark as Read",
-                                          ),
-                                        ),
-                                      ),
-                                      PopupMenuItem<String>(
-                                        value: 'delete',
-                                        child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 10),
-                                            child: const Text("Delete")),
-                                      ),
-                                    ];
-                                  },
-                                  color: Colors.white,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
+                  ),
           ],
         ),
       ),
@@ -661,12 +625,15 @@ class NotificationsPageState extends State<NotificationsPage> {
   }
 
   List<Map<String, dynamic>> get filteredNotifications {
+    final notifProvider =
+        Provider.of<NotificationsProvider>(context, listen: false);
+
     if (selectedTabIndex == 1) {
-      return allNotifications
+      return notifProvider.allNotifications
           .where((notif) => notif["type"] == "message")
           .toList();
     } else if (selectedTabIndex == 2) {
-      return allNotifications
+      return notifProvider.allNotifications
           .where((notif) =>
               notif["type"] == "friend_request" ||
               notif["type"] == "friend_request_update" ||
@@ -674,7 +641,7 @@ class NotificationsPageState extends State<NotificationsPage> {
               notif["type"] == "walk_invitation")
           .toList();
     }
-    return allNotifications;
+    return notifProvider.allNotifications;
   }
 
   void toggleReadStatus(int index, String notificationId) async {
@@ -739,14 +706,26 @@ class NotificationsPageState extends State<NotificationsPage> {
       String notificationId) async {
     setReadStatusToTrue(index, notificationId);
 
-    String result;
-    if (filteredNotifications[index]["type"] == "friend_request") {
-      result = await Provider.of<NotificationsProvider>(context, listen: false)
-          .rejectFriendRequest(receiverId, senderId, notificationId);
+    String result =
+        await Provider.of<NotificationsProvider>(context, listen: false)
+            .rejectFriendRequest(receiverId, senderId, notificationId);
+
+    if (result == "success") {
+      setState(() {
+        filteredNotifications[index]["status"] = "declined";
+      });
     } else {
-      result = await Provider.of<NotificationsProvider>(context, listen: false)
-          .rejectInvitationRequest(receiverId, senderId, notificationId);
+      showBottomSnackBar(context, result);
     }
+  }
+
+  void onInviteDecline(int index, String receiverId, String senderId,
+      Map<String, dynamic> details, String notificationId) async {
+    setReadStatusToTrue(index, notificationId);
+
+    String result = await Provider.of<NotificationsProvider>(context,
+            listen: false)
+        .rejectInvitationRequest(receiverId, senderId, details, notificationId);
 
     if (result == "success") {
       setState(() {

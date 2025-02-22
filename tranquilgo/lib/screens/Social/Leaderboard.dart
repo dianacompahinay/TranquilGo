@@ -32,9 +32,7 @@ class LeaderboardPageState extends State<LeaderboardPage> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final userProvider =
             Provider.of<UserDetailsProvider>(context, listen: false);
-        if (userProvider.topUsers.isEmpty) {
-          userProvider.fetchTopUsers(userId);
-        }
+        userProvider.fetchTopUsers(userId);
       });
     } catch (e) {
       setState(() {
@@ -102,6 +100,10 @@ class LeaderboardPageState extends State<LeaderboardPage> {
                                 ? userProvider.topUsers.length - 3
                                 : 0,
                         itemBuilder: (context, index) {
+                          if (index + 3 >= userProvider.topUsers.length) {
+                            return const SizedBox();
+                          }
+
                           final user = userProvider.topUsers[index + 3];
                           return Container(
                             margin: const EdgeInsets.fromLTRB(2, 8, 2, 6),

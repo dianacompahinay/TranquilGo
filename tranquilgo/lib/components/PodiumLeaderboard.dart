@@ -140,10 +140,11 @@ class PodiumWidgetWithImage extends StatelessWidget {
               ],
             ),
 
-            Positioned(
-              top: 185,
-              child: userContainer(context, topUsers),
-            ),
+            if (topUsers.isNotEmpty)
+              Positioned(
+                top: 185,
+                child: userContainer(context, topUsers),
+              ),
 
             // user images on the podium
             if (topUsers.isNotEmpty)

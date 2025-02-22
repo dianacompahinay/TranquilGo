@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:my_app/providers/UserProvider.dart';
 import 'Connections.dart';
 import 'Leaderboard.dart';
 
@@ -15,8 +17,16 @@ class SocialPageState extends State<SocialPage> {
 
   final GlobalKey<ConnectionsPageState> companionsKey =
       GlobalKey<ConnectionsPageState>();
+  final GlobalKey<LeaderboardPageState> leaderboardKey =
+      GlobalKey<LeaderboardPageState>();
+
   void refreshConnections() {
     companionsKey.currentState?.initializeFriends();
+    leaderboardKey.currentState?.initializeLeaderboard();
+
+    final userProvider =
+        Provider.of<UserDetailsProvider>(context, listen: false);
+    userProvider.setFetchToFalse();
   }
 
   @override
@@ -167,7 +177,7 @@ class SocialPageState extends State<SocialPage> {
             Expanded(
               child: currentIndex == 0
                   ? ConnectionsPage(key: companionsKey)
-                  : const LeaderboardPage(),
+                  : LeaderboardPage(key: leaderboardKey),
             ),
           ],
         ),

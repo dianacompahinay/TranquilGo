@@ -20,6 +20,7 @@ class UserDetailsProvider with ChangeNotifier {
   String? _errorMessage;
   String? searchQuery;
   bool _isLoading = false;
+  bool _searchLoading = false;
 
   bool isFriendsFetched = false;
   bool isTopUsersFetched = false;
@@ -33,13 +34,13 @@ class UserDetailsProvider with ChangeNotifier {
   File? get profileImage => _profileImage;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _isLoading;
+  bool get searchLoading => _searchLoading;
 
   bool get friendsFetched => isFriendsFetched;
   bool get topUsersFetched => isTopUsersFetched;
   bool get searchedUsersFetched => isSearchedUsersFetched;
 
   void clearUserData() {
-    _userDetails = null;
     _allUsers.clear();
     _searchedUsers.clear();
     _friends.clear();
@@ -49,6 +50,11 @@ class UserDetailsProvider with ChangeNotifier {
     isTopUsersFetched = false;
     isSearchedUsersFetched = false;
     notifyListeners();
+  }
+
+  void setFetchToFalse() {
+    isFriendsFetched = false;
+    isTopUsersFetched = false;
   }
 
   Future<int?> getUsersCount() async {
@@ -74,10 +80,12 @@ class UserDetailsProvider with ChangeNotifier {
   Future<void> initializeUsers(String userId) async {
     if (isSearchedUsersFetched) return;
 
-    _isLoading = true;
+    _searchLoading = true;
     notifyListeners();
 
     try {
+      isSearchedUsersFetched = true;
+
       // get total user count
       int totalUsers = await getUsersCount() ?? 0;
       int fetchedCount = 0;
@@ -101,7 +109,6 @@ class UserDetailsProvider with ChangeNotifier {
         }
 
         if (fetchedCount >= totalUsers - 1) {
-          isSearchedUsersFetched = true;
           break;
         }
       }
@@ -113,7 +120,7 @@ class UserDetailsProvider with ChangeNotifier {
       print("Error initializing users: $e");
     }
 
-    _isLoading = false;
+    _searchLoading = false;
     notifyListeners();
   }
 
@@ -209,6 +216,13 @@ class UserDetailsProvider with ChangeNotifier {
   Future<String> cancelFriendRequest(String userId, String friendId) async {
     try {
       await _userDetailsService.removeFriend(userId, friendId);
+      notifyListeners();
+
+      // delete notif when friend request is cancelled
+      String notificationId =
+          await _notifService.getFriendRequestNotifId(userId, friendId);
+      await _notifService.deleteNotif(notificationId);
+
       notifyListeners();
       return "success";
     } catch (e) {

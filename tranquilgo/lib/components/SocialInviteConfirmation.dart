@@ -116,7 +116,7 @@ class InviteConfirmationModal {
                                   // decline button
                                   ElevatedButton(
                                     onPressed: () {
-                                      declineInvitation(dialogContext);
+                                      declineInvitation(dialogContext, details);
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.white,
@@ -207,10 +207,10 @@ class InviteConfirmationModal {
     }
   }
 
-  void declineInvitation(dialogContext) async {
-    String result =
-        await Provider.of<NotificationsProvider>(dialogContext, listen: false)
-            .rejectInvitationRequest(receiverId, senderId, notificationId);
+  void declineInvitation(dialogContext, details) async {
+    String result = await Provider.of<NotificationsProvider>(dialogContext,
+            listen: false)
+        .rejectInvitationRequest(receiverId, senderId, details, notificationId);
 
     if (result == "success") {
       // returns a value to render the action made in notifications

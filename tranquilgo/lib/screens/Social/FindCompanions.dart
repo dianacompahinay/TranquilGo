@@ -18,15 +18,17 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
   bool addedNewFriend = false;
 
   @override
-  void initState() {
-    super.initState();
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userProvider =
           Provider.of<UserDetailsProvider>(context, listen: false);
       final userId = FirebaseAuth.instance.currentUser!.uid;
 
       try {
-        userProvider.initializeUsers(userId);
+        if (!userProvider.isSearchedUsersFetched) {
+          userProvider.initializeUsers(userId);
+        }
       } catch (e) {
         setState(() {
           isConnectionFailed = true;
@@ -266,9 +268,9 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
                       padding: const EdgeInsets.only(left: 10, right: 10),
                       itemCount: searchController.text.trim().isEmpty
                           ? userProvider.allUsers.length +
-                              (userProvider.isLoading ? 1 : 0)
+                              (userProvider.searchLoading ? 1 : 0)
                           : userProvider.searchedUsers.length +
-                              (userProvider.isLoading ? 1 : 0),
+                              (userProvider.searchLoading ? 1 : 0),
                       itemBuilder: (context, index) {
                         int usersLength;
                         List<Map<String, dynamic>> filteredUsers;
@@ -280,7 +282,8 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
                           filteredUsers = userProvider.searchedUsers;
                         }
 
-                        if (userProvider.isLoading && index == usersLength) {
+                        if (userProvider.searchLoading &&
+                            index == usersLength) {
                           return const Center(
                             child: CircularProgressIndicator(
                               color: Color(0xFF36B9A5),
