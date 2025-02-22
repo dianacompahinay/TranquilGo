@@ -22,6 +22,70 @@ class NotificationsProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void listenForNewNotifications(String userId) {
+    bool isFirstSnapshot = true;
+    firestore
+        .collection("notifications")
+        .where("receiverId", isEqualTo: userId)
+        .orderBy("createdAt", descending: true)
+        .snapshots()
+        .listen((snapshot) async {
+      if (isFirstSnapshot) {
+        isFirstSnapshot = false; // skip the initial snapshot
+        return;
+      }
+
+      for (var change in snapshot.docChanges) {
+        if (change.type == DocumentChangeType.added) {
+          Map<String, dynamic> data = change.doc.data() as Map<String, dynamic>;
+
+          // ensure data is valid
+          if (data.isEmpty) return;
+
+          // fetch sender user data
+          DocumentSnapshot userDoc =
+              await firestore.collection("users").doc(data["senderId"]).get();
+          Map<String, dynamic> userData =
+              userDoc.data() as Map<String, dynamic>;
+
+          DateTime createdAt = (data['createdAt'] as Timestamp).toDate();
+          String elapsedTime = notifService.getElapsedTime(createdAt);
+
+          // format the notification data
+          Map<String, dynamic> newNotification = {};
+
+          if (data["type"] == "system") {
+            newNotification = {
+              "notifId": change.doc.id,
+              "type": data["type"],
+              "image": data["image"],
+              "content": data["content"],
+              "isRead": data["isRead"] ?? false,
+            };
+          } else {
+            newNotification = {
+              "notifId": change.doc.id,
+              "type": data["type"],
+              "receiverId": data["receiverId"],
+              "senderId": data["senderId"],
+              "username": userData["username"],
+              "profileImage": userData.containsKey("profileImage")
+                  ? userData['profileImage']
+                  : "no_image",
+              "time": elapsedTime,
+              "isRead": data["isRead"] ?? false,
+              ...notifService.getNotificationData(data),
+            };
+          }
+
+          // insert the new notification at the beginning of the list
+          _allNotifications.insert(0, newNotification);
+          notifyListeners();
+        }
+      }
+    });
+  }
+
   Future<int?> getUserNotifsCount(String userId) async {
     AggregateQuerySnapshot query = await firestore
         .collection("notifications")

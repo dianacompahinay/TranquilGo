@@ -31,6 +31,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       try {
         if (!notifProvider.isNotifsFetched) {
           notifProvider.initializeNotifications(userId);
+          notifProvider.listenForNewNotifications(userId);
         }
       } catch (e) {
         setState(() {
