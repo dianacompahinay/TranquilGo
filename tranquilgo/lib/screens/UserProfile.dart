@@ -560,7 +560,11 @@ class UserProfilePageState extends State<UserProfilePage> {
   void logOut() async {
     final authProvider =
         Provider.of<AuthenticationProvider>(context, listen: false);
+
+    final userProvider =
+        Provider.of<UserDetailsProvider>(context, listen: false);
     try {
+      userProvider.clearUserData();
       await authProvider.logout();
       // navigate to the login screen or home page after logout
       Navigator.of(context).pushReplacementNamed('/welcome');

@@ -9,19 +9,47 @@ class UserDetailsProvider with ChangeNotifier {
   final UserDetailsService _userDetailsService = UserDetailsService();
   final UserDetailsService _authService = UserDetailsService();
   final NotificationsService _notifService = NotificationsService();
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   Map<String, dynamic>? _userDetails;
-  File? get profileImage => _profileImage;
-  Map<String, dynamic>? get userDetails => _userDetails;
-
+  List<Map<String, dynamic>> _allUsers = [];
+  List<Map<String, dynamic>> _searchedUsers = [];
+  List<Map<String, dynamic>> _friends = [];
+  List<Map<String, dynamic>> _topUsers = [];
   File? _profileImage;
+  String? _errorMessage;
+  String? searchQuery;
   bool _isLoading = false;
+
+  bool isFriendsFetched = false;
+  bool isTopUsersFetched = false;
+  bool isSearchedUsersFetched = false;
+
+  Map<String, dynamic>? get userDetails => _userDetails;
+  List<Map<String, dynamic>> get allUsers => _allUsers;
+  List<Map<String, dynamic>> get searchedUsers => _searchedUsers;
+  List<Map<String, dynamic>> get friends => _friends;
+  List<Map<String, dynamic>> get topUsers => _topUsers;
+  File? get profileImage => _profileImage;
+  String? get errorMessage => _errorMessage;
   bool get isLoading => _isLoading;
 
-  String? _errorMessage;
-  String? get errorMessage => _errorMessage;
+  bool get friendsFetched => isFriendsFetched;
+  bool get topUsersFetched => isTopUsersFetched;
+  bool get searchedUsersFetched => isSearchedUsersFetched;
 
-  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+  void clearUserData() {
+    _userDetails = null;
+    _allUsers.clear();
+    _searchedUsers.clear();
+    _friends.clear();
+    _topUsers.clear();
+    searchQuery = null;
+    isFriendsFetched = false;
+    isTopUsersFetched = false;
+    isSearchedUsersFetched = false;
+    notifyListeners();
+  }
 
   Future<int?> getUsersCount() async {
     AggregateQuerySnapshot query =
@@ -43,38 +71,98 @@ class UserDetailsProvider with ChangeNotifier {
     return [];
   }
 
-  Future<List<Map<String, dynamic>>> fetchFriends(String userId) async {
-    List<Map<String, dynamic>> userList = [];
+  Future<void> initializeUsers(String userId) async {
+    if (isSearchedUsersFetched) return;
+
     _isLoading = true;
+    notifyListeners();
 
     try {
-      userList = await _userDetailsService.fetchFriends(userId);
+      // get total user count
+      int totalUsers = await getUsersCount() ?? 0;
+      int fetchedCount = 0;
+      _allUsers.clear();
+      _searchedUsers.clear();
+
+      // fetch the first users before the loop
+      List<Map<String, dynamic>> initialUsers = await fetchUsers(userId, null);
+      if (initialUsers.isNotEmpty) {
+        fetchedCount += initialUsers.length;
+        _allUsers.addAll(initialUsers);
+      }
+
+      while (fetchedCount < totalUsers - 1) {
+        List<Map<String, dynamic>> fetchedUsers =
+            await fetchUsers(userId, _allUsers.last["userId"]);
+
+        if (fetchedUsers.isNotEmpty) {
+          fetchedCount += fetchedUsers.length;
+          _allUsers.addAll(fetchedUsers);
+        }
+
+        if (fetchedCount >= totalUsers - 1) {
+          isSearchedUsersFetched = true;
+          break;
+        }
+      }
+
+      if (searchQuery != null && searchQuery != '') {
+        searchUsers(searchQuery!);
+      }
+    } catch (e) {
+      print("Error initializing users: $e");
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  void searchUsers(String query) {
+    _searchedUsers = _allUsers
+        .where((user) =>
+            user["username"].toLowerCase().contains(query.toLowerCase()))
+        .toList();
+    notifyListeners();
+  }
+
+  void setSearchQuery(String query) {
+    searchQuery = query;
+  }
+
+  Future<void> fetchFriends(String userId) async {
+    if (isFriendsFetched) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _friends = await _userDetailsService.fetchFriends(userId);
       notifyListeners();
-      _isLoading = false;
-      return userList;
+      isFriendsFetched = true;
     } catch (e) {
       print('Error fetching users: $e');
     }
 
     _isLoading = false;
-    return []; // return empty list when there is an error
+    notifyListeners();
   }
 
-  Future<List<Map<String, dynamic>>> fetchTopUsers(String userId) async {
-    List<Map<String, dynamic>> userList = [];
+  Future<void> fetchTopUsers(String userId) async {
+    if (isTopUsersFetched) return;
+
     _isLoading = true;
+    notifyListeners();
 
     try {
-      userList = await _userDetailsService.fetchTopUsers(userId);
+      _topUsers = await _userDetailsService.fetchTopUsers(userId);
       notifyListeners();
-      _isLoading = false;
-      return userList;
+      isTopUsersFetched = true;
     } catch (e) {
       print('Error fetching top users: $e');
     }
 
     _isLoading = false;
-    return []; // return empty list when there is an error
+    notifyListeners();
   }
 
   Future<String> sendFriendRequest(String userId, String friendId) async {

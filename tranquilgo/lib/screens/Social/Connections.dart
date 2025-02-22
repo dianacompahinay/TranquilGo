@@ -14,8 +14,6 @@ class ConnectionsPage extends StatefulWidget {
 }
 
 class ConnectionsPageState extends State<ConnectionsPage> {
-  UserDetailsProvider userList = UserDetailsProvider();
-  List<Map<String, dynamic>> users = [];
   bool isConnectionFailed = false;
 
   // List<Map<String, dynamic>> users = [
@@ -44,10 +42,13 @@ class ConnectionsPageState extends State<ConnectionsPage> {
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
     try {
-      List<Map<String, dynamic>> fetchedUsers =
-          await userList.fetchFriends(userId);
-      setState(() {
-        users = fetchedUsers;
+      // fetch only if users list is empty
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final userProvider =
+            Provider.of<UserDetailsProvider>(context, listen: false);
+        if (userProvider.friends.isEmpty) {
+          userProvider.fetchFriends(userId);
+        }
       });
     } catch (e) {
       setState(() {
@@ -58,13 +59,15 @@ class ConnectionsPageState extends State<ConnectionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserDetailsProvider>(context);
+
     return Scaffold(
       body: Container(
         constraints: const BoxConstraints.expand(),
         decoration: const BoxDecoration(color: Colors.white),
         child: Stack(
           children: [
-            userList.isLoading
+            userProvider.isLoading
                 ? const Center(
                     child: CircularProgressIndicator(
                       color: Color(0xFF36B9A5),
@@ -98,7 +101,7 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                           ],
                         ),
                       )
-                    : users.isEmpty
+                    : userProvider.friends.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -126,13 +129,13 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                             ),
                           )
                         : ListView.builder(
-                            itemCount: users.length,
+                            itemCount: userProvider.friends.length,
                             itemBuilder: (context, index) {
                               return GestureDetector(
                                 onTap: () async {
                                   // UserDetailsModal.show(context, users[index]);
                                   String? result = await UserDetailsModal.show(
-                                      context, users[index]);
+                                      context, userProvider.friends[index]);
 
                                   if (result != null && result.isNotEmpty) {
                                     await initializeFriends();
@@ -162,8 +165,8 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                       Consumer<UserDetailsProvider>(
                                         builder: (context, userDetailsProvider,
                                             child) {
-                                          String imageUrl =
-                                              users[index]['profileImage'];
+                                          String imageUrl = userProvider
+                                              .friends[index]['profileImage'];
 
                                           return Container(
                                             height: 40,
@@ -233,7 +236,7 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 12),
                                           child: Text(
-                                            '${users[index]["username"]}',
+                                            '${userProvider.friends[index]["username"]}',
                                             style: GoogleFonts.inter(
                                               textStyle: const TextStyle(
                                                 color: Color(0xFF656263),
@@ -246,7 +249,8 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                       ),
                                       Row(
                                         children: [
-                                          users[index]["activeStatus"] ==
+                                          userProvider.friends[index]
+                                                      ["activeStatus"] ==
                                                   "active"
                                               ? const Icon(Icons.circle,
                                                   size: 12,
@@ -257,7 +261,8 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                                   color: Color(0xFFB5B5B5)),
                                           const SizedBox(width: 5),
                                           Text(
-                                            users[index]["activeStatus"] ==
+                                            userProvider.friends[index]
+                                                        ["activeStatus"] ==
                                                     "active"
                                                 ? "Active"
                                                 : "Offline",
@@ -274,9 +279,9 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                       const SizedBox(width: 22),
                                       InviteUser(
                                           receiverId:
-                                              '${users[index]["userId"]}',
+                                              '${userProvider.friends[index]["userId"]}',
                                           userName:
-                                              '${users[index]["username"]}')
+                                              '${userProvider.friends[index]["username"]}')
                                     ],
                                   ),
                                 ),

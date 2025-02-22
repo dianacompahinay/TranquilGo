@@ -16,8 +16,6 @@ class LeaderboardPage extends StatefulWidget {
 }
 
 class LeaderboardPageState extends State<LeaderboardPage> {
-  UserDetailsProvider userProvider = UserDetailsProvider();
-  List<Map<String, dynamic>> topUsers = [];
   bool isConnectionFailed = false;
 
   @override
@@ -30,10 +28,13 @@ class LeaderboardPageState extends State<LeaderboardPage> {
     final userId = FirebaseAuth.instance.currentUser!.uid;
 
     try {
-      List<Map<String, dynamic>> fetchedUsers =
-          await userProvider.fetchTopUsers(userId);
-      setState(() {
-        topUsers = fetchedUsers;
+      // fetch only if users list is empty
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final userProvider =
+            Provider.of<UserDetailsProvider>(context, listen: false);
+        if (userProvider.topUsers.isEmpty) {
+          userProvider.fetchTopUsers(userId);
+        }
       });
     } catch (e) {
       setState(() {
@@ -44,43 +45,7 @@ class LeaderboardPageState extends State<LeaderboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    // final List<Map<String, dynamic>> users = [
-    //   {
-    //     "username": "user_1",
-    //     "steps": 1234117,
-    //     "profileImage": 'assets/images/user.jpg'
-    //   },
-    //   {
-    //     "username": "user_2",
-    //     "steps": 931275,
-    //     "profileImage": 'assets/images/user.jpg'
-    //   },
-    //   {
-    //     "username": "user_3",
-    //     "steps": 534631,
-    //     "profileImage": 'assets/images/user.jpg'
-    //   },
-    //   {
-    //     "username": "user_4",
-    //     "steps": 431275,
-    //     "profileImage": 'assets/images/user.jpg'
-    //   },
-    //   {
-    //     "username": "user_5",
-    //     "steps": 402562,
-    //     "profileImage": 'assets/images/user.jpg'
-    //   },
-    //   {
-    //     "username": "user_6",
-    //     "steps": 211756,
-    //     "profileImage": 'assets/images/user.jpg'
-    //   },
-    //   {
-    //     "username": "user_7",
-    //     "steps": 150000,
-    //     "profileImage": 'assets/images/user.jpg'
-    //   },
-    // ];
+    final userProvider = Provider.of<UserDetailsProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -124,20 +89,20 @@ class LeaderboardPageState extends State<LeaderboardPage> {
                       const SizedBox(height: 12),
                       // top 3 podium with image
                       PodiumWidgetWithImage(
-                          topUsers: topUsers.take(3).toList()),
+                          topUsers: userProvider.topUsers.take(3).toList()),
 
                       // remaining leaderboard
                       ListView.builder(
                         physics: const NeverScrollableScrollPhysics(),
                         shrinkWrap: true,
                         // limit to top 10 ranking
-                        itemCount: topUsers.length > 7
+                        itemCount: userProvider.topUsers.length > 7
                             ? 7
-                            : topUsers.length > 3
-                                ? topUsers.length - 3
+                            : userProvider.topUsers.length > 3
+                                ? userProvider.topUsers.length - 3
                                 : 0,
                         itemBuilder: (context, index) {
-                          final user = topUsers[index + 3];
+                          final user = userProvider.topUsers[index + 3];
                           return Container(
                             margin: const EdgeInsets.fromLTRB(2, 8, 2, 6),
                             padding: const EdgeInsets.all(12),

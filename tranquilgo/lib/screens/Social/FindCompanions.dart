@@ -12,192 +12,122 @@ class FindCompanionsPage extends StatefulWidget {
 }
 
 class _FindCompanionsPageState extends State<FindCompanionsPage> {
-  UserDetailsProvider userProvider = UserDetailsProvider();
-
   final TextEditingController searchController = TextEditingController();
-  List<Map<String, dynamic>> users = [];
-  List<Map<String, dynamic>> searchedUsers = [];
+
   bool isConnectionFailed = false;
   bool addedNewFriend = false;
-  bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    initializeUsers();
-  }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userProvider =
+          Provider.of<UserDetailsProvider>(context, listen: false);
+      final userId = FirebaseAuth.instance.currentUser!.uid;
 
-  // void initializeUsers() {
-  //   users = [
-  //     {"username": "john_doe", "name": "John Doe", "status": "friend"},
-  //     {"username": "jane_smith", "name": "Jane Smith", "status": "add"},
-  //     {"username": "alex_jones", "name": "Alex Jones", "status": "friend"},
-  //     {"username": "emily_clark", "name": "Emily Clark", "status": "add"},
-  //     {
-  //       "username": "michael_brown",
-  //       "name": "Michael Brown",
-  //       "status": "friend"
-  //     },
-  //     {"username": "sarah_lee", "name": "Sarah Lee", "status": "add"},
-  //     {"username": "david_wright", "name": "David Wright", "status": "friend"},
-  //     {"username": "linda_hall", "name": "Linda Hall", "status": "add"},
-  //   ];
-  //   filteredUsers = List.from(users);
-  // }
-
-  Future<void> initializeUsers() async {
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      // get total user count
-      int totalUsers = await userProvider.getUsersCount() ?? 0;
-      int fetchedCount = 0;
-
-      // fetch the first 5 users before the loop
-      List<Map<String, dynamic>> initialUsers =
-          await userProvider.fetchUsers(userId, null);
-
-      if (initialUsers.isNotEmpty) {
-        fetchedCount += initialUsers.length;
+      try {
+        userProvider.initializeUsers(userId);
+      } catch (e) {
         setState(() {
-          users.addAll(initialUsers);
+          isConnectionFailed = true;
         });
       }
-
-      // continue fetching remaining users (not including the current user)
-      while (fetchedCount < totalUsers - 1) {
-        List<Map<String, dynamic>> fetchedUsers =
-            await userProvider.fetchUsers(userId, users.last["userId"]);
-
-        if (fetchedUsers.isNotEmpty) {
-          fetchedCount += fetchedUsers.length;
-
-          setState(() {
-            users.addAll(fetchedUsers);
-          });
-          print("fetchedCount: $fetchedCount totalUsers: $totalUsers");
-
-          // when user searches, searchUsers function is called to render the loaded searched users
-          if (searchController.text.trim().isNotEmpty) {
-            searchUsers(searchController.text);
-          }
-        }
-
-        if (fetchedCount == totalUsers - 1) {
-          setState(() {
-            isLoading = false;
-          });
-          break;
-        }
-      }
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-        isConnectionFailed = true;
-      });
-    }
-  }
-
-  void searchUsers(String query) {
-    setState(() {
-      searchedUsers = users
-          .where((user) =>
-              user["username"].toLowerCase().contains(query.toLowerCase()) ||
-              user["name"].toLowerCase().contains(query.toLowerCase()))
-          .toList();
     });
-  }
-
-  void addFriend(int index, String friendId) async {
-    setState(() {
-      if (searchController.text.trim().isEmpty) {
-        users[index]["status"] = "loading";
-      } else {
-        searchedUsers[index]["status"] = "loading";
-      }
-    });
-
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-
-    String result =
-        await Provider.of<UserDetailsProvider>(context, listen: false)
-            .sendFriendRequest(userId, friendId);
-
-    if (result == "success") {
-      setState(() {
-        if (searchController.text.trim().isEmpty) {
-          users[index]["status"] = "request_sent";
-        } else {
-          searchedUsers[index]["status"] = "request_sent";
-        }
-      });
-    } else {
-      showBottomSnackBar(context, result);
-    }
-  }
-
-  void cancelFriendRequest(int index, String friendId) async {
-    setState(() {
-      if (searchController.text.trim().isEmpty) {
-        users[index]["status"] = "loading";
-      } else {
-        searchedUsers[index]["status"] = "loading";
-      }
-    });
-
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-
-    String result =
-        await Provider.of<UserDetailsProvider>(context, listen: false)
-            .cancelFriendRequest(userId, friendId);
-    if (result == "success") {
-      setState(() {
-        if (searchController.text.trim().isEmpty) {
-          users[index]["status"] = "add";
-        } else {
-          searchedUsers[index]["status"] = "add";
-        }
-      });
-    } else {
-      showBottomSnackBar(context, result);
-    }
-  }
-
-  void acceptFriend(int index, String friendId) async {
-    setState(() {
-      if (searchController.text.trim().isEmpty) {
-        users[index]["status"] = "loading";
-      } else {
-        searchedUsers[index]["status"] = "loading";
-      }
-    });
-
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-
-    String result =
-        await Provider.of<UserDetailsProvider>(context, listen: false)
-            .acceptFriendRequest(userId, friendId);
-    if (result == "success") {
-      setState(() {
-        addedNewFriend = true;
-
-        if (searchController.text.trim().isEmpty) {
-          users[index]["status"] = "friend";
-        } else {
-          searchedUsers[index]["status"] = "friend";
-        }
-      });
-    } else {
-      showBottomSnackBar(context, result);
-    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserDetailsProvider>(context);
+
+    void searchUsers(String query) {
+      userProvider.setSearchQuery(query);
+      userProvider.searchUsers(query);
+    }
+
+    void addFriend(int index, String friendId) async {
+      setState(() {
+        if (searchController.text.trim().isEmpty) {
+          userProvider.allUsers[index]["status"] = "loading";
+        } else {
+          userProvider.searchedUsers[index]["status"] = "loading";
+        }
+      });
+
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+
+      String result =
+          await Provider.of<UserDetailsProvider>(context, listen: false)
+              .sendFriendRequest(userId, friendId);
+
+      if (result == "success") {
+        setState(() {
+          if (searchController.text.trim().isEmpty) {
+            userProvider.allUsers[index]["status"] = "request_sent";
+          } else {
+            userProvider.searchedUsers[index]["status"] = "request_sent";
+          }
+        });
+      } else {
+        showBottomSnackBar(context, result);
+      }
+    }
+
+    void cancelFriendRequest(int index, String friendId) async {
+      setState(() {
+        if (searchController.text.trim().isEmpty) {
+          userProvider.allUsers[index]["status"] = "loading";
+        } else {
+          userProvider.searchedUsers[index]["status"] = "loading";
+        }
+      });
+
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+
+      String result =
+          await Provider.of<UserDetailsProvider>(context, listen: false)
+              .cancelFriendRequest(userId, friendId);
+      if (result == "success") {
+        setState(() {
+          if (searchController.text.trim().isEmpty) {
+            userProvider.allUsers[index]["status"] = "add";
+          } else {
+            userProvider.searchedUsers[index]["status"] = "add";
+          }
+        });
+      } else {
+        showBottomSnackBar(context, result);
+      }
+    }
+
+    void acceptFriend(int index, String friendId) async {
+      setState(() {
+        if (searchController.text.trim().isEmpty) {
+          userProvider.allUsers[index]["status"] = "loading";
+        } else {
+          userProvider.searchedUsers[index]["status"] = "loading";
+        }
+      });
+
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+
+      String result =
+          await Provider.of<UserDetailsProvider>(context, listen: false)
+              .acceptFriendRequest(userId, friendId);
+      if (result == "success") {
+        setState(() {
+          addedNewFriend = true;
+
+          if (searchController.text.trim().isEmpty) {
+            userProvider.allUsers[index]["status"] = "friend";
+          } else {
+            userProvider.searchedUsers[index]["status"] = "friend";
+          }
+        });
+      } else {
+        showBottomSnackBar(context, result);
+      }
+    }
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
@@ -335,20 +265,22 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
                     child: ListView.builder(
                       padding: const EdgeInsets.only(left: 10, right: 10),
                       itemCount: searchController.text.trim().isEmpty
-                          ? users.length + (isLoading ? 1 : 0)
-                          : searchedUsers.length + (isLoading ? 1 : 0),
+                          ? userProvider.allUsers.length +
+                              (userProvider.isLoading ? 1 : 0)
+                          : userProvider.searchedUsers.length +
+                              (userProvider.isLoading ? 1 : 0),
                       itemBuilder: (context, index) {
                         int usersLength;
                         List<Map<String, dynamic>> filteredUsers;
                         if (searchController.text.trim().isEmpty) {
-                          usersLength = users.length;
-                          filteredUsers = users;
+                          usersLength = userProvider.allUsers.length;
+                          filteredUsers = userProvider.allUsers;
                         } else {
-                          usersLength = searchedUsers.length;
-                          filteredUsers = searchedUsers;
+                          usersLength = userProvider.searchedUsers.length;
+                          filteredUsers = userProvider.searchedUsers;
                         }
 
-                        if (isLoading && index == usersLength) {
+                        if (userProvider.isLoading && index == usersLength) {
                           return const Center(
                             child: CircularProgressIndicator(
                               color: Color(0xFF36B9A5),
