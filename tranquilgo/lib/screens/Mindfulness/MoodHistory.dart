@@ -84,6 +84,7 @@ class _MoodTrackingHistoryState extends State<MoodTrackingHistory> {
       appBar: isLoading || isConnectionFailed || monthlyMoodData.isEmpty
           ? AppBar(
               backgroundColor: Colors.white,
+              toolbarHeight: 60,
               leading: Container(
                 margin: const EdgeInsets.only(left: 10),
                 width: 42,

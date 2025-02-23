@@ -3,6 +3,54 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ActivityService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
+  Future<int> getTotalSteps(String userId) async {
+    try {
+      DocumentSnapshot userDoc =
+          await firestore.collection('users').doc(userId).get();
+
+      // check if the document exists and has the 'steps' field
+      if (userDoc.exists && userDoc.data() != null) {
+        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+        return userData['steps'] ?? 0; // return steps or 0 if not found
+      } else {
+        return 0; // if document doesn't exist
+      }
+    } catch (e) {
+      throw Exception("Failed to fetch user total steps: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> getWeeklyActivitySummary(String userId) async {
+    try {
+      DateTime now = DateTime.now();
+      DateTime startOfWeek =
+          DateTime(now.year, now.month, now.day - (now.weekday - 1));
+      int daysPassed = now.difference(startOfWeek).inDays + 1;
+
+      // fetch the weekly activity summary
+      DocumentSnapshot weeklyActivityDoc =
+          await firestore.collection('weekly_activity').doc(userId).get();
+
+      Map<String, dynamic> data =
+          weeklyActivityDoc.data() as Map<String, dynamic>;
+
+      int totalSteps = data['totalStepsTaken'] ?? 0;
+      double totalDistance = (data['totalDistance'] as num?)?.toDouble() ?? 0.0;
+
+      // calculate the average steps per day
+      int avgStepsPerDay =
+          (daysPassed > 0 ? totalSteps / daysPassed : 0).toInt();
+
+      return {
+        'totalSteps': totalSteps,
+        'avgStepsPerDay': avgStepsPerDay,
+        'totalDistance': totalDistance,
+      };
+    } catch (e) {
+      throw Exception('Failed to fetch weekly activity summary');
+    }
+  }
+
   Future<void> createWeeklyGoalForNewUser(
       String userId, int targetSteps) async {
     DateTime today = DateTime.now();
@@ -184,7 +232,7 @@ class ActivityService {
         'seScore': seScore,
       });
 
-      // Update the weekly summary
+      // update the weekly summary
       DocumentSnapshot weeklySnapshot = await weeklyActivityRef.get();
       if (weeklySnapshot.exists) {
         Map<String, dynamic> weeklyData =
@@ -198,6 +246,11 @@ class ActivityService {
           'totalStepsTaken': (weeklyData['totalStepsTaken'] ?? 0) + numSteps,
         });
       }
+
+      // update user's steps
+      await firestore.collection('users').doc(userId).update({
+        "steps": FieldValue.increment(numSteps),
+      });
     } catch (e) {
       throw Exception('Failed to create activity: ${e.toString()}');
     }

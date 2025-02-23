@@ -49,7 +49,7 @@ class _AddJournalPageState extends State<AddJournalPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 50,
+        toolbarHeight: 60,
         leading: Container(
           margin: const EdgeInsets.only(left: 10),
           width: 42,
@@ -191,24 +191,35 @@ class _AddJournalPageState extends State<AddJournalPage> {
                   children: [
                     // camera button
                     IconButton(
-                      onPressed: () async {
-                        // open camera to take a picture
-                        XFile? capturedImage =
-                            await picker.pickImage(source: ImageSource.camera);
-                        if (capturedImage != null) {
-                          File imageFile = File(capturedImage.path);
-                          setState(() {
-                            images.add(imageFile);
-                          });
-                        }
-                      },
+                      onPressed: images.length >= 3
+                          ? () {
+                              showBottomSnackBar(
+                                  context, "Cannot exceed to 3 images.");
+                            }
+                          : () async {
+                              // open camera to take a picture
+                              final ImagePicker picker = ImagePicker();
+                              XFile? capturedImage = await picker.pickImage(
+                                  source: ImageSource.camera);
+                              if (capturedImage != null) {
+                                File imageFile = File(capturedImage.path);
+                                setState(() {
+                                  images.add(imageFile);
+                                });
+                              }
+                            },
                       icon: const Icon(Icons.camera_alt_outlined,
                           size: 30, color: Color(0xFF55AC9F)),
                     ),
                     const SizedBox(width: 10),
                     // image button
                     IconButton(
-                      onPressed: pickImage,
+                      onPressed: images.length >= 3
+                          ? () {
+                              showBottomSnackBar(
+                                  context, "Cannot exceed to 3 images.");
+                            }
+                          : pickImage,
                       icon: const Icon(Icons.image_outlined,
                           size: 30, color: Color(0xFF55AC9F)),
                     ),

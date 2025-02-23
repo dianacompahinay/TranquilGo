@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/providers/UserProvider.dart';
 import 'package:my_app/providers/MindfulnessProvider.dart';
+import 'package:my_app/providers/ActivityProvider.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -14,38 +15,31 @@ class Dashboard extends StatefulWidget {
 }
 
 class DashboardState extends State<Dashboard> {
-  final userId = FirebaseAuth.instance.currentUser!.uid;
-  UserDetailsProvider userProvider = UserDetailsProvider();
-  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
-
-  double? mood;
-
-  bool isLoading = false;
-
   @override
   void initState() {
     super.initState();
-    initializeOverview();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      userProvider.fetchUserDetails(userId);
-    });
-  }
+      final userId = FirebaseAuth.instance.currentUser!.uid;
 
-  void initializeOverview() async {
-    setState(() {
-      isLoading = true;
-    });
-    double moodRating =
-        await mindfulnessProvider.fetchtWeeklyAverageMood(userId);
-    setState(() {
-      mood = moodRating;
-      isLoading = false;
+      final userProvider =
+          Provider.of<UserDetailsProvider>(context, listen: false);
+      final activityProvider =
+          Provider.of<ActivityProvider>(context, listen: false);
+      final mindfulnessProvider =
+          Provider.of<MindfulnessProvider>(context, listen: false);
+      userProvider.fetchUserDetails(userId);
+
+      activityProvider.listenToActivityChanges(userId);
+      mindfulnessProvider.listenToMoodChanges(userId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final userProfileProvider = Provider.of<UserDetailsProvider>(context);
+    final activityProvider = Provider.of<ActivityProvider>(context);
+    final mindfulnessProvider = Provider.of<MindfulnessProvider>(context);
+
     final userDetails = userProfileProvider.userDetails;
 
     return Scaffold(
@@ -94,27 +88,39 @@ class DashboardState extends State<Dashboard> {
                           ),
                           Row(
                             children: [
-                              Text(
-                                '10088',
-                                style: GoogleFonts.poppins(
-                                  textStyle: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
+                              activityProvider.isLoading
+                                  ? Container(
+                                      margin: const EdgeInsets.only(top: 10),
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 3,
+                                        color: Colors.grey[300],
+                                      ),
+                                    )
+                                  : Text(
+                                      '${activityProvider.weeklyActivitySummary["totalSteps"]}',
+                                      style: GoogleFonts.poppins(
+                                        textStyle: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
                               const SizedBox(width: 10),
-                              Text(
-                                '203.5k overall steps',
-                                style: GoogleFonts.poppins(
-                                  textStyle: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
+                              activityProvider.isLoading
+                                  ? const SizedBox()
+                                  : Text(
+                                      '${formatSteps(activityProvider.steps)} overall steps',
+                                      style: GoogleFonts.poppins(
+                                        textStyle: const TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
                             ],
                           )
                         ],
@@ -137,15 +143,24 @@ class DashboardState extends State<Dashboard> {
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisSpacing: 14,
                   mainAxisSpacing: 14,
-                  childAspectRatio: 1.2,
+                  childAspectRatio: 1.05,
                   children: [
-                    buildStatsCard('Avg Steps', '2088', 'footprint',
+                    buildStatsCard(
+                        'Avg Steps',
+                        '${activityProvider.weeklyActivitySummary["avgStepsPerDay"]}',
+                        'footprint',
                         const Color(0xFFE7F3EC)),
-                    buildStatsCard('Total Distance', '7.57 Km', 'distance',
+                    buildStatsCard(
+                        'Total Distance',
+                        '${activityProvider.weeklyActivitySummary["totalDistance"]}',
+                        'distance',
                         const Color(0xFFF5F5F5)),
                     buildStatsCard(
                         'Streak', '7 days', 'streak', const Color(0xFFF5F5F5)),
-                    buildStatsCard('Mood Tracking', '$mood', 'mood',
+                    buildStatsCard(
+                        'Mood Tracking',
+                        '${mindfulnessProvider.mood}',
+                        'mood',
                         const Color(0xFFE7F3EC)),
                   ],
                 ),
@@ -225,6 +240,8 @@ class DashboardState extends State<Dashboard> {
 
   Widget buildStatsCard(
       String title, String value, String str, Color backgroundColor) {
+    final activityProvider = Provider.of<ActivityProvider>(context);
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -261,7 +278,7 @@ class DashboardState extends State<Dashboard> {
             ),
           ),
           const SizedBox(height: 4),
-          isLoading
+          activityProvider.isLoading
               ? Container(
                   margin: const EdgeInsets.only(top: 10),
                   width: 20,
@@ -285,5 +302,18 @@ class DashboardState extends State<Dashboard> {
         ],
       ),
     );
+  }
+
+  String formatSteps(int steps) {
+    if (steps >= 1000000) {
+      // Format in millions
+      return "${(steps / 1000000).toStringAsFixed(1)}m";
+    } else if (steps >= 1000) {
+      // Format in thousands
+      return "${(steps / 1000).toStringAsFixed(1)}k";
+    } else {
+      // Less than a thousand
+      return steps.toString();
+    }
   }
 }

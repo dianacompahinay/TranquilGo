@@ -88,7 +88,7 @@ class UserProfilePageState extends State<UserProfilePage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 50,
+        toolbarHeight: 60,
         leading: Container(
           margin: const EdgeInsets.only(left: 10),
           width: 42,

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloudinary_sdk/cloudinary_sdk.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 
@@ -292,58 +293,80 @@ class MindfulnessService {
     }
   }
 
+  Future<File> resizeImage(File file) async {
+    return await compute(_resizeImageInIsolate, file);
+  }
+
+  File _resizeImageInIsolate(File file) {
+    final bytes = file.readAsBytesSync();
+    final image = img.decodeImage(bytes);
+    final resized = img.copyResize(image!, width: 200);
+    final resizedFile = File(file.path)
+      ..writeAsBytesSync(img.encodeJpg(resized, quality: 85));
+    return resizedFile;
+  }
+
   Future<void> createJournalEntry(
       String userId, List<File> images, String content) async {
     try {
-      List<String?> uploadedImageUrls = [];
+      List<String> uploadedImageUrls = [];
 
-      for (File imageFile in images) {
-        if (!imageFile.existsSync()) {
-          return;
-        }
+      if (images.isNotEmpty) {
+        List<Future<String?>> uploadTasks = images.map((imageFile) async {
+          if (!imageFile.existsSync()) {
+            print("File does not exist: ${imageFile.path}");
+            return null;
+          }
 
-        final compressedFile = await compressImage(File(imageFile.path));
+          // Resize and check for null
+          final resizedFile = await resizeImage(imageFile);
+          if (resizedFile == null) {
+            print("Failed to resize image: ${imageFile.path}");
+            return null;
+          }
 
-        // upload image to cloudinary
-        final response = await cloudinary.uploadResource(
-          CloudinaryUploadResource(
-            filePath: compressedFile.path,
-            resourceType: CloudinaryResourceType.image,
-            folder: 'journal_entries/$userId',
-            publicId: "$userId${DateTime.now().millisecondsSinceEpoch}",
-            progressCallback: (count, total) {
-              print('Uploading: $count/$total');
-            },
-          ),
-        );
+          final response = await cloudinary.uploadResource(
+            CloudinaryUploadResource(
+              filePath: resizedFile.path,
+              resourceType: CloudinaryResourceType.image,
+              folder: 'journal_entries/$userId',
+              publicId: "$userId${DateTime.now().millisecondsSinceEpoch}",
+            ),
+          );
 
-        if (response.isSuccessful) {
-          uploadedImageUrls.add(response.secureUrl);
-        }
+          if (response.isSuccessful) {
+            return response.secureUrl;
+          } else {
+            print("Cloudinary upload failed: ${response.error}");
+            return null;
+          }
+        }).toList();
+
+        uploadedImageUrls =
+            (await Future.wait(uploadTasks)).whereType<String>().toList();
+      }
+
+      // ensure Firestore is initialized before writing
+      if (firestore == null) {
+        throw Exception("Firestore is not initialized.");
       }
 
       Timestamp timestamp = Timestamp.now();
-
       await firestore
           .collection("mindfulness")
           .doc(userId)
           .collection("journal_entries")
           .add({
         "timestamp": timestamp,
-        "images": uploadedImageUrls,
+        "images": uploadedImageUrls, // empty list if no images
         "content": content,
       });
+
+      print("Journal entry created successfully!");
     } catch (e) {
       print("Error creating journal entry: $e");
       throw Exception("Failed to create journal entry");
     }
-  }
-
-  Future<File> compressImage(File imageFile) async {
-    final rawImage = img.decodeImage(await imageFile.readAsBytes());
-    final compressed = img.encodeJpg(rawImage!, quality: 80);
-    final newFile = File(imageFile.path)..writeAsBytesSync(compressed);
-    return newFile;
   }
 
   Future<void> editEntry(String userId, String entryId, List<String> images,

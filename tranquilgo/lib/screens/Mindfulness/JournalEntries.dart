@@ -135,24 +135,32 @@ class _JournalEntriesState extends State<JournalEntries> {
     });
   }
 
-  void showImageModal(String imagePath) {
+  void showImageModal(String imageUrl) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        child: Stack(
-          children: [
-            Image.asset(imagePath, fit: BoxFit.cover),
-            Positioned(
-              top: 10,
-              right: 10,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              imageUrl,
+              fit: BoxFit.contain,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(
+                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                );
+              },
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -166,6 +174,7 @@ class _JournalEntriesState extends State<JournalEntries> {
             slivers: [
               SliverAppBar(
                 backgroundColor: Colors.white,
+                toolbarHeight: 60,
                 leading: Container(
                   margin: const EdgeInsets.only(left: 10),
                   width: 42,

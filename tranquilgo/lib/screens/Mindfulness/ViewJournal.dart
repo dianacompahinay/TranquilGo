@@ -72,7 +72,7 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 50,
+        toolbarHeight: 60,
         leading: Container(
           margin: const EdgeInsets.only(left: 10),
           width: 42,
@@ -381,7 +381,7 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
         return Dialog(
           backgroundColor: Colors.transparent,
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             child: Image.network(
               imageUrl,
               fit: BoxFit.contain,

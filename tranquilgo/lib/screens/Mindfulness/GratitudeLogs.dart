@@ -19,56 +19,6 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
   bool isConnectionFailed = false;
   bool deleteMode = false;
 
-  // List<Map<String, String>> logs = [
-  //   {'logId': '', 'date': '', 'content': ''}, // filler
-  //   {
-  //     'logId': '1',
-  //     'date': 'Aug 12, 2024',
-  //     'content':
-  //         'Appreciating the beauty of nature and the peacefulness it brings'
-  //   },
-  //   {
-  //     'logId': '2',
-  //     'date': 'Aug 9, 2024',
-  //     'content': 'Thankful for the fresh air and the time to clear my mind.'
-  //   },
-  //   {
-  //     'logId': '3',
-  //     'date': 'Aug 8, 2024',
-  //     'content':
-  //         'Grateful for my health and the things I often take for granted.'
-  //   },
-  //   {
-  //     'logId': '4',
-  //     'date': 'Aug 5, 2024',
-  //     'content':
-  //         'Thankful for the opportunities to grow and become a better version of myself.'
-  //   },
-  //   {
-  //     'logId': '5',
-  //     'date': 'July 30, 2024',
-  //     'content': 'Thankful for the little moments of joy that brighten my day.'
-  //   },
-  //   {
-  //     'logId': '6',
-  //     'date': 'July 25, 2024',
-  //     'content':
-  //         'Grateful for the time spent away from screens and in the present moment.'
-  //   },
-  //   {
-  //     'logId': '7',
-  //     'date': 'July 22, 2024',
-  //     'content':
-  //         'Appreciating the beauty of nature and the peacefulness it brings.'
-  //   },
-  //   {
-  //     'logId': '8',
-  //     'date': 'July 19, 2024',
-  //     'content':
-  //         'Grateful for the support of friends and family during tough times.'
-  //   },
-  // ];
-
   @override
   void initState() {
     super.initState();
@@ -95,7 +45,7 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
         fetchedCount += initialLogs.length;
         setState(() {
           logs = [
-            {'logId': '', 'date': '', 'content': ''},
+            // {'logId': '', 'date': '', 'content': ''},
             ...initialLogs
           ];
         });
@@ -162,13 +112,14 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: const Color(0xFFFFFFFF),
       body: Stack(
         children: [
           CustomScrollView(
             slivers: [
               SliverAppBar(
-                backgroundColor: const Color(0xFFFAFAFA),
+                backgroundColor: const Color(0xFFFFFFFF),
+                toolbarHeight: 60,
                 leading: Container(
                   margin: const EdgeInsets.only(left: 10),
                   width: 42,
@@ -212,7 +163,7 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                   [
                     Container(
                       padding: const EdgeInsets.only(left: 20, right: 20),
-                      decoration: const BoxDecoration(color: Color(0xFFFAFAFA)),
+                      decoration: const BoxDecoration(color: Color(0xFFFFFFFF)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -315,121 +266,112 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                                       itemCount: logs.length,
                                       itemBuilder:
                                           (BuildContext context, int index) {
-                                        if (index == 0) {
-                                          return Container(
-                                            margin: const EdgeInsets.symmetric(
-                                                horizontal: 2, vertical: 2),
-                                            height: 70,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(7),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.grey
-                                                      .withOpacity(0.6),
-                                                  spreadRadius: 0,
-                                                  blurRadius: 2,
-                                                  offset: const Offset(0, 1),
-                                                ),
-                                              ],
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                'Positivity',
-                                                style: GoogleFonts.poppins(
-                                                  textStyle: const TextStyle(
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF696969),
+                                        // if (index == 0) {
+                                        //   return Container(
+                                        //     margin: const EdgeInsets.symmetric(
+                                        //         horizontal: 2, vertical: 2),
+                                        //     height: 70,
+                                        //     decoration: BoxDecoration(
+                                        //       color: Colors.white,
+                                        //       borderRadius:
+                                        //           BorderRadius.circular(7),
+                                        //       boxShadow: [
+                                        //         BoxShadow(
+                                        //           color: Colors.grey
+                                        //               .withOpacity(0.6),
+                                        //           spreadRadius: 0,
+                                        //           blurRadius: 2,
+                                        //           offset: const Offset(0, 1),
+                                        //         ),
+                                        //       ],
+                                        //     ),
+                                        //     child: Center(
+                                        //       child: Text(
+                                        //         'Positivity',
+                                        //         style: GoogleFonts.poppins(
+                                        //           textStyle: const TextStyle(
+                                        //             fontSize: 20,
+                                        //             fontWeight: FontWeight.bold,
+                                        //             color: Color(0xFF696969),
+                                        //           ),
+                                        //         ),
+                                        //       ),
+                                        //     ),
+                                        //   );
+                                        // } else {
+                                        return GestureDetector(
+                                          onTap: () {
+                                            showDialog(
+                                              context: context,
+                                              builder: (BuildContext context) {
+                                                return AlertDialog(
+                                                  backgroundColor: Colors.white,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            5),
                                                   ),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        } else {
-                                          return GestureDetector(
-                                            onTap: () {
-                                              showDialog(
-                                                context: context,
-                                                builder:
-                                                    (BuildContext context) {
-                                                  return AlertDialog(
-                                                    backgroundColor:
-                                                        Colors.white,
-                                                    shape:
-                                                        RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              5),
-                                                    ),
-                                                    titlePadding:
-                                                        const EdgeInsets
-                                                            .fromLTRB(
-                                                            20, 10, 10, 8),
-                                                    contentPadding:
-                                                        const EdgeInsets
-                                                            .fromLTRB(
-                                                            20, 0, 26, 26),
-                                                    title: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-                                                      children: [
-                                                        Text(
-                                                          logs[index]['date']!,
-                                                          style: GoogleFonts
-                                                              .poppins(
-                                                            textStyle:
-                                                                const TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              fontSize: 16,
-                                                            ),
+                                                  titlePadding:
+                                                      const EdgeInsets.fromLTRB(
+                                                          20, 10, 10, 8),
+                                                  contentPadding:
+                                                      const EdgeInsets.fromLTRB(
+                                                          20, 0, 26, 26),
+                                                  title: Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      Text(
+                                                        logs[index]['date']!,
+                                                        style:
+                                                            GoogleFonts.poppins(
+                                                          textStyle:
+                                                              const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 16,
                                                           ),
                                                         ),
-                                                        IconButton(
-                                                          icon: const Icon(
-                                                              Icons.close,
-                                                              color:
-                                                                  Colors.grey),
-                                                          onPressed: () {
-                                                            Navigator.pop(
-                                                                context);
-                                                          },
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    content: SizedBox(
-                                                      height: 170,
-                                                      child:
-                                                          SingleChildScrollView(
-                                                        child: Text(
-                                                          logs[index]
-                                                              ['content']!,
-                                                          style: GoogleFonts
-                                                              .poppins(
-                                                            textStyle:
-                                                                const TextStyle(
-                                                              fontSize: 14,
-                                                              color:
-                                                                  Colors.black,
-                                                            ),
+                                                      ),
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                            Icons.close,
+                                                            color: Colors.grey),
+                                                        onPressed: () {
+                                                          Navigator.pop(
+                                                              context);
+                                                        },
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  content: SizedBox(
+                                                    height: 170,
+                                                    child:
+                                                        SingleChildScrollView(
+                                                      child: Text(
+                                                        logs[index]['content']!,
+                                                        style:
+                                                            GoogleFonts.poppins(
+                                                          textStyle:
+                                                              const TextStyle(
+                                                            fontSize: 14,
+                                                            color: Colors.black,
                                                           ),
                                                         ),
                                                       ),
                                                     ),
-                                                  );
-                                                },
-                                              );
-                                            },
-                                            child: buildLogCard(
-                                                logs[index], index),
-                                          );
-                                        }
-                                      },
-                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
+                                          child:
+                                              buildLogCard(logs[index], index),
+                                        );
+                                      }
+                                      // },
+                                      ),
                           fetchLoading
                               ? SizedBox(
                                   height:

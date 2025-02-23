@@ -62,6 +62,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
   }
 
   void updateWeeklyGoalActivity() async {
+    // print("is it monday today?? ${DateTime.now().weekday == DateTime.monday}");
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return;
 
@@ -91,7 +92,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
         // for sidebar menu
         backgroundColor: Colors.white,
         elevation: 0,
-        toolbarHeight: 50,
+        toolbarHeight: 60,
         leading: GestureDetector(
           onTap: () {
             _scaffoldKey.currentState?.openDrawer();

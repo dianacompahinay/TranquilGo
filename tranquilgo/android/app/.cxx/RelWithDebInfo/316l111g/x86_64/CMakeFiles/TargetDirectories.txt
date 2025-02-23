@@ -1,0 +1,2 @@
+C:/Users/DIANNA MARIE/Documents/SP Docs/Source Code/TranquilGo/tranquilgo/android/app/.cxx/RelWithDebInfo/316l111g/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/DIANNA MARIE/Documents/SP Docs/Source Code/TranquilGo/tranquilgo/android/app/.cxx/RelWithDebInfo/316l111g/x86_64/CMakeFiles/rebuild_cache.dir

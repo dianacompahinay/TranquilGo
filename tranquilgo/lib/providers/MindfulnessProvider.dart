@@ -1,23 +1,51 @@
+import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/foundation.dart';
-
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/api/mindfulness_service.dart';
+import 'package:my_app/providers/ActivityProvider.dart';
 
 class MindfulnessProvider with ChangeNotifier {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final MindfulnessService service = MindfulnessService();
+  ActivityProvider activityProvider = ActivityProvider();
+
+  bool _isLoading = false;
+  bool get isLoading => _isLoading;
 
   // MOOD RECORDS
+  double _mood = 0;
+  double get mood => _mood;
 
-  Future<double> fetchtWeeklyAverageMood(String userId) async {
-    try {
-      double record = await service.getWeeklyAverageMood(userId);
+  void listenToMoodChanges(String userId) {
+    firestore
+        .collection('mindfulness')
+        .doc(userId)
+        .collection('mood_record')
+        .snapshots()
+        .listen((snapshot) async {
+      // needs to delay for few seconds to wait for creating activity
+      await Future.delayed(const Duration(seconds: 3));
+      await fetchWeeklyAverageMood(userId);
       notifyListeners();
+    });
+  }
 
-      return record;
+  Future<void> fetchWeeklyAverageMood(String userId) async {
+    // if (_isMoodFetched) return;
+
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _mood = await service.getWeeklyAverageMood(userId);
+      notifyListeners();
     } catch (e) {
-      return 0;
+      print("Error fetching mood: $e");
     }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<Map<DateTime, int>> fetchAllMoodRecords(String userId) async {

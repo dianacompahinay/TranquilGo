@@ -147,6 +147,7 @@ class _ActivityFormState extends State<ActivityForm> {
           slivers: [
             SliverAppBar(
               backgroundColor: Colors.white,
+              toolbarHeight: 60,
               title: Text(
                 "Walking Completed",
                 style: GoogleFonts.poppins(
