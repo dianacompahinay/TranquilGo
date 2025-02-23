@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/providers/AuthProvider.dart';
+import 'package:my_app/components/PrivacyPolicy.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -14,6 +15,7 @@ class _SignupPageState extends State<SignupPage> {
   bool isButtonClicked = false;
   bool isPasswordVisible = false;
   bool isConfirmPasswordVisible = false;
+  bool isChecked = false;
 
   final TextEditingController nameController = TextEditingController();
   final TextEditingController usernameController = TextEditingController();
@@ -63,22 +65,24 @@ class _SignupPageState extends State<SignupPage> {
         ),
         child: Stack(
           children: [
-            Padding(
-              padding:
-                  const EdgeInsets.only(top: 140.0, left: 25.0, right: 25.0),
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(20.0),
-                          topRight: Radius.circular(20.0),
+            SingleChildScrollView(
+              child: Padding(
+                padding:
+                    const EdgeInsets.only(top: 140.0, left: 25.0, right: 25.0),
+                child: Column(
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                          minHeight: MediaQuery.of(context).size.height),
+                      child: Container(
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(20.0),
+                            topRight: Radius.circular(20.0),
+                          ),
                         ),
-                      ),
-                      child: SingleChildScrollView(
                         child: Column(
                           children: [
                             const SizedBox(height: 50),
@@ -122,7 +126,91 @@ class _SignupPageState extends State<SignupPage> {
                               confirmPasswordError,
                               validateConfirmPassword,
                             ),
-                            const SizedBox(height: 38),
+                            const SizedBox(height: 36),
+
+                            // for giving privacy consent
+                            Container(
+                              padding:
+                                  const EdgeInsets.only(left: 40, right: 40),
+                              child: Row(
+                                // mainAxisAlignment: MainAxisAlignment.start,
+                                // crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Checkbox(
+                                    value: isChecked,
+                                    activeColor: const Color(0xFF55AC9F),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        isChecked = value!;
+                                      });
+                                    },
+                                  ),
+                                  Expanded(
+                                    child: DefaultTextStyle(
+                                      style: GoogleFonts.inter(
+                                        textStyle: const TextStyle(
+                                          color: Color(0xFF494949),
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w400,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                      child: RichText(
+                                        text: TextSpan(
+                                          style: GoogleFonts.inter(
+                                            textStyle: const TextStyle(
+                                              color: Color(0xFF494949),
+                                              fontSize: 13.5,
+                                              fontWeight: FontWeight.w400,
+                                              height: 1.3,
+                                            ),
+                                          ),
+                                          children: [
+                                            const TextSpan(
+                                              text:
+                                                  "I acknowledge and accept the terms",
+                                            ),
+                                            WidgetSpan(
+                                              alignment:
+                                                  PlaceholderAlignment.middle,
+                                              child: Padding(
+                                                padding: const EdgeInsets.only(
+                                                    left: 4.0),
+                                                child: GestureDetector(
+                                                  onTap: () {
+                                                    Navigator.push(
+                                                      context,
+                                                      MaterialPageRoute(
+                                                          builder: (context) =>
+                                                              const PrivacyPolicyPage()),
+                                                    );
+                                                  },
+                                                  child: const Icon(
+                                                    Icons.open_in_new_outlined,
+                                                    color: Color(0xFF5B84C2),
+                                                    size: 15,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            if (!isChecked && isButtonClicked)
+                                              const TextSpan(
+                                                text: ' *',
+                                                style: TextStyle(
+                                                  color: Color(0xFFC14040),
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 22),
 
                             // sign up button
                             Padding(
@@ -182,13 +270,12 @@ class _SignupPageState extends State<SignupPage> {
                                 child: const Text('Already have an account'),
                               ),
                             ),
-                            const SizedBox(height: 26),
                           ],
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             // back button
@@ -358,7 +445,8 @@ class _SignupPageState extends State<SignupPage> {
         usernameError == null &&
         emailError == null &&
         passwordError == null &&
-        confirmPasswordError == null) {
+        confirmPasswordError == null &&
+        isChecked) {
       setState(() {
         isLoading = true;
       });
