@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/api/notif_service.dart';
 import 'package:my_app/api/user_service.dart';
 // import 'package:my_app/api/activity_service.dart';
 
@@ -62,6 +63,9 @@ class AuthService {
       UserDetailsService users = UserDetailsService();
       users.createFriendsDocument(userId, username);
 
+      NotificationsService notif = NotificationsService();
+      notif.createSystemNotif(
+          userId, "Welcome! 💪 Let's get moving and crush your goals!");
       // ActivityService weeklyActivity = ActivityService();
       // weeklyActivity.createWeeklyActivityForNewUser(userId);
 

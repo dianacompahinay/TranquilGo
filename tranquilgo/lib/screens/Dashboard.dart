@@ -156,7 +156,10 @@ class DashboardState extends State<Dashboard> {
                         'distance',
                         const Color(0xFFF5F5F5)),
                     buildStatsCard(
-                        'Streak', '7 days', 'streak', const Color(0xFFF5F5F5)),
+                        'Streak',
+                        '${activityProvider.weeklyActivitySummary["totalStreak"]} days',
+                        'streak',
+                        const Color(0xFFF5F5F5)),
                     buildStatsCard(
                         'Mood Tracking',
                         '${mindfulnessProvider.mood}',

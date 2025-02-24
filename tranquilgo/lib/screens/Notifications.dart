@@ -192,74 +192,104 @@ class _NotificationsPageState extends State<NotificationsPage> {
                               children: [
                                 Stack(
                                   children: [
-                                    Consumer<UserDetailsProvider>(
-                                      builder: (context, userDetailsProvider,
-                                          child) {
-                                        String imageUrl = notif['profileImage'];
-                                        return Container(
-                                          margin:
-                                              const EdgeInsets.only(left: 8),
-                                          height: 42,
-                                          width: 42,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(50),
-                                          ),
-                                          child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(50),
-                                            child: imageUrl != "no_image"
-                                                ? Image.network(
-                                                    imageUrl,
-                                                    fit: BoxFit.cover,
-                                                    loadingBuilder: (context,
-                                                        child,
-                                                        loadingProgress) {
-                                                      if (loadingProgress ==
-                                                          null) {
-                                                        return child;
-                                                      }
-                                                      return Container(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .all(12),
-                                                        color: Colors.grey[50],
-                                                        child: Center(
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                            strokeWidth: 2,
-                                                            color: Colors
-                                                                .grey[300],
-                                                          ),
+                                    notif['type'] == "system"
+                                        ? Container(
+                                            margin:
+                                                const EdgeInsets.only(left: 8),
+                                            height: 42,
+                                            width: 42,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(50),
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(50),
+                                              child: Image.asset(
+                                                'assets/images/tranquil.png',
+                                                fit: BoxFit.cover,
+                                                color: const Color(0xFFADD8E6)
+                                                    .withOpacity(0.5),
+                                                colorBlendMode:
+                                                    BlendMode.overlay,
+                                              ),
+                                            ),
+                                          )
+                                        : Consumer<UserDetailsProvider>(
+                                            builder: (context,
+                                                userDetailsProvider, child) {
+                                              String imageUrl =
+                                                  notif['profileImage'];
+                                              return Container(
+                                                margin: const EdgeInsets.only(
+                                                    left: 8),
+                                                height: 42,
+                                                width: 42,
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(50),
+                                                ),
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(50),
+                                                  child: imageUrl != "no_image"
+                                                      ? Image.network(
+                                                          imageUrl,
+                                                          fit: BoxFit.cover,
+                                                          loadingBuilder: (context,
+                                                              child,
+                                                              loadingProgress) {
+                                                            if (loadingProgress ==
+                                                                null) {
+                                                              return child;
+                                                            }
+                                                            return Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .all(12),
+                                                              color: Colors
+                                                                  .grey[50],
+                                                              child: Center(
+                                                                child:
+                                                                    CircularProgressIndicator(
+                                                                  strokeWidth:
+                                                                      2,
+                                                                  color: Colors
+                                                                          .grey[
+                                                                      300],
+                                                                ),
+                                                              ),
+                                                            );
+                                                          },
+                                                          errorBuilder:
+                                                              (context, error,
+                                                                  stackTrace) {
+                                                            return Image.asset(
+                                                              'assets/images/user.jpg',
+                                                              fit: BoxFit.cover,
+                                                              color: const Color(
+                                                                      0xFFADD8E6)
+                                                                  .withOpacity(
+                                                                      0.5),
+                                                              colorBlendMode:
+                                                                  BlendMode
+                                                                      .overlay,
+                                                            );
+                                                          },
+                                                        )
+                                                      : Image.asset(
+                                                          'assets/images/user.jpg',
+                                                          fit: BoxFit.cover,
+                                                          color: const Color(
+                                                                  0xFFADD8E6)
+                                                              .withOpacity(0.5),
+                                                          colorBlendMode:
+                                                              BlendMode.overlay,
                                                         ),
-                                                      );
-                                                    },
-                                                    errorBuilder: (context,
-                                                        error, stackTrace) {
-                                                      return Image.asset(
-                                                        'assets/images/user.jpg',
-                                                        fit: BoxFit.cover,
-                                                        color: const Color(
-                                                                0xFFADD8E6)
-                                                            .withOpacity(0.5),
-                                                        colorBlendMode:
-                                                            BlendMode.overlay,
-                                                      );
-                                                    },
-                                                  )
-                                                : Image.asset(
-                                                    'assets/images/user.jpg',
-                                                    fit: BoxFit.cover,
-                                                    color:
-                                                        const Color(0xFFADD8E6)
-                                                            .withOpacity(0.5),
-                                                    colorBlendMode:
-                                                        BlendMode.overlay,
-                                                  ),
+                                                ),
+                                              );
+                                            },
                                           ),
-                                        );
-                                      },
-                                    ),
                                     if (!notif["isRead"])
                                       Transform.translate(
                                         offset: const Offset(-18, 16),
@@ -284,7 +314,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                       // username and notification details
                                       Text.rich(
                                         TextSpan(
-                                          text: notif["username"],
+                                          text: notif["type"] == "system"
+                                              ? "System"
+                                              : notif["username"],
                                           style: GoogleFonts.inter(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w700,
@@ -300,7 +332,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                             ),
                                           ],
                                         ),
-                                        maxLines: 2,
+                                        maxLines: 3,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 4),
@@ -601,6 +633,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   String getNotificationDetails(Map<String, dynamic> notif) {
     switch (notif["type"]) {
+      case "system":
+        return " ${notif["content"]}";
       case "friend_request":
         return " sent a friend request.";
       case "friend_request_update":

@@ -36,6 +36,7 @@ class ActivityService {
 
       int totalSteps = data['totalStepsTaken'] ?? 0;
       double totalDistance = (data['totalDistance'] as num?)?.toDouble() ?? 0.0;
+      int totalStreak = data['streak'] ?? 0;
 
       // calculate the average steps per day
       int avgStepsPerDay =
@@ -45,10 +46,47 @@ class ActivityService {
         'totalSteps': totalSteps,
         'avgStepsPerDay': avgStepsPerDay,
         'totalDistance': totalDistance,
+        'totalStreak': totalStreak,
       };
     } catch (e) {
       throw Exception('Failed to fetch weekly activity summary');
     }
+  }
+
+  Future<void> updateStreak(String userId) async {
+    try {
+      final userDocRef = firestore.collection("weekly_activity").doc(userId);
+
+      final userDoc = await userDocRef.get();
+      int newStreak = 1;
+      final today = DateTime.now();
+
+      if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>;
+        final lastActivityDate = data['lastActivityDate']?.toDate();
+
+        // check if the last activity was yesterday
+        if (lastActivityDate != null &&
+            isSameDay(
+                lastActivityDate, today.subtract(const Duration(days: 1)))) {
+          newStreak = (data['streak'] ?? 0) + 1;
+        }
+      }
+
+      // update the streak in database
+      await userDocRef.update({
+        'streak': newStreak,
+        'lastActivityDate': today,
+      });
+    } catch (e) {
+      throw Exception('Failed to update streak: ${e.toString()}');
+    }
+  }
+
+  bool isSameDay(DateTime date1, DateTime date2) {
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   Future<void> createWeeklyGoalForNewUser(
@@ -251,6 +289,9 @@ class ActivityService {
       await firestore.collection('users').doc(userId).update({
         "steps": FieldValue.increment(numSteps),
       });
+
+      // update user's streak
+      await updateStreak(userId);
     } catch (e) {
       throw Exception('Failed to create activity: ${e.toString()}');
     }

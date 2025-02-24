@@ -39,16 +39,19 @@ class NotificationsService {
         DateTime createdAt = (data['createdAt'] as Timestamp).toDate();
         String elapsedTime = getElapsedTime(createdAt);
 
-        DocumentSnapshot userDoc =
-            await firestore.collection("users").doc(data["senderId"]).get();
-        Map<String, dynamic> userData = userDoc.data() as Map<String, dynamic>;
+        Map<String, dynamic>? userData;
+        if (data["type"] != "system") {
+          DocumentSnapshot userDoc =
+              await firestore.collection("users").doc(data["senderId"]).get();
+          userData = userDoc.data() as Map<String, dynamic>;
+        }
 
         if (data["type"] == "system") {
           notifList.add({
             "notifId": notifDoc.id,
             "type": data["type"],
-            "image": data["image"],
             "content": data["content"],
+            "time": elapsedTime,
             "isRead": data["isRead"] ?? false,
           });
         } else {
@@ -66,7 +69,7 @@ class NotificationsService {
             "type": data["type"],
             "receiverId": receiverId,
             "senderId": data["senderId"],
-            "username": userData["username"],
+            "username": userData!["username"],
             "profileImage": userData.containsKey("profileImage")
                 ? userData['profileImage']
                 : "no_image",
@@ -156,6 +159,20 @@ class NotificationsService {
       "location": details['location'],
       "message": details['message'],
     };
+  }
+
+  Future<void> createSystemNotif(String receiverId, String content) async {
+    try {
+      await firestore.collection('notifications').add({
+        'type': 'system',
+        'content': content,
+        'receiverId': receiverId,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      throw Exception('Failed to create system notification: ${e.toString()}');
+    }
   }
 
   Future<void> createFriendRequestNotif(

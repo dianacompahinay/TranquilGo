@@ -58,8 +58,8 @@ class NotificationsProvider with ChangeNotifier {
             newNotification = {
               "notifId": change.doc.id,
               "type": data["type"],
-              "image": data["image"],
               "content": data["content"],
+              "time": elapsedTime,
               "isRead": data["isRead"] ?? false,
             };
           } else {
