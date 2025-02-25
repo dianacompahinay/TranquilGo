@@ -64,8 +64,8 @@ class AuthService {
       users.createFriendsDocument(userId, username);
 
       NotificationsService notif = NotificationsService();
-      notif.createSystemNotif(
-          userId, "Welcome! 💪 Let's get moving and crush your goals!");
+      notif.createSystemNotif(userId,
+          "👋 Welcome to the app! Let's take the first step toward a healthier, more active you!");
       // ActivityService weeklyActivity = ActivityService();
       // weeklyActivity.createWeeklyActivityForNewUser(userId);
 

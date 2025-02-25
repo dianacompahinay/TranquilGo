@@ -7,6 +7,7 @@ import 'providers/UserProvider.dart';
 import 'providers/NotifProvider.dart';
 import 'providers/MindfulnessProvider.dart';
 import 'package:my_app/providers/ActivityProvider.dart';
+import 'package:my_app/providers/TrackerProvider.dart';
 
 import 'screens/Auth/LandingPage.dart';
 import 'screens/Auth/LoginPage.dart';
@@ -42,6 +43,7 @@ void main() async {
         ChangeNotifierProvider(create: ((context) => NotificationsProvider())),
         ChangeNotifierProvider(create: ((context) => MindfulnessProvider())),
         ChangeNotifierProvider(create: ((context) => ActivityProvider())),
+        ChangeNotifierProvider(create: ((context) => TrackerProvider())),
       ],
       child: const MainApp(),
     ),

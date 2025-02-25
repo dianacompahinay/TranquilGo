@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:my_app/components/TrackerActionButtons.dart';
 import 'package:my_app/components/TrackerConfirmationDialog.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:my_app/components/MapScreen.dart';
+
+import 'dart:async';
+import 'package:provider/provider.dart';
+import 'package:my_app/providers/TrackerProvider.dart';
 
 class WalkingTracker extends StatefulWidget {
   const WalkingTracker({super.key});
@@ -23,8 +28,64 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   double progress = 0.675;
   int targetSteps = 1000;
 
+  int timeDuration = 0; // duration in seconds
+  String displayTime = '0:00:00';
+  Timer? locationTimer;
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final locationProvider =
+        Provider.of<TrackerProvider>(context, listen: false);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        locationProvider.fetchCurrentLocation();
+      }
+    });
+
+    // schedule the timer after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      locationTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted && locationProvider.currentLocation == null) {
+          setState(() {
+            showMap = false;
+          });
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    locationTimer?.cancel();
+    super.dispose();
+  }
+
+  void startTimer() {
+    timer?.cancel(); // ensure no duplicate timers
+    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        timeDuration++;
+        displayTime = formatDuration(timeDuration);
+      });
+    });
+  }
+
+  String formatDuration(int seconds) {
+    int hours = seconds ~/ 3600;
+    int minutes = (seconds % 3600) ~/ 60;
+    int secs = seconds % 60;
+
+    return "${hours.toString()}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}";
+  }
+
   @override
   Widget build(BuildContext context) {
+    final locationProvider = Provider.of<TrackerProvider>(context);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -54,6 +115,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                 context: context,
                 type: "back",
               );
+              locationProvider.disposeService();
             },
           ),
         ),
@@ -86,9 +148,15 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                             ),
                           ),
                         ),
-                        child: Image.asset(
-                          'assets/images/temp-map.png',
-                          fit: BoxFit.cover,
+                        // child: Image.asset(
+                        //   'assets/images/temp-map.png',
+                        //   fit: BoxFit.cover,
+                        // ),
+                        child: MapScreen(
+                          locationProvider: Provider.of<TrackerProvider>(
+                            context,
+                            listen: false,
+                          ),
                         ),
                       ),
                       Positioned(
@@ -140,10 +208,9 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                             buildMetricsCard("Steps", "675", "large"),
                             buildMetricsCard(
                                 "Distance covered", "0.5", "large"),
-                            buildMetricsCard("Time", "0:08:12", "large"),
+                            buildMetricsCard("Time", displayTime, "large"),
                             Container(
                               padding: const EdgeInsets.all(2),
-                              width: 150,
                               child: ElevatedButton(
                                 onPressed: () async {
                                   // open camera to take a picture
@@ -158,8 +225,9 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
+                                  elevation: 0.3,
                                   backgroundColor: const Color(0xFFF8F8F8),
-                                  minimumSize: const Size(60, 38),
+                                  minimumSize: const Size(double.infinity, 40),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(5),
                                   ),
@@ -199,12 +267,12 @@ class _WalkingTrackerState extends State<WalkingTracker> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                showMap
+                showMap && locationProvider.currentLocation != null
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           buildMetricsCard("Steps", "675", "small"),
-                          buildMetricsCard("Time", "0:08:12", "small"),
+                          buildMetricsCard("Time", displayTime, "small"),
                           buildMetricsCard("Distance covered", "0.5", "small"),
                         ],
                       )
@@ -374,27 +442,37 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   }
 
   Widget getActionButtons() {
+    final locationProvider = Provider.of<TrackerProvider>(context);
+
     return ActionButtons(
       buttonState: buttonState,
       onStart: () {
+        timeDuration = 0;
+        startTimer();
         setState(() {
           buttonState = 'pause';
         });
       },
       onPause: () {
+        timer?.cancel();
         setState(() {
           buttonState = 'resume';
         });
       },
       onResume: () {
+        startTimer();
         setState(() {
           buttonState = 'pause';
         });
       },
-      onFinish: () => ConfirmationDialog.show(
-        context: context,
-        type: "zero_steps",
-      ),
+      onFinish: () {
+        timer?.cancel();
+        ConfirmationDialog.show(
+          context: context,
+          type: "zero_steps",
+        );
+        locationProvider.disposeService();
+      },
       onSwitchMap: () {
         setState(() {
           showMap = !showMap;
@@ -402,6 +480,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
       },
       progress: progress,
       capturedImages: capturedImages,
+      timeDuration: timeDuration,
     );
   }
 

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/screens/Walking/ActivityForm.dart';
@@ -13,6 +12,7 @@ class ActionButtons extends StatefulWidget {
   final VoidCallback onSwitchMap;
   final double progress;
   final List<XFile>? capturedImages;
+  final int timeDuration;
 
   const ActionButtons({
     required this.buttonState,
@@ -23,6 +23,7 @@ class ActionButtons extends StatefulWidget {
     required this.onSwitchMap,
     required this.progress,
     required this.capturedImages,
+    required this.timeDuration,
     Key? key,
   }) : super(key: key);
 
@@ -34,8 +35,8 @@ class _ActionButtonsState extends State<ActionButtons> {
   late String buttonState = widget.buttonState;
 
   Timestamp? startTime;
-  int timeDuration = 0; // duration in seconds
-  Timer? timer;
+
+  // Timer? timer;
 
   int steps = 675;
   double distance = 0.5;
@@ -47,22 +48,11 @@ class _ActionButtonsState extends State<ActionButtons> {
     buttonState = widget.buttonState;
   }
 
-  void startTimer() {
-    timer?.cancel(); // ensure no duplicate timers
-    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        timeDuration++;
-      });
-    });
-  }
-
   void handleStart() {
     setState(() {
       buttonState = 'pause';
       startTime = Timestamp.now();
-      timeDuration = 0;
     });
-    startTimer();
     widget.onStart();
   }
 
@@ -70,7 +60,6 @@ class _ActionButtonsState extends State<ActionButtons> {
     setState(() {
       buttonState = 'resume';
     });
-    timer?.cancel();
     widget.onPause();
   }
 
@@ -78,7 +67,6 @@ class _ActionButtonsState extends State<ActionButtons> {
     setState(() {
       buttonState = 'pause';
     });
-    startTimer();
     widget.onResume();
   }
 
@@ -86,7 +74,6 @@ class _ActionButtonsState extends State<ActionButtons> {
     setState(() {
       buttonState = 'start';
     });
-    timer?.cancel();
     widget.onFinish();
   }
 
@@ -184,7 +171,7 @@ class _ActionButtonsState extends State<ActionButtons> {
                         builder: (context) => ActivityForm(
                           startTime: startTime!,
                           endTime: Timestamp.now(),
-                          duration: timeDuration,
+                          duration: widget.timeDuration,
                           steps: steps,
                           distance: distance,
                           avgSpeed: avgSpeed,
