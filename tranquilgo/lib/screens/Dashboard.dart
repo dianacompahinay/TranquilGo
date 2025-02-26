@@ -152,7 +152,7 @@ class DashboardState extends State<Dashboard> {
                         const Color(0xFFE7F3EC)),
                     buildStatsCard(
                         'Total Distance',
-                        '${activityProvider.weeklyActivitySummary["totalDistance"]}',
+                        '${activityProvider.weeklyActivitySummary["totalDistance"].toStringAsFixed(2)}',
                         'distance',
                         const Color(0xFFF5F5F5)),
                     buildStatsCard(

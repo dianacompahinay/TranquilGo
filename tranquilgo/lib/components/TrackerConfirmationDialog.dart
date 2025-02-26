@@ -5,6 +5,7 @@ class ConfirmationDialog {
   static void show({
     required BuildContext context,
     required String type,
+    required VoidCallback onCancel,
   }) {
     showDialog(
       context: context,
@@ -66,7 +67,10 @@ class ConfirmationDialog {
                   ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).pop(); // close dialog
-                      if (type == "back") Navigator.of(context).pop();
+                      if (type == "back") {
+                        onCancel;
+                        Navigator.of(context).pop();
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF55AC9F),

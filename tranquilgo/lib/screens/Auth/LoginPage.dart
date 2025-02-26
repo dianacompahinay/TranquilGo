@@ -350,8 +350,12 @@ class _LoginPageState extends State<LoginPage> {
             Provider.of<UserDetailsProvider>(context, listen: false);
         final notifProvider =
             Provider.of<NotificationsProvider>(context, listen: false);
+        final activityProvider =
+            Provider.of<ActivityProvider>(context, listen: false);
+
         userProvider.clearUserData();
         notifProvider.clearUserData();
+        activityProvider.setFetchToFalse();
 
         final result = await authProvider.login(username, password);
 

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:math';
 
+import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/providers/MindfulnessProvider.dart';
@@ -36,7 +37,6 @@ class ActivityForm extends StatefulWidget {
 class _ActivityFormState extends State<ActivityForm> {
   final userId = FirebaseAuth.instance.currentUser!.uid;
   MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
-  ActivityProvider activityProvider = ActivityProvider();
 
   late int steps = widget.steps;
   late int duration = widget.duration;
@@ -70,6 +70,9 @@ class _ActivityFormState extends State<ActivityForm> {
   }
 
   void onSave() async {
+    final activityProvider =
+        Provider.of<ActivityProvider>(context, listen: false);
+
     setState(() {
       isButtonClicked = true;
     });
@@ -190,7 +193,8 @@ class _ActivityFormState extends State<ActivityForm> {
                             const SizedBox(width: 10),
                             infoCard("Time", formatDuration(duration)),
                             const SizedBox(width: 10),
-                            infoCard("Distance", roundOffDouble(distance, 2)),
+                            infoCard(
+                                "Distance", roundOffDouble(distance / 1000, 2)),
                           ],
                         ),
                         const SizedBox(height: 20),

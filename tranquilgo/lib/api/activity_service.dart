@@ -20,6 +20,25 @@ class ActivityService {
     }
   }
 
+  Future<int> getTargetSteps(String userId) async {
+    try {
+      DocumentSnapshot weeklyGoalDoc =
+          await firestore.collection('weekly_goal').doc(userId).get();
+
+      // check if the document exists and has the 'steps' field
+      if (weeklyGoalDoc.exists && weeklyGoalDoc.data() != null) {
+        Map<String, dynamic> data =
+            weeklyGoalDoc.data() as Map<String, dynamic>;
+
+        return data['targetSteps'] ?? 0; // return steps or 0 if not found
+      } else {
+        return 0; // if document doesn't exist
+      }
+    } catch (e) {
+      throw Exception("Failed to fetch user target steps: $e");
+    }
+  }
+
   Future<Map<String, dynamic>> getWeeklyActivitySummary(String userId) async {
     try {
       DateTime now = DateTime.now();
@@ -70,6 +89,8 @@ class ActivityService {
             isSameDay(
                 lastActivityDate, today.subtract(const Duration(days: 1)))) {
           newStreak = (data['streak'] ?? 0) + 1;
+        } else {
+          newStreak = data['streak'] ?? 0;
         }
       }
 

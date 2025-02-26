@@ -14,6 +14,7 @@ class ActivityProvider with ChangeNotifier {
     'totalDistance': 0,
   };
   bool _isLoading = true;
+  bool isOverviewFetch = false;
 
   int get steps => _steps;
   Map<String, dynamic> get weeklyActivitySummary => _weeklyActivitySummary;
@@ -27,11 +28,18 @@ class ActivityProvider with ChangeNotifier {
         .snapshots()
         .listen((snapshot) async {
       // needs to delay for few seconds to wait for creating activity
-      await Future.delayed(const Duration(seconds: 3));
+      await Future.delayed(const Duration(seconds: 2));
 
-      await getTotalSteps(userId);
-      await fetchtWeeklyActivityOverview(userId);
+      if (!isOverviewFetch) {
+        isOverviewFetch = true;
+        await getTotalSteps(userId);
+        await fetchtWeeklyActivityOverview(userId);
+      }
     });
+  }
+
+  void setFetchToFalse() {
+    isOverviewFetch = false;
   }
 
   Future<void> getTotalSteps(String userId) async {
@@ -47,6 +55,23 @@ class ActivityProvider with ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<int> getTargetSteps(String userId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      int targetSteps = await activityService.getTargetSteps(userId);
+      return targetSteps;
+    } catch (e) {
+      print("Error fetching user's target steps: $e");
+    }
+
+    _isLoading = false;
+    notifyListeners();
+
+    return 0; // return 0 if error occurs
   }
 
   Future<void> fetchtWeeklyActivityOverview(String userId) async {
@@ -124,7 +149,7 @@ class ActivityProvider with ChangeNotifier {
     double avgSpeed,
     int seScore,
   ) async {
-    notifyListeners();
+    isOverviewFetch = false;
 
     try {
       await activityService.createActivity(userId, date, startTime, endTime,

@@ -1,10 +1,20 @@
 import 'dart:async';
+import 'dart:math';
+import 'package:googleapis/fitness/v1.dart';
+import 'package:googleapis_auth/auth_io.dart';
 import 'package:location/location.dart';
 import 'package:permission_handler/permission_handler.dart' as perm;
+import 'package:sensors_plus/sensors_plus.dart';
 
 class TrackerService {
-  final Location _location = Location();
-  StreamSubscription<LocationData>? _locationSubscription;
+  final Location location = Location();
+  StreamSubscription<LocationData>? locationSubscription;
+  StreamSubscription<AccelerometerEvent>? accelerometerSubscription;
+
+  int stepCount = 0;
+  double distance = 0.0;
+  double previousAcceleration = 0.0;
+  final double stepThreshold = 1.2;
 
   Future<bool> requestLocationPermission() async {
     var status = await perm.Permission.location.request();
@@ -17,24 +27,90 @@ class TrackerService {
       return null; // permission denied
     }
 
-    bool serviceEnabled = await _location.serviceEnabled();
+    bool serviceEnabled = await location.serviceEnabled();
     if (!serviceEnabled) {
-      serviceEnabled = await _location.requestService();
+      serviceEnabled = await location.requestService();
       if (!serviceEnabled) {
         return null; // GPS service not enabled
       }
     }
 
-    return await _location.getLocation();
+    return await location.getLocation();
   }
 
   void startLocationUpdates(Function(LocationData) onLocationUpdate) {
-    _locationSubscription =
-        _location.onLocationChanged.listen(onLocationUpdate);
+    locationSubscription = location.onLocationChanged.listen(onLocationUpdate);
+  }
+
+  // fetches step count and distance from Google Fit API
+  Future<Map<String, dynamic>> fetchStepAndDistance() async {
+    try {
+      final client = clientViaApiKey("AIzaSyDnZq2v-CpHrfkTzA0N-Iu4rfuDw0GUIGw");
+      final fitnessApi = FitnessApi(client);
+
+      final DateTime now = DateTime.now();
+      final DateTime startTime = now.subtract(const Duration(days: 1));
+
+      final AggregateResponse response =
+          await fitnessApi.users.dataset.aggregate(
+        AggregateRequest(
+          aggregateBy: [
+            AggregateBy(dataTypeName: "com.google.step_count.delta"),
+            AggregateBy(dataTypeName: "com.google.distance.delta"),
+          ],
+          bucketByTime: BucketByTime(durationMillis: "86400000"), // 1 day
+          startTimeMillis: startTime.millisecondsSinceEpoch.toString(),
+          endTimeMillis: now.millisecondsSinceEpoch.toString(),
+        ),
+        "me",
+      );
+
+      int stepCount = 0;
+      double totalDistance = 0.0;
+
+      for (var bucket in response.bucket!) {
+        for (var dataset in bucket.dataset!) {
+          for (var point in dataset.point!) {
+            for (var value in point.value!) {
+              if (point.dataTypeName == "com.google.step_count.delta") {
+                stepCount += value.intVal ?? 0;
+              } else if (point.dataTypeName == "com.google.distance.delta") {
+                totalDistance += value.fpVal ?? 0.0;
+              }
+            }
+          }
+        }
+      }
+
+      return {"steps": stepCount, "distance": totalDistance};
+    } catch (e) {
+      print("Google Fit API unavailable, switching to fallback.");
+      startFallbackStepTracking();
+      return {"steps": stepCount, "distance": distance}; // use fallback values
+    }
+  }
+
+  // starts fallback step tracking using accelerometer data
+  void startFallbackStepTracking() {
+    accelerometerSubscription?.cancel(); // ensure only one listener
+    accelerometerSubscription =
+        accelerometerEvents.listen((AccelerometerEvent event) {
+      double acceleration =
+          sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+
+      if ((acceleration - previousAcceleration).abs() > stepThreshold) {
+        stepCount++;
+        distance = stepCount * 0.8; // approximate stride length (0.8m per step)
+      }
+
+      previousAcceleration = acceleration;
+    });
   }
 
   void disposeService() {
-    _locationSubscription?.cancel(); // cancel the subscription
-    _locationSubscription = null;
+    locationSubscription?.cancel();
+    locationSubscription = null;
+    accelerometerSubscription?.cancel();
+    accelerometerSubscription = null;
   }
 }

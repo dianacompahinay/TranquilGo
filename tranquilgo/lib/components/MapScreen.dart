@@ -3,13 +3,13 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:my_app/providers/TrackerProvider.dart';
 
 class MapScreen extends StatelessWidget {
-  final TrackerProvider locationProvider;
+  final TrackerProvider trackerProvider;
 
-  const MapScreen({super.key, required this.locationProvider});
+  const MapScreen({super.key, required this.trackerProvider});
 
   @override
   Widget build(BuildContext context) {
-    if (locationProvider.currentLocation == null) {
+    if (trackerProvider.currentLocation == null) {
       return Container(
         color: Colors.black87,
         child: const Center(
@@ -23,7 +23,7 @@ class MapScreen extends StatelessWidget {
       );
     }
 
-    final currentLocation = locationProvider.currentLocation!;
+    final currentLocation = trackerProvider.currentLocation!;
 
     return GoogleMap(
       initialCameraPosition: CameraPosition(

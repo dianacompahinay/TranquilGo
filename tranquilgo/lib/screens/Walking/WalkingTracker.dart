@@ -7,49 +7,48 @@ import 'package:my_app/components/MapScreen.dart';
 
 import 'dart:async';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/providers/TrackerProvider.dart';
 
 class WalkingTracker extends StatefulWidget {
   const WalkingTracker({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _WalkingTrackerState createState() => _WalkingTrackerState();
 }
 
 class _WalkingTrackerState extends State<WalkingTracker> {
+  final userId = FirebaseAuth.instance.currentUser!.uid;
   final List<XFile> capturedImages = []; // list to store captured images
   final ImagePicker picker = ImagePicker();
-
   XFile? capturedImage;
-
-  String buttonState = 'start';
-  bool showMap = true;
-  double progress = 0.675;
-  int targetSteps = 1000;
 
   int timeDuration = 0; // duration in seconds
   String displayTime = '0:00:00';
   Timer? locationTimer;
   Timer? timer;
 
+  String buttonState = 'start';
+  bool showMap = true;
+
   @override
   void initState() {
     super.initState();
 
-    final locationProvider =
+    final trackerProvider =
         Provider.of<TrackerProvider>(context, listen: false);
+    trackerProvider.resetValues(userId);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        locationProvider.fetchCurrentLocation();
+        trackerProvider.fetchCurrentLocation();
       }
     });
 
     // schedule the timer after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       locationTimer = Timer(const Duration(seconds: 3), () {
-        if (mounted && locationProvider.currentLocation == null) {
+        if (mounted && trackerProvider.currentLocation == null) {
           setState(() {
             showMap = false;
           });
@@ -84,7 +83,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
 
   @override
   Widget build(BuildContext context) {
-    final locationProvider = Provider.of<TrackerProvider>(context);
+    final trackerProvider = Provider.of<TrackerProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -111,11 +110,19 @@ class _WalkingTrackerState extends State<WalkingTracker> {
               ),
             ),
             onPressed: () {
-              ConfirmationDialog.show(
-                context: context,
-                type: "back",
-              );
-              locationProvider.disposeService();
+              if (trackerProvider.progress == 0) {
+                Navigator.pop(context);
+              } else {
+                ConfirmationDialog.show(
+                  context: context,
+                  type: "back",
+                  onCancel: () {
+                    timer?.cancel;
+                    trackerProvider.resetValues(userId);
+                    trackerProvider.disposeService();
+                  },
+                );
+              }
             },
           ),
         ),
@@ -153,7 +160,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                         //   fit: BoxFit.cover,
                         // ),
                         child: MapScreen(
-                          locationProvider: Provider.of<TrackerProvider>(
+                          trackerProvider: Provider.of<TrackerProvider>(
                             context,
                             listen: false,
                           ),
@@ -205,9 +212,13 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                         padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
                         child: Column(
                           children: [
-                            buildMetricsCard("Steps", "675", "large"),
+                            buildMetricsCard("Steps",
+                                "${trackerProvider.stepCount}", "large"),
                             buildMetricsCard(
-                                "Distance covered", "0.5", "large"),
+                                "Distance covered",
+                                (trackerProvider.distance / 1000)
+                                    .toStringAsFixed(3),
+                                "large"),
                             buildMetricsCard("Time", displayTime, "large"),
                             Container(
                               padding: const EdgeInsets.all(2),
@@ -267,13 +278,18 @@ class _WalkingTrackerState extends State<WalkingTracker> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                showMap && locationProvider.currentLocation != null
+                showMap && trackerProvider.currentLocation != null
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          buildMetricsCard("Steps", "675", "small"),
+                          buildMetricsCard(
+                              "Steps", "${trackerProvider.stepCount}", "small"),
                           buildMetricsCard("Time", displayTime, "small"),
-                          buildMetricsCard("Distance covered", "0.5", "small"),
+                          buildMetricsCard(
+                              "Distance covered",
+                              (trackerProvider.distance / 1000)
+                                  .toStringAsFixed(2),
+                              "small"),
                         ],
                       )
                     : const SizedBox(),
@@ -308,7 +324,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                "$targetSteps",
+                                "${trackerProvider.targetSteps}",
                                 style: GoogleFonts.manrope(
                                   textStyle: const TextStyle(
                                     color: Color(0xFF484848),
@@ -334,20 +350,21 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                               ),
                             ],
                           ),
-                          Text(
-                            "${(progress * 100).toStringAsFixed(1)}%",
-                            style: GoogleFonts.manrope(
-                              textStyle: const TextStyle(
-                                color: Color(0xFF444444),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 20,
+                          if (trackerProvider.progress != null)
+                            Text(
+                              "${(trackerProvider.progress! * 100).toStringAsFixed(1)}%",
+                              style: GoogleFonts.manrope(
+                                textStyle: const TextStyle(
+                                  color: Color(0xFF444444),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 20,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                       LinearProgressIndicator(
-                        value: progress,
+                        value: trackerProvider.progress ?? 0,
                         minHeight: 8,
                         borderRadius:
                             const BorderRadius.all(Radius.circular(5)),
@@ -442,13 +459,14 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   }
 
   Widget getActionButtons() {
-    final locationProvider = Provider.of<TrackerProvider>(context);
+    final trackerProvider = Provider.of<TrackerProvider>(context);
 
     return ActionButtons(
       buttonState: buttonState,
       onStart: () {
         timeDuration = 0;
         startTimer();
+        trackerProvider.fetchStepAndDistance();
         setState(() {
           buttonState = 'pause';
         });
@@ -470,16 +488,18 @@ class _WalkingTrackerState extends State<WalkingTracker> {
         ConfirmationDialog.show(
           context: context,
           type: "zero_steps",
+          onCancel: () {},
         );
-        locationProvider.disposeService();
       },
       onSwitchMap: () {
         setState(() {
           showMap = !showMap;
         });
       },
-      progress: progress,
+      progress: trackerProvider.progress ?? 0,
       capturedImages: capturedImages,
+      steps: trackerProvider.stepCount,
+      distance: trackerProvider.distance,
       timeDuration: timeDuration,
     );
   }

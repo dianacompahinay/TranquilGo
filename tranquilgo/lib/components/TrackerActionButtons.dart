@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/screens/Walking/ActivityForm.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/TrackerProvider.dart';
 
 class ActionButtons extends StatefulWidget {
   final String buttonState;
@@ -12,6 +15,8 @@ class ActionButtons extends StatefulWidget {
   final VoidCallback onSwitchMap;
   final double progress;
   final List<XFile>? capturedImages;
+  final int steps;
+  final double distance;
   final int timeDuration;
 
   const ActionButtons({
@@ -23,6 +28,8 @@ class ActionButtons extends StatefulWidget {
     required this.onSwitchMap,
     required this.progress,
     required this.capturedImages,
+    required this.steps,
+    required this.distance,
     required this.timeDuration,
     Key? key,
   }) : super(key: key);
@@ -38,8 +45,6 @@ class _ActionButtonsState extends State<ActionButtons> {
 
   // Timer? timer;
 
-  int steps = 675;
-  double distance = 0.5;
   late double avgSpeed = 5.2;
 
   @override
@@ -71,9 +76,6 @@ class _ActionButtonsState extends State<ActionButtons> {
   }
 
   void handleFinish() {
-    setState(() {
-      buttonState = 'start';
-    });
     widget.onFinish();
   }
 
@@ -139,6 +141,10 @@ class _ActionButtonsState extends State<ActionButtons> {
   }
 
   Widget buildResumeButton(BuildContext context) {
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final trackerProvider =
+        Provider.of<TrackerProvider>(context, listen: false);
+
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -163,7 +169,7 @@ class _ActionButtonsState extends State<ActionButtons> {
                 backgroundColor: const Color(0xFF71B9B0),
                 onPressed: () {
                   if (widget.progress == 0) {
-                    handleFinish;
+                    handleFinish();
                   } else {
                     Navigator.push(
                       context,
@@ -172,13 +178,15 @@ class _ActionButtonsState extends State<ActionButtons> {
                           startTime: startTime!,
                           endTime: Timestamp.now(),
                           duration: widget.timeDuration,
-                          steps: steps,
-                          distance: distance,
+                          steps: widget.steps,
+                          distance: widget.distance,
                           avgSpeed: avgSpeed,
                           capturedImages: widget.capturedImages ?? [],
                         ),
                       ),
                     );
+                    trackerProvider.resetValues(userId);
+                    trackerProvider.disposeService();
                   }
                 },
               ),
