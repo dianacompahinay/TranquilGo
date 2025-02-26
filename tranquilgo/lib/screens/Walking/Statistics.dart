@@ -4,6 +4,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:my_app/components/ProgressBar.dart';
 import 'package:intl/intl.dart';
 
+import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/providers/ActivityProvider.dart';
+
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
 
@@ -12,14 +16,20 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
-  int weeklyDailyGoal = 10000;
-  int todaySteps = 7500;
-  double todayDistance = 5.7;
-  String todayDuration = '1h 9m';
-  double progress = 0.75;
-
   String currentTab = 'Weekly';
   DateTime startDate = DateTime(2025, 1, 6);
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final userId = FirebaseAuth.instance.currentUser!.uid;
+      final activityProvider =
+          Provider.of<ActivityProvider>(context, listen: false);
+
+      activityProvider.listenToActivityStatsChanges(userId);
+    });
+  }
 
   // dummy data
   final List<int> weeklyData = [15000, 12000, 9000, 10000, 13000, 11000, 8000];
@@ -30,6 +40,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final activityProvider = Provider.of<ActivityProvider>(context);
     final List<String> xLabels = getXLabels();
     final List<int> data = getData();
 
@@ -78,33 +89,44 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         ),
                       ],
                     ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          // today's number of steps
-                          NumberFormat.decimalPattern().format(weeklyDailyGoal),
-                          style: GoogleFonts.manrope(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFFFFFFF),
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        Transform.translate(
-                          offset: const Offset(0, -2),
-                          child: Text(
-                            // today's number of steps
-                            ' steps',
-                            style: GoogleFonts.manrope(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFFFFFFF),
+                    activityProvider.isLoading
+                        ? Container(
+                            margin: const EdgeInsets.only(top: 10),
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              color: Colors.grey[300],
                             ),
+                          )
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                // today's number of steps
+                                NumberFormat.decimalPattern()
+                                    .format(activityProvider.goalSteps),
+                                style: GoogleFonts.manrope(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFFFFFFF),
+                                ),
+                              ),
+                              const SizedBox(width: 2),
+                              Transform.translate(
+                                offset: const Offset(0, -2),
+                                child: Text(
+                                  // today's number of steps
+                                  ' steps',
+                                  style: GoogleFonts.manrope(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFFFFFFFF),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -115,7 +137,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
               Align(
                 alignment: Alignment.centerRight,
                 child: Text(
-                  '5% higher than previous week',
+                  formatTargetChange(activityProvider.targetChange),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: const Color(0xFF797979),
@@ -143,17 +165,35 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
                       // circular progress
-                      ProgressBar(progress: progress),
+                      activityProvider.isLoading
+                          ? Container(
+                              margin: const EdgeInsets.only(top: 10),
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                color: Colors.grey[300],
+                              ),
+                            )
+                          : ProgressBar(
+                              progress: activityProvider
+                                  .todayActivitySummary["progress"]),
 
                       // total steps, distance, and duration of the current day
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          todayStatsDetails('Total Steps',
-                              NumberFormat.decimalPattern().format(todaySteps)),
                           todayStatsDetails(
-                              'Total Distance', '$todayDistance km'),
-                          todayStatsDetails('Total Duration', todayDuration),
+                              'Total Steps',
+                              NumberFormat.decimalPattern().format(
+                                  activityProvider
+                                      .todayActivitySummary["totalSteps"])),
+                          todayStatsDetails('Total Distance',
+                              '${activityProvider.todayActivitySummary["totalDistance"].toStringAsFixed(3)} km'),
+                          todayStatsDetails(
+                              'Total Duration',
+                              formatTimeDuration(activityProvider
+                                  .todayActivitySummary["totalDuration"])),
                         ],
                       ),
                     ],
@@ -372,6 +412,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Widget todayStatsDetails(label, value) {
+    final activityProvider =
+        Provider.of<ActivityProvider>(context, listen: false);
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,14 +427,24 @@ class _StatisticsPageState extends State<StatisticsPage> {
             color: const Color(0xFF616161),
           ),
         ),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 14,
-            fontWeight: FontWeight.w400,
-            color: const Color(0xFF616161),
-          ),
-        ),
+        activityProvider.isLoading
+            ? Container(
+                margin: const EdgeInsets.only(top: 10),
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: Colors.grey[300],
+                ),
+              )
+            : Text(
+                value,
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF616161),
+                ),
+              ),
         const SizedBox(height: 6),
       ],
     );
@@ -653,6 +706,36 @@ class _StatisticsPageState extends State<StatisticsPage> {
           : '${formattedNumber.toStringAsFixed(1)}k';
     } else {
       return number.toString();
+    }
+  }
+
+  String formatTargetChange(double targetChange) {
+    double percentage = targetChange * 100;
+    String changeType = percentage >= 0 ? "higher" : "lower";
+    percentage = percentage.abs(); // absolute value
+
+    if (percentage == 0) return "Same as previous week";
+
+    // format based on whether it has decimals
+    String formattedPercentage = percentage % 1 == 0
+        ? percentage.toInt().toString() // whole number, means no decimals
+        : percentage.toStringAsFixed(2); // display up to 2 decimal places
+
+    return '$formattedPercentage% $changeType than previous week';
+  }
+
+  String formatTimeDuration(int seconds) {
+    int hours = seconds ~/ 3600;
+    int minutes = (seconds % 3600) ~/ 60;
+
+    if (hours > 0 && minutes > 0) {
+      return '${hours}h ${minutes}m';
+    } else if (hours > 0) {
+      return '${hours}h';
+    } else if (minutes > 0) {
+      return '${minutes}m';
+    } else {
+      return '0m';
     }
   }
 }

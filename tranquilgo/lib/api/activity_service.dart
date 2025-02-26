@@ -39,6 +39,95 @@ class ActivityService {
     }
   }
 
+  Future<double> getTargetStepChange(String userId) async {
+    try {
+      DocumentSnapshot weeklyGoalDoc =
+          await firestore.collection('weekly_goal').doc(userId).get();
+
+      if (!weeklyGoalDoc.exists || weeklyGoalDoc.data() == null) {
+        return 0.0;
+      }
+
+      Map<String, dynamic> data = weeklyGoalDoc.data() as Map<String, dynamic>;
+
+      if (!data.containsKey('weeklyHistory')) {
+        return 0.0; // no history available
+      }
+
+      Map<String, dynamic> weeklyHistory = data['weeklyHistory'];
+
+      if (weeklyHistory.length < 2) {
+        return 0.0; // Not enough data to compare
+      }
+
+      // sort the history keys in descending order
+      List<String> sortedWeeks = weeklyHistory.keys.toList()
+        ..sort((a, b) => b.compareTo(a));
+
+      int currentSteps = weeklyHistory[sortedWeeks[0]] ?? 0;
+      int previousSteps = weeklyHistory[sortedWeeks[1]] ?? 0;
+
+      if (previousSteps == 0) {
+        return 0.0; // avoid division by zero
+      }
+
+      // calculate percentage change
+      double percentageChange =
+          ((currentSteps - previousSteps) / previousSteps).toDouble();
+
+      return percentageChange; // positive means increase, negative means decrease
+    } catch (e) {
+      throw Exception("Failed to fetch step change: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> getTodayActivitySummary(String userId) async {
+    try {
+      // access database
+      DocumentReference weeklyActivityRef =
+          firestore.collection('weekly_activity').doc(userId);
+      CollectionReference activitiesRef =
+          weeklyActivityRef.collection('activities');
+      String todayDate = formatDate(DateTime.now());
+
+      // fetch activities sorted by date (latest first)
+      QuerySnapshot querySnapshot =
+          await activitiesRef.orderBy('date', descending: true).get();
+
+      int totalSteps = 0;
+      double totalDistance = 0.0;
+      int totalDuration = 0;
+
+      // iterate through the records and sum values until the date changes
+      for (var doc in querySnapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+        // stop processing once the date is different from today
+        if (data['date'] != todayDate) break;
+
+        totalSteps += (data['numSteps'] as num).toInt();
+        totalDistance += (data['distanceCovered'] as num).toDouble();
+        totalDuration += (data['timeDuration'] as num).toInt();
+      }
+
+      // fetch the user's target steps
+      int targetSteps = await getTargetSteps(userId);
+
+      // calculate progress
+      double progress =
+          targetSteps > 0 ? (totalSteps / targetSteps).clamp(0.0, 1.0) : 0.0;
+
+      return {
+        'totalSteps': totalSteps,
+        'totalDistance': totalDistance,
+        'progress': progress,
+        'totalDuration': totalDuration,
+      };
+    } catch (e) {
+      throw Exception("Failed to fetch today's activity summary: $e");
+    }
+  }
+
   Future<Map<String, dynamic>> getWeeklyActivitySummary(String userId) async {
     try {
       DateTime now = DateTime.now();
