@@ -128,6 +128,155 @@ class ActivityService {
     }
   }
 
+  Future<List<int>> fetchStepsByDateRange(
+      String userId, String rangeType, DateTime startDate) async {
+    try {
+      // access user's weekly activity document
+      DocumentReference weeklyActivityRef =
+          firestore.collection('weekly_activity').doc(userId);
+      CollectionReference activitiesRef =
+          weeklyActivityRef.collection('activities');
+
+      DateTime endDate;
+      int daysInMonth = DateTime(startDate.year, startDate.month + 1, 0).day;
+
+      // define the end date based on range type
+      if (rangeType == 'Weekly') {
+        endDate = startDate.add(const Duration(days: 6));
+      } else if (rangeType == 'Monthly') {
+        endDate = DateTime(startDate.year, startDate.month, daysInMonth);
+      } else if (rangeType == 'Yearly') {
+        endDate = DateTime(startDate.year, 12, 31);
+      } else {
+        throw Exception("Invalid range type: $rangeType");
+      }
+
+      // convert dates to Firestore format
+      String startDateString = formatDate(startDate);
+      String endDateString = formatDate(endDate);
+
+      // fetch activities within the date range
+      QuerySnapshot querySnapshot = await activitiesRef
+          .where('date', isGreaterThanOrEqualTo: startDateString)
+          .where('date', isLessThanOrEqualTo: endDateString)
+          .orderBy('date', descending: false)
+          .get();
+
+      // initialize data storage
+      Map<String, int> stepsMap = {};
+      List<int> stepsData = [];
+
+      // populate stepsMap with zero values (to make sure missing days are handled)
+      if (rangeType == 'Weekly') {
+        for (int i = 0; i < 7; i++) {
+          stepsMap[formatDate(startDate.add(Duration(days: i)))] = 0;
+        }
+      } else if (rangeType == 'Monthly') {
+        for (int i = 1; i <= daysInMonth; i++) {
+          stepsMap[formatDate(DateTime(startDate.year, startDate.month, i))] =
+              0;
+        }
+      } else if (rangeType == 'Yearly') {
+        for (int i = 1; i <= 12; i++) {
+          stepsMap["${startDate.year}-${i.toString().padLeft(2, '0')}"] = 0;
+        }
+      }
+
+      // sum up steps for each date
+      for (var doc in querySnapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        String activityDate = data['date'];
+        int steps = (data['numSteps'] as num).toInt();
+
+        if (rangeType == 'Yearly') {
+          // group by month (YYYY-MM format)
+          String monthKey = activityDate.substring(0, 7);
+          stepsMap[monthKey] = (stepsMap[monthKey] ?? 0) + steps;
+        } else {
+          // group by exact date
+          stepsMap[activityDate] = (stepsMap[activityDate] ?? 0) + steps;
+        }
+      }
+
+      // convert map values to list
+      stepsData = stepsMap.values.toList();
+
+      return stepsData;
+    } catch (e) {
+      throw Exception("Failed to fetch steps: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> fetchActivityStats(
+      String userId, String rangeType, DateTime startDate) async {
+    try {
+      // access the user's activity collection
+      DocumentReference weeklyActivityRef =
+          firestore.collection('weekly_activity').doc(userId);
+      CollectionReference activitiesRef =
+          weeklyActivityRef.collection('activities');
+
+      DateTime endDate;
+      int daysInMonth = DateTime(startDate.year, startDate.month + 1, 0).day;
+
+      // get end date based on range type
+      if (rangeType == 'Weekly') {
+        endDate = startDate.add(const Duration(days: 6)); // 7-day range
+      } else if (rangeType == 'Monthly') {
+        endDate = DateTime(startDate.year, startDate.month, daysInMonth);
+      } else if (rangeType == 'Yearly') {
+        endDate = DateTime(startDate.year, 12, 31);
+      } else {
+        throw Exception("Invalid range type: $rangeType");
+      }
+
+      // convert dates to firestore format
+      String startDateString = formatDate(startDate);
+      String endDateString = formatDate(endDate);
+
+      // fetch activities within the selected date range
+      QuerySnapshot querySnapshot = await activitiesRef
+          .where('date', isGreaterThanOrEqualTo: startDateString)
+          .where('date', isLessThanOrEqualTo: endDateString)
+          .orderBy('date', descending: false)
+          .get();
+
+      // initialize total values
+      int totalSteps = 0;
+      double totalDistance = 0.0;
+      int totalDuration = 0;
+      double totalSE = 0.0;
+      int seCount = 0;
+
+      // iterate through the records and sum values
+      for (var doc in querySnapshot.docs) {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+
+        totalSteps += (data['numSteps'] as num).toInt();
+        totalDistance += (data['distanceCovered'] as num).toDouble();
+        totalDuration += (data['timeDuration'] as num).toInt();
+
+        if (data.containsKey('seScore')) {
+          totalSE += (data['seScore'] as num).toDouble();
+          seCount++;
+        }
+      }
+
+      // calculate self-efficacy score (average SE)
+      double avgSE = seCount > 0 ? totalSE / seCount : 0.0;
+      String selfEfficacy = avgSE >= 2.5 ? "High" : "Low";
+
+      return {
+        'totalSteps': totalSteps,
+        'totalDistance': totalDistance,
+        'totalDuration': totalDuration,
+        'selfEfficacy': selfEfficacy,
+      };
+    } catch (e) {
+      throw Exception('Failed to fetch activity stats');
+    }
+  }
+
   Future<Map<String, dynamic>> getWeeklyActivitySummary(String userId) async {
     try {
       DateTime now = DateTime.now();

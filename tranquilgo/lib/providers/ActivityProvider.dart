@@ -11,6 +11,17 @@ class ActivityProvider with ChangeNotifier {
   int _goalSteps = 0;
   double _targetChange = 0.0;
 
+  // for stats graph view
+  String rangeType = 'Weekly';
+  DateTime graphStartDate = DateTime.now();
+  List<int> _stepsPerDateRange = [];
+  Map<String, dynamic> _activityStats = {
+    'totalSteps': 0,
+    'totalDistance': 0.0,
+    'totalDuration': 0,
+    'selfEfficacy': "Low",
+  };
+
   Map<String, dynamic> _weeklyActivitySummary = {
     'totalSteps': 0,
     'avgStepsPerDay': 0,
@@ -25,6 +36,7 @@ class ActivityProvider with ChangeNotifier {
   };
 
   bool _isLoading = true;
+  bool _isStatsLoading = true;
   bool _isGraphLoading = true; // separate loading for stats graphs
 
   bool isOverviewFetch = false;
@@ -33,11 +45,14 @@ class ActivityProvider with ChangeNotifier {
   int get steps => _steps;
   int get goalSteps => _goalSteps;
   double get targetChange => _targetChange;
+  List<int> get stepsPerDateRange => _stepsPerDateRange;
 
   Map<String, dynamic> get weeklyActivitySummary => _weeklyActivitySummary;
   Map<String, dynamic> get todayActivitySummary => _todayActivitySummary;
+  Map<String, dynamic> get activityStats => _activityStats;
 
   bool get isLoading => _isLoading;
+  bool get isStatsLoading => _isStatsLoading;
   bool get isGraphLoading => _isGraphLoading;
 
   void listenToActivityChanges(String userId) {
@@ -59,6 +74,8 @@ class ActivityProvider with ChangeNotifier {
   }
 
   void listenToActivityStatsChanges(String userId) {
+    graphStartDate = getMondayOfCurrentWeek();
+
     firestore
         .collection('weekly_activity')
         .doc(userId)
@@ -66,15 +83,20 @@ class ActivityProvider with ChangeNotifier {
         .snapshots()
         .listen((snapshot) async {
       // needs to delay for few seconds to wait for creating activity
-      await Future.delayed(const Duration(seconds: 2));
-
+      await Future.delayed(const Duration(seconds: 1));
       if (!isStatsFetch) {
         isStatsFetch = true;
         _goalSteps = await getTargetSteps(userId);
         _targetChange = await getTargetStepChange(userId);
         await fetchtTodayActivityOverview(userId);
+        await fetchStepsByDateRange(userId, rangeType, graphStartDate);
       }
     });
+  }
+
+  void setGraphView(String currentTab, DateTime date) {
+    rangeType = currentTab;
+    graphStartDate = date;
   }
 
   void setFetchToFalse() {
@@ -98,7 +120,7 @@ class ActivityProvider with ChangeNotifier {
   }
 
   Future<int> getTargetSteps(String userId) async {
-    _isLoading = true;
+    _isStatsLoading = true;
     notifyListeners();
 
     try {
@@ -108,14 +130,14 @@ class ActivityProvider with ChangeNotifier {
       print("Error fetching user's target steps: $e");
     }
 
-    _isLoading = false;
+    _isStatsLoading = false;
     notifyListeners();
 
     return 0; // return 0 if error occurs
   }
 
   Future<double> getTargetStepChange(String userId) async {
-    _isLoading = true;
+    _isStatsLoading = true;
     notifyListeners();
 
     try {
@@ -126,7 +148,7 @@ class ActivityProvider with ChangeNotifier {
       print("Error fetching user's target steps: $e");
     }
 
-    _isLoading = false;
+    _isStatsLoading = false;
     notifyListeners();
 
     return 0; // return 0 if error occurs
@@ -149,7 +171,7 @@ class ActivityProvider with ChangeNotifier {
   }
 
   Future<void> fetchtTodayActivityOverview(String userId) async {
-    _isLoading = true;
+    _isStatsLoading = true;
     notifyListeners();
 
     try {
@@ -160,7 +182,42 @@ class ActivityProvider with ChangeNotifier {
       print("Error fetching stats activity overview: $e");
     }
 
-    _isLoading = false;
+    _isStatsLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> fetchStepsByDateRange(
+      String userId, String rangeType, DateTime startDate) async {
+    _isGraphLoading = true;
+    notifyListeners();
+
+    try {
+      _stepsPerDateRange = await activityService.fetchStepsByDateRange(
+          userId, rangeType, startDate);
+      _activityStats = await activityService.fetchActivityStats(
+          userId, rangeType, startDate);
+    } catch (e) {
+      print("Error fetching stats activity overview: $e");
+
+      // return default lists filled with 0s
+      if (rangeType == 'Weekly') {
+        _stepsPerDateRange = List.generate(7, (index) => 0);
+      } else if (rangeType == 'Monthly') {
+        _stepsPerDateRange = List.generate(31, (index) => 0);
+      } else if (rangeType == 'Yearly') {
+        _stepsPerDateRange = List.generate(12, (index) => 0);
+      } else {
+        _stepsPerDateRange = [];
+      }
+
+      _activityStats = {
+        'totalSteps': 0,
+        'totalDistance': 0.0,
+        'totalDuration': 0,
+        'selfEfficacy': "Low",
+      };
+    }
+    _isGraphLoading = false;
     notifyListeners();
   }
 
@@ -235,5 +292,11 @@ class ActivityProvider with ChangeNotifier {
     } catch (e) {
       return 'failed';
     }
+  }
+
+  DateTime getMondayOfCurrentWeek() {
+    DateTime now = DateTime.now();
+    int currentWeekday = now.weekday; // Monday = 1, Sunday = 7
+    return now.subtract(Duration(days: currentWeekday - 1));
   }
 }

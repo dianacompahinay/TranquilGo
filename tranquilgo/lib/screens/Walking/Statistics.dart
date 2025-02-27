@@ -16,405 +16,521 @@ class StatisticsPage extends StatefulWidget {
 }
 
 class _StatisticsPageState extends State<StatisticsPage> {
+  final userId = FirebaseAuth.instance.currentUser!.uid;
   String currentTab = 'Weekly';
-  DateTime startDate = DateTime(2025, 1, 6);
+  DateTime startDate = DateTime.now();
+
+  bool isConnectionFailed = false;
+  bool isConnectionFailedGraph = false;
 
   @override
   void initState() {
     super.initState();
+    setState(() {
+      startDate = getMondayOfCurrentWeek();
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId = FirebaseAuth.instance.currentUser!.uid;
       final activityProvider =
           Provider.of<ActivityProvider>(context, listen: false);
-
-      activityProvider.listenToActivityStatsChanges(userId);
+      try {
+        activityProvider.setGraphView(currentTab, startDate);
+        activityProvider.listenToActivityStatsChanges(userId);
+      } catch (e) {
+        setState(() {
+          isConnectionFailed = true;
+        });
+      }
     });
   }
 
-  // dummy data
-  final List<int> weeklyData = [15000, 12000, 9000, 10000, 13000, 11000, 8000];
-  final List<int> monthlyData =
-      List.generate(31, (index) => 8000 + index * 100);
-  final List<int> yearlyData =
-      List.generate(12, (index) => 30000 + index * 2000);
+  void fetchData() async {
+    final activityProvider =
+        Provider.of<ActivityProvider>(context, listen: false);
+
+    try {
+      await activityProvider.fetchStepsByDateRange(
+          userId, currentTab, startDate);
+    } catch (e) {
+      setState(() {
+        isConnectionFailedGraph = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final activityProvider = Provider.of<ActivityProvider>(context);
-    final List<String> xLabels = getXLabels();
-    final List<int> data = getData();
+    List<String> xLabels = getXLabels();
+    List<int> data = activityProvider.stepsPerDateRange;
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // weekly goal section
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF73D2C3),
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
-                      blurRadius: 2,
-                      offset: const Offset(0, 1.2),
+          child: activityProvider.isStatsLoading
+              ? SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.75,
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF36B9A5),
+                      strokeWidth: 5,
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Image.asset(
-                          'assets/icons/sidebar_goals.png',
-                          width: 20,
-                          height: 20,
-                          fit: BoxFit.contain,
-                          color: const Color(0xFFFFFFFF),
-                        ),
-                        const SizedBox(width: 5),
-                        Text(
-                          "This week's daily goal",
-                          style: GoogleFonts.manrope(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFFFFFFF),
-                          ),
-                        ),
-                      ],
-                    ),
-                    activityProvider.isLoading
-                        ? Container(
-                            margin: const EdgeInsets.only(top: 10),
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              color: Colors.grey[300],
-                            ),
-                          )
-                        : Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                // today's number of steps
-                                NumberFormat.decimalPattern()
-                                    .format(activityProvider.goalSteps),
-                                style: GoogleFonts.manrope(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFFFFFFFF),
-                                ),
-                              ),
-                              const SizedBox(width: 2),
-                              Transform.translate(
-                                offset: const Offset(0, -2),
-                                child: Text(
-                                  // today's number of steps
-                                  ' steps',
-                                  style: GoogleFonts.manrope(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFFFFFFFF),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 2),
-
-              // weekly step increase
-              Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  formatTargetChange(activityProvider.targetChange),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: const Color(0xFF797979),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // today stats section
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Today, ${DateFormat('MMM d').format(DateTime.now())}',
-                    style: GoogleFonts.poppins(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF595959),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // circular progress
-                      activityProvider.isLoading
-                          ? Container(
-                              margin: const EdgeInsets.only(top: 10),
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                color: Colors.grey[300],
-                              ),
-                            )
-                          : ProgressBar(
-                              progress: activityProvider
-                                  .todayActivitySummary["progress"]),
-
-                      // total steps, distance, and duration of the current day
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          todayStatsDetails(
-                              'Total Steps',
-                              NumberFormat.decimalPattern().format(
-                                  activityProvider
-                                      .todayActivitySummary["totalSteps"])),
-                          todayStatsDetails('Total Distance',
-                              '${activityProvider.todayActivitySummary["totalDistance"].toStringAsFixed(3)} km'),
-                          todayStatsDetails(
-                              'Total Duration',
-                              formatTimeDuration(activityProvider
-                                  .todayActivitySummary["totalDuration"])),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 26),
-
-              Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Trend Insights',
-                    style: GoogleFonts.poppins(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF595959),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // tab for weekly, monthly, and yearly
-                  Container(
-                    decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(5)),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 2,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: ['Weekly', 'Monthly', 'Yearly'].map((tab) {
-                        final bool isSelected = currentTab == tab;
-                        return Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                currentTab = tab;
-                                startDate = tab == 'Weekly'
-                                    ? DateTime(2025, 1, 6)
-                                    : DateTime(2025, 1, 1);
-                              });
-                            },
-                            child: Container(
-                              alignment: Alignment.center,
-                              padding: const EdgeInsets.symmetric(vertical: 7),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFF59D1BE)
-                                    : const Color(0xFFFCFCFC),
-                                borderRadius: isSelected
-                                    ? const BorderRadius.all(Radius.circular(5))
-                                    : BorderRadius.horizontal(
-                                        left: tab == 'Weekly'
-                                            ? const Radius.circular(5)
-                                            : Radius.zero,
-                                        right: tab == 'Yearly'
-                                            ? const Radius.circular(5)
-                                            : Radius.zero,
-                                      ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: isSelected
-                                        ? Colors.black12
-                                        : Colors.transparent,
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                tab,
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : const Color(0xFF717171),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // bar graph
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(5)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
-                      blurRadius: 2,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                      left: 16, right: 16, top: 16, bottom: 0),
-                  child: Column(
-                    children: [
-                      // bar graph title
-                      Center(
-                        child: Text(
-                          'Total Steps',
-                          style: GoogleFonts.poppins(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF595959),
-                          ),
-                        ),
-                      ),
-
-                      // date range controls
-                      Transform.translate(
-                        offset: const Offset(0, -8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ))
+              : isConnectionFailed
+                  ? SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.75,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back_ios, size: 16),
-                              onPressed: () => updateDateRange(false),
+                            Image.asset(
+                              'assets/icons/error.png',
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.contain,
+                              color: const Color(0xFF999999),
                             ),
+                            const SizedBox(height: 8),
                             Text(
-                              getDateRangeLabel(),
+                              "Connection Failed",
                               style: GoogleFonts.poppins(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF656565),
+                                textStyle: const TextStyle(
+                                  color: Color(0xFF999999),
+                                  fontWeight: FontWeight.w400,
+                                  fontSize: 14,
+                                ),
                               ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.arrow_forward_ios,
-                                size: 16,
-                                color: Color(0xFF797B86),
-                              ),
-                              onPressed: () => updateDateRange(true),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
                       ),
-
-                      // allow horizontal scroll of the bar graph
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Container(
-                          padding: const EdgeInsets.only(top: 5),
-                          width: data.length * 50.0,
-                          height: 200,
-                          child: buildBarChart(data, xLabels),
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // weekly goal section
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF73D2C3),
+                            borderRadius: BorderRadius.circular(10),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                blurRadius: 2,
+                                offset: const Offset(0, 1.2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Image.asset(
+                                    'assets/icons/sidebar_goals.png',
+                                    width: 20,
+                                    height: 20,
+                                    fit: BoxFit.contain,
+                                    color: const Color(0xFFFFFFFF),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    "This week's daily goal",
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFFFFFFFF),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    // today's number of steps
+                                    NumberFormat.decimalPattern()
+                                        .format(activityProvider.goalSteps),
+                                    style: GoogleFonts.manrope(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFFFFFFFF),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Transform.translate(
+                                    offset: const Offset(0, -2),
+                                    child: Text(
+                                      // today's number of steps
+                                      ' steps',
+                                      style: GoogleFonts.manrope(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFFFFFFFF),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  ),
-                ),
-              ),
 
-              const SizedBox(height: 20),
+                        const SizedBox(height: 2),
 
-              // stats card
-              Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      buildStatCard(
-                        "assets/icons/footprint.png",
-                        "Total Steps",
-                        "27,500",
-                      ),
-                      buildStatCard(
-                        'assets/icons/distance.png',
-                        "Total Distance",
-                        "100 km",
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      buildStatCard(
-                        "assets/icons/clock.png",
-                        "Total Duration",
-                        "4h 11m",
-                      ),
-                      buildStatCard(
-                        "assets/icons/person.png",
-                        "Self Efficacy",
-                        "High",
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-                ],
-              ),
-            ],
-          ),
+                        // weekly step increase
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            formatTargetChange(activityProvider.targetChange),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: const Color(0xFF797979),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // today stats section
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Today, ${DateFormat('MMM d').format(DateTime.now())}',
+                              style: GoogleFonts.poppins(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF595959),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                // circular progress
+                                ProgressBar(
+                                    progress: activityProvider
+                                        .todayActivitySummary["progress"]),
+
+                                // total steps, distance, and duration of the current day
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    todayStatsDetails(
+                                        'Total Steps',
+                                        NumberFormat.decimalPattern().format(
+                                            activityProvider
+                                                    .todayActivitySummary[
+                                                "totalSteps"])),
+                                    todayStatsDetails('Total Distance',
+                                        '${(activityProvider.todayActivitySummary["totalDistance"] / 1000).toStringAsFixed(3)} km'),
+                                    todayStatsDetails(
+                                        'Total Duration',
+                                        formatTimeDuration(activityProvider
+                                                .todayActivitySummary[
+                                            "totalDuration"])),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 26),
+
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Trend Insights',
+                              style: GoogleFonts.poppins(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF595959),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // tab for weekly, monthly, and yearly
+                            Container(
+                              decoration: const BoxDecoration(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(5)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 2,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children:
+                                    ['Weekly', 'Monthly', 'Yearly'].map((tab) {
+                                  final bool isSelected = currentTab == tab;
+                                  return Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(
+                                          () {
+                                            currentTab = tab;
+                                            startDate = tab == 'Weekly'
+                                                ? getMondayOfCurrentWeek()
+                                                : tab == 'Monthly'
+                                                    ? DateTime(
+                                                        DateTime.now().year,
+                                                        DateTime.now().month,
+                                                        1)
+                                                    : DateTime(
+                                                        DateTime.now().year,
+                                                        1,
+                                                        1);
+                                            activityProvider.setGraphView(
+                                                currentTab, startDate);
+                                            fetchData();
+                                          },
+                                        );
+                                      },
+                                      child: Container(
+                                        alignment: Alignment.center,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 7),
+                                        decoration: BoxDecoration(
+                                          color: isSelected
+                                              ? const Color(0xFF59D1BE)
+                                              : const Color(0xFFFCFCFC),
+                                          borderRadius: isSelected
+                                              ? const BorderRadius.all(
+                                                  Radius.circular(5))
+                                              : BorderRadius.horizontal(
+                                                  left: tab == 'Weekly'
+                                                      ? const Radius.circular(5)
+                                                      : Radius.zero,
+                                                  right: tab == 'Yearly'
+                                                      ? const Radius.circular(5)
+                                                      : Radius.zero,
+                                                ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: isSelected
+                                                  ? Colors.black12
+                                                  : Colors.transparent,
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Text(
+                                          tab,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : const Color(0xFF717171),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // bar graph
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius:
+                                const BorderRadius.all(Radius.circular(5)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.2),
+                                blurRadius: 2,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.only(
+                                left: 16, right: 16, top: 16, bottom: 0),
+                            child: Column(
+                              children: [
+                                // bar graph title
+                                Center(
+                                  child: Text(
+                                    'Total Steps',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF595959),
+                                    ),
+                                  ),
+                                ),
+
+                                // date range controls
+                                Transform.translate(
+                                  offset: const Offset(0, -8),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.arrow_back_ios,
+                                            size: 16),
+                                        onPressed: () => updateDateRange(false),
+                                      ),
+                                      Text(
+                                        getDateRangeLabel(),
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF656565),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.arrow_forward_ios,
+                                          size: 16,
+                                          color: Color(0xFF797B86),
+                                        ),
+                                        onPressed: () => updateDateRange(true),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                activityProvider.isGraphLoading
+                                    ? SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.25,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(
+                                            color: Color(0xFF36B9A5),
+                                            strokeWidth: 5,
+                                          ),
+                                        ))
+                                    : isConnectionFailedGraph
+                                        ? SizedBox(
+                                            height: MediaQuery.of(context)
+                                                    .size
+                                                    .height *
+                                                0.25,
+                                            child: Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Image.asset(
+                                                    'assets/icons/error.png',
+                                                    width: 32,
+                                                    height: 32,
+                                                    fit: BoxFit.contain,
+                                                    color:
+                                                        const Color(0xFF999999),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    "Connection Failed",
+                                                    style: GoogleFonts.poppins(
+                                                      textStyle:
+                                                          const TextStyle(
+                                                        color:
+                                                            Color(0xFF999999),
+                                                        fontWeight:
+                                                            FontWeight.w400,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          )
+                                        :
+                                        // allow horizontal scroll of the bar graph
+                                        SingleChildScrollView(
+                                            scrollDirection: Axis.horizontal,
+                                            child: Container(
+                                              padding:
+                                                  const EdgeInsets.only(top: 5),
+                                              width: data.length * 50.0,
+                                              height: 200,
+                                              child:
+                                                  buildBarChart(data, xLabels),
+                                            ),
+                                          ),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // stats card
+                        Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                buildStatCard(
+                                  "assets/icons/footprint.png",
+                                  "Total Steps",
+                                  // "27,500",
+                                  formatNumber(activityProvider
+                                      .activityStats["totalSteps"]),
+                                ),
+                                buildStatCard(
+                                  'assets/icons/distance.png',
+                                  "Total Distance",
+                                  // "100 km",
+                                  "${activityProvider.activityStats["totalDistance"].toStringAsFixed(3)} km",
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                buildStatCard(
+                                  "assets/icons/clock.png",
+                                  "Total Duration",
+                                  // "4h 11m",
+                                  formatTimeDuration(activityProvider
+                                      .activityStats["totalDuration"]),
+                                ),
+                                buildStatCard(
+                                  "assets/icons/person.png",
+                                  "Self Efficacy",
+                                  // "High",
+                                  activityProvider
+                                      .activityStats["selfEfficacy"],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 32),
+                          ],
+                        ),
+                      ],
+                    ),
         ),
       ),
     );
   }
 
   Widget todayStatsDetails(label, value) {
-    final activityProvider =
-        Provider.of<ActivityProvider>(context, listen: false);
-
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -427,30 +543,23 @@ class _StatisticsPageState extends State<StatisticsPage> {
             color: const Color(0xFF616161),
           ),
         ),
-        activityProvider.isLoading
-            ? Container(
-                margin: const EdgeInsets.only(top: 10),
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: Colors.grey[300],
-                ),
-              )
-            : Text(
-                value,
-                style: GoogleFonts.poppins(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF616161),
-                ),
-              ),
+        Text(
+          value,
+          style: GoogleFonts.poppins(
+            fontSize: 14,
+            fontWeight: FontWeight.w400,
+            color: const Color(0xFF616161),
+          ),
+        ),
         const SizedBox(height: 6),
       ],
     );
   }
 
   void updateDateRange(bool isNext) {
+    final activityProvider =
+        Provider.of<ActivityProvider>(context, listen: false);
+
     setState(() {
       if (currentTab == 'Weekly') {
         startDate = isNext
@@ -465,6 +574,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
       } else if (currentTab == 'Yearly') {
         startDate = DateTime(startDate.year + (isNext ? 1 : -1), 1, 1);
       }
+
+      activityProvider.setGraphView(currentTab, startDate);
+      fetchData(); // call fetch function when range updates
     });
   }
 
@@ -506,32 +618,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
     return [];
   }
 
-  List<int> getData() {
-    if (currentTab == 'Weekly') {
-      return weeklyData;
-    } else if (currentTab == 'Monthly') {
-      return monthlyData;
-    } else if (currentTab == 'Yearly') {
-      return yearlyData;
-    }
-    return [];
-  }
-
-  Widget buildStatsColumn(String label, String value) {
-    return Column(
-      children: [
-        Text(label, style: GoogleFonts.poppins(fontSize: 16)),
-        Text(
-          value,
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget buildBarChart(List<int> data, List<String> xLabels) {
     double maxValue = data.reduce((a, b) => a > b ? a : b).toDouble();
     return BarChart(
@@ -569,6 +655,9 @@ class _StatisticsPageState extends State<StatisticsPage> {
             getTooltipColor: (group) => const Color(0xFF6C7591),
             tooltipRoundedRadius: 4,
             tooltipPadding: const EdgeInsets.fromLTRB(8, 8, 8, 2),
+            tooltipMargin: -10,
+            fitInsideHorizontally: true,
+            fitInsideVertically: true,
             getTooltipItem: (group, groupIndex, rod, rodIndex) {
               return BarTooltipItem(
                 '${data[groupIndex]}',
@@ -638,6 +727,8 @@ class _StatisticsPageState extends State<StatisticsPage> {
   }
 
   Widget buildStatCard(String icon, String title, String value) {
+    final activityProvider =
+        Provider.of<ActivityProvider>(context, listen: false);
     return Expanded(
       child: Container(
         margin: const EdgeInsets.only(left: 8, right: 8),
@@ -676,7 +767,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                     ),
                   ),
                   Text(
-                    value,
+                    !activityProvider.isGraphLoading ? value : "",
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w400,
@@ -690,6 +781,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
         ),
       ),
     );
+  }
+
+  DateTime getMondayOfCurrentWeek() {
+    DateTime now = DateTime.now();
+    int currentWeekday = now.weekday; // Monday = 1, Sunday = 7
+    return now.subtract(Duration(days: currentWeekday - 1));
   }
 
   // format numbers with units
