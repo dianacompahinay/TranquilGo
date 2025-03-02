@@ -394,6 +394,9 @@ class ActivityService {
     String endDate = formatDate(endOfWeek);
     String now = formatDate(DateTime.now());
 
+    DateTime previousStartOfWeek =
+        startOfWeek.subtract(const Duration(days: 7));
+
     try {
       DocumentReference docRef =
           firestore.collection('weekly_goal').doc(userId);
@@ -402,18 +405,27 @@ class ActivityService {
       if (docSnapshot.exists) {
         Map<String, dynamic> data = docSnapshot.data() as Map<String, dynamic>;
 
-        // check if it's a new week
+        int previousTarget = data['targetSteps'];
+        // fetch user's weekly activity summary
+        Map<String, dynamic> activitySummary =
+            await fetchActivityStats(userId, "Weekly", previousStartOfWeek);
+
+        int totalSteps = activitySummary['totalSteps'];
+        String selfEfficacy = activitySummary['selfEfficacy'];
+
+        // determine new target steps based on Muoviti rules
+        int newTargetSteps =
+            calculateNewTarget(previousTarget, totalSteps, selfEfficacy);
+
+        // check if it's a new week before updating
         if (data['startDate'] != startDate &&
             data['weeklyHistory'] != null &&
             !data['weeklyHistory'].containsKey("$now - $endDate")) {
-          int previousTarget = data['targetSteps'];
-          int targetSteps = calculateNewTarget(previousTarget);
-          // update the weekly goal for the new week
           await docRef.set({
             'startDate': startDate,
             'endDate': endDate,
-            'targetSteps': targetSteps,
-            'weeklyHistory': {"$startDate - $endDate": targetSteps}
+            'targetSteps': newTargetSteps,
+            'weeklyHistory': {"$startDate - $endDate": newTargetSteps}
           }, SetOptions(merge: true));
         }
       }
@@ -422,8 +434,20 @@ class ActivityService {
     }
   }
 
-  int calculateNewTarget(int prevTarget) {
-    return 2000;
+  int calculateNewTarget(int prevTarget, int totalSteps, String selfEfficacy) {
+    bool achievedGoal = totalSteps >= prevTarget;
+    bool highSE = selfEfficacy == "High";
+
+    if (achievedGoal && highSE) {
+      return prevTarget + 1000; // increase PA goal
+    } else if (achievedGoal && !highSE) {
+      return prevTarget; // mintain PA goal
+    } else if (!achievedGoal && highSE) {
+      return prevTarget; // maintain PA goal
+    } else {
+      return (prevTarget - 1000)
+          .clamp(2000, prevTarget); // decrease PA goal (min 2000)
+    }
   }
 
   // create weekly activity for a newly created account
