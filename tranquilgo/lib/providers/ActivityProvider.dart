@@ -9,7 +9,7 @@ class ActivityProvider with ChangeNotifier {
 
   int _steps = 0;
   int _goalSteps = 0;
-  double _targetChange = 0.0;
+  String _targetChange = "";
 
   // for stats graph view
   String rangeType = 'Weekly';
@@ -44,7 +44,7 @@ class ActivityProvider with ChangeNotifier {
 
   int get steps => _steps;
   int get goalSteps => _goalSteps;
-  double get targetChange => _targetChange;
+  String get targetChange => _targetChange;
   List<int> get stepsPerDateRange => _stepsPerDateRange;
 
   Map<String, dynamic> get weeklyActivitySummary => _weeklyActivitySummary;
@@ -54,6 +54,19 @@ class ActivityProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isStatsLoading => _isStatsLoading;
   bool get isGraphLoading => _isGraphLoading;
+
+  void initialLoad(String userId) async {
+    if (!isOverviewFetch && !isStatsFetch) {
+      await getTotalSteps(userId);
+      await fetchtWeeklyActivityOverview(userId);
+      _goalSteps = await getTargetSteps(userId);
+      _targetChange = await getTargetStepChange(userId);
+      await fetchtTodayActivityOverview(userId);
+      await fetchStepsByDateRange(userId, rangeType, graphStartDate);
+      isOverviewFetch = true;
+      isStatsFetch = true;
+    }
+  }
 
   void listenToActivityChanges(String userId) {
     firestore
@@ -136,12 +149,12 @@ class ActivityProvider with ChangeNotifier {
     return 0; // return 0 if error occurs
   }
 
-  Future<double> getTargetStepChange(String userId) async {
+  Future<String> getTargetStepChange(String userId) async {
     _isStatsLoading = true;
     notifyListeners();
 
     try {
-      double targetStepChange =
+      String targetStepChange =
           await activityService.getTargetStepChange(userId);
       return targetStepChange;
     } catch (e) {
@@ -151,7 +164,7 @@ class ActivityProvider with ChangeNotifier {
     _isStatsLoading = false;
     notifyListeners();
 
-    return 0; // return 0 if error occurs
+    return ""; // return 0 if error occurs
   }
 
   Future<void> fetchtWeeklyActivityOverview(String userId) async {

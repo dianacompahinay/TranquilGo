@@ -39,25 +39,25 @@ class ActivityService {
     }
   }
 
-  Future<double> getTargetStepChange(String userId) async {
+  Future<String> getTargetStepChange(String userId) async {
     try {
       DocumentSnapshot weeklyGoalDoc =
           await firestore.collection('weekly_goal').doc(userId).get();
 
       if (!weeklyGoalDoc.exists || weeklyGoalDoc.data() == null) {
-        return 0.0;
+        return "";
       }
 
       Map<String, dynamic> data = weeklyGoalDoc.data() as Map<String, dynamic>;
 
       if (!data.containsKey('weeklyHistory')) {
-        return 0.0; // no history available
+        return ""; // no history available
       }
 
       Map<String, dynamic> weeklyHistory = data['weeklyHistory'];
 
-      if (weeklyHistory.length < 2) {
-        return 0.0; // Not enough data to compare
+      if (weeklyHistory.length <= 1) {
+        return ""; // 0 or 1 length, not enough data to compare
       }
 
       // sort the history keys in descending order
@@ -68,17 +68,33 @@ class ActivityService {
       int previousSteps = weeklyHistory[sortedWeeks[1]] ?? 0;
 
       if (previousSteps == 0) {
-        return 0.0; // avoid division by zero
+        return ""; // avoid division by zero
       }
 
       // calculate percentage change
       double percentageChange =
           ((currentSteps - previousSteps) / previousSteps).toDouble();
 
-      return percentageChange; // positive means increase, negative means decrease
+      return formatTargetChange(
+          percentageChange); // positive means increase, negative means decrease
     } catch (e) {
       throw Exception("Failed to fetch step change: $e");
     }
+  }
+
+  String formatTargetChange(double targetChange) {
+    double percentage = targetChange * 100;
+    String changeType = percentage >= 0 ? "higher" : "lower";
+    percentage = percentage.abs(); // absolute value
+
+    if (percentage == 0) return "Same as previous week";
+
+    // format based on whether it has decimals
+    String formattedPercentage = percentage % 1 == 0
+        ? percentage.toInt().toString() // whole number, means no decimals
+        : percentage.toStringAsFixed(2); // display up to 2 decimal places
+
+    return '$formattedPercentage% $changeType than previous week';
   }
 
   Future<Map<String, dynamic>> getTodayActivitySummary(String userId) async {

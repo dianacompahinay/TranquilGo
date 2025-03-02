@@ -71,12 +71,9 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
     // update streak
     await activityProvider.updateStreak(userId, "open");
 
-    // check if today is Monday
-    DateTime now = DateTime.now();
-    if (now.weekday == DateTime.monday) {
-      await activityProvider.updateWeeklyGoal(userId);
-      await activityProvider.updateWeeklyActivity(userId);
-    }
+    // update goal and reset weekly activity if the start of the week is not the current week's monday
+    await activityProvider.updateWeeklyGoal(userId);
+    await activityProvider.updateWeeklyActivity(userId);
   }
 
   @override

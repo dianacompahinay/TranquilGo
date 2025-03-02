@@ -33,6 +33,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
       final activityProvider =
           Provider.of<ActivityProvider>(context, listen: false);
       try {
+        activityProvider.initialLoad(userId);
         activityProvider.setGraphView(currentTab, startDate);
         activityProvider.listenToActivityStatsChanges(userId);
       } catch (e) {
@@ -182,16 +183,18 @@ class _StatisticsPageState extends State<StatisticsPage> {
                         const SizedBox(height: 2),
 
                         // weekly step increase
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            formatTargetChange(activityProvider.targetChange),
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: const Color(0xFF797979),
-                            ),
-                          ),
-                        ),
+                        activityProvider.targetChange != ""
+                            ? Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  activityProvider.targetChange,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: const Color(0xFF797979),
+                                  ),
+                                ),
+                              )
+                            : const SizedBox(height: 4),
 
                         const SizedBox(height: 16),
 
@@ -804,21 +807,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
     } else {
       return number.toString();
     }
-  }
-
-  String formatTargetChange(double targetChange) {
-    double percentage = targetChange * 100;
-    String changeType = percentage >= 0 ? "higher" : "lower";
-    percentage = percentage.abs(); // absolute value
-
-    if (percentage == 0) return "Same as previous week";
-
-    // format based on whether it has decimals
-    String formattedPercentage = percentage % 1 == 0
-        ? percentage.toInt().toString() // whole number, means no decimals
-        : percentage.toStringAsFixed(2); // display up to 2 decimal places
-
-    return '$formattedPercentage% $changeType than previous week';
   }
 
   String formatTimeDuration(int seconds) {
