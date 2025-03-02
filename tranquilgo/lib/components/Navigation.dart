@@ -62,14 +62,18 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
   }
 
   void updateWeeklyGoalActivity() async {
-    // print("is it monday today?? ${DateTime.now().weekday == DateTime.monday}");
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) return;
+
+    final activityProvider =
+        Provider.of<ActivityProvider>(context, listen: false);
+
+    // update streak
+    await activityProvider.updateStreak(userId, "open");
 
     // check if today is Monday
     DateTime now = DateTime.now();
     if (now.weekday == DateTime.monday) {
-      ActivityProvider activityProvider = ActivityProvider();
       await activityProvider.updateWeeklyGoal(userId);
       await activityProvider.updateWeeklyActivity(userId);
     }

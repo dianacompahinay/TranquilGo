@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/providers/TrackerProvider.dart';
+import 'package:my_app/components/TrackerConfirmationDialog.dart';
 
 class ActionButtons extends StatefulWidget {
   final String buttonState;
@@ -168,8 +169,13 @@ class _ActionButtonsState extends State<ActionButtons> {
                 color: Colors.white,
                 backgroundColor: const Color(0xFF71B9B0),
                 onPressed: () {
+                  handleFinish();
                   if (widget.progress == 0) {
-                    handleFinish();
+                    ConfirmationDialog.show(
+                      context: context,
+                      type: "zero_steps",
+                      onCancel: () {},
+                    );
                   } else {
                     Navigator.push(
                       context,

@@ -63,7 +63,7 @@ class ActivityProvider with ChangeNotifier {
         .snapshots()
         .listen((snapshot) async {
       // needs to delay for few seconds to wait for creating activity
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 5));
 
       if (!isOverviewFetch) {
         isOverviewFetch = true;
@@ -298,5 +298,15 @@ class ActivityProvider with ChangeNotifier {
     DateTime now = DateTime.now();
     int currentWeekday = now.weekday; // Monday = 1, Sunday = 7
     return now.subtract(Duration(days: currentWeekday - 1));
+  }
+
+  Future<String> updateStreak(String userId, String type) async {
+    try {
+      await activityService.updateStreak(userId, type);
+      notifyListeners();
+      return 'success';
+    } catch (e) {
+      return 'failed';
+    }
   }
 }

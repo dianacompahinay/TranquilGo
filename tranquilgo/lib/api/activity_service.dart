@@ -310,32 +310,51 @@ class ActivityService {
     }
   }
 
-  Future<void> updateStreak(String userId) async {
+  Future<void> updateStreak(String userId, String type) async {
     try {
       final userDocRef = firestore.collection("weekly_activity").doc(userId);
-
       final userDoc = await userDocRef.get();
-      int newStreak = 1;
+      int newStreak = 0;
       final today = DateTime.now();
 
       if (userDoc.exists) {
         final data = userDoc.data() as Map<String, dynamic>;
         final lastActivityDate = data['lastActivityDate']?.toDate();
 
-        // check if the last activity was yesterday
-        if (lastActivityDate != null &&
-            isSameDay(
-                lastActivityDate, today.subtract(const Duration(days: 1)))) {
-          newStreak = (data['streak'] ?? 0) + 1;
-        } else {
+        if (lastActivityDate != null) {
+          final yesterday = today.subtract(const Duration(days: 1));
+
           newStreak = data['streak'] ?? 0;
+
+          if (isSameDay(lastActivityDate, today) &&
+              data['streak'] == 0 &&
+              type == "create") {
+            newStreak = 1; // set to 1 streak if it's currently zero
+          } else if (isSameDay(lastActivityDate, yesterday) &&
+              type == "create") {
+            newStreak = (data['streak'] ?? 0) + 1;
+          }
+
+          // if restarting the app and the last activity day is not today and yesterday
+          if (!isSameDay(lastActivityDate, today) &&
+              !isSameDay(lastActivityDate, yesterday)) {
+            if (type == "open") {
+              newStreak = 0; // reset to 0
+            } else {
+              // set to 1 if recently created an activity but the last activity date is not today and yesterday
+              newStreak = 1;
+            }
+          }
+        } else {
+          if (type == "create") {
+            newStreak = 1;
+          }
         }
       }
 
-      // update the streak in database
       await userDocRef.update({
         'streak': newStreak,
-        'lastActivityDate': today,
+        if (type == "create") 'lastActivityDate': DateTime.now(),
       });
     } catch (e) {
       throw Exception('Failed to update streak: ${e.toString()}');
@@ -435,7 +454,8 @@ class ActivityService {
   }
 
   int calculateNewTarget(int prevTarget, int totalSteps, String selfEfficacy) {
-    bool achievedGoal = totalSteps >= prevTarget;
+    int avgDailySteps = (totalSteps / 7).toInt(); // get average daily steps
+    bool achievedGoal = avgDailySteps >= prevTarget;
     bool highSE = selfEfficacy == "High";
 
     if (achievedGoal && highSE) {
@@ -574,7 +594,7 @@ class ActivityService {
       });
 
       // update user's streak
-      await updateStreak(userId);
+      await updateStreak(userId, "create");
     } catch (e) {
       throw Exception('Failed to create activity: ${e.toString()}');
     }

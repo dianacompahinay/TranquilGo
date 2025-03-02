@@ -29,7 +29,15 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   Timer? timer;
 
   String buttonState = 'start';
+  bool isFinish = false;
   bool showMap = true;
+
+  OverlayEntry? overlayEntryRoute;
+  bool suggestRoute = false;
+  bool isDestinationVisible = true;
+
+  String locationFrom = "University of the Philippines Los Banos";
+  String locationTo = "Location B";
 
   @override
   void initState() {
@@ -52,6 +60,17 @@ class _WalkingTrackerState extends State<WalkingTracker> {
           setState(() {
             showMap = false;
           });
+        } else {
+          void handleRouteSelection(bool useSuggestedRoute) {
+            setState(() {
+              suggestRoute = useSuggestedRoute;
+            });
+          }
+
+          if (!isFinish) {
+            // to prevent inserting the overlay when finish already within 3 seconds
+            suggestRouteConfirmation(context, handleRouteSelection);
+          }
         }
       });
     });
@@ -60,6 +79,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   @override
   void dispose() {
     locationTimer?.cancel();
+    removeOverlay();
     super.dispose();
   }
 
@@ -112,6 +132,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
             onPressed: () {
               if (trackerProvider.progress == 0) {
                 Navigator.pop(context);
+                removeOverlay();
               } else {
                 ConfirmationDialog.show(
                   context: context,
@@ -120,6 +141,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                     timer?.cancel;
                     trackerProvider.resetValues(userId);
                     trackerProvider.disposeService();
+                    removeOverlay();
                   },
                 );
               }
@@ -147,6 +169,26 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                       Container(
                         width: double.infinity,
                         margin: const EdgeInsets.only(top: 8),
+                        child: MapScreen(
+                          trackerProvider: Provider.of<TrackerProvider>(
+                            context,
+                            listen: false,
+                          ),
+                        ),
+                      ),
+
+                      // show destination when suggest route is enabled
+                      suggestRoute
+                          ? isDestinationVisible
+                              ? buildExpandedView()
+                              : buildCollapsedView()
+                          : const SizedBox(),
+
+                      // line
+                      Container(
+                        height: 8,
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 8),
                         decoration: const BoxDecoration(
                           border: Border(
                             top: BorderSide(
@@ -155,17 +197,9 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                             ),
                           ),
                         ),
-                        // child: Image.asset(
-                        //   'assets/images/temp-map.png',
-                        //   fit: BoxFit.cover,
-                        // ),
-                        child: MapScreen(
-                          trackerProvider: Provider.of<TrackerProvider>(
-                            context,
-                            listen: false,
-                          ),
-                        ),
                       ),
+
+                      // for camera button
                       Positioned(
                         bottom: 18,
                         right: 18,
@@ -485,11 +519,10 @@ class _WalkingTrackerState extends State<WalkingTracker> {
       },
       onFinish: () {
         timer?.cancel();
-        ConfirmationDialog.show(
-          context: context,
-          type: "zero_steps",
-          onCancel: () {},
-        );
+        removeOverlay();
+        setState(() {
+          isFinish = true;
+        });
       },
       onSwitchMap: () {
         setState(() {
@@ -502,6 +535,225 @@ class _WalkingTrackerState extends State<WalkingTracker> {
       distance: trackerProvider.distance,
       timeDuration: timeDuration,
     );
+  }
+
+  Widget buildExpandedView() {
+    return Align(
+      alignment: Alignment.topRight,
+      child: Container(
+        margin: const EdgeInsets.only(top: 14),
+        width: 270,
+        height: 110,
+        padding: const EdgeInsets.fromLTRB(10, 10, 0, 10),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.horizontal(left: Radius.circular(6)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 1.5,
+              offset: Offset(0, 1),
+            )
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              "assets/icons/destination.png",
+              width: 25,
+              height: 55,
+              fit: BoxFit.cover,
+            ),
+            const SizedBox(width: 5),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                buildTextContainer(locationFrom),
+                const SizedBox(height: 8),
+                buildTextContainer(locationTo),
+                const SizedBox(height: 8),
+              ],
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_forward_ios, size: 20),
+                onPressed: () {
+                  setState(() {
+                    isDestinationVisible = false;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildCollapsedView() {
+    return Align(
+      alignment: Alignment.topRight,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            isDestinationVisible = true;
+          });
+        },
+        child: Container(
+          margin: const EdgeInsets.only(top: 14),
+          height: 110,
+          width: 50,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.horizontal(left: Radius.circular(6)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 1.5,
+                offset: Offset(0, 1),
+              )
+            ],
+          ),
+          child: const Center(
+            child: Icon(Icons.arrow_back_ios, size: 20),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildTextContainer(String text) {
+    return Container(
+      width: 180,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Text(
+          text,
+          style: GoogleFonts.inter(
+            color: Colors.black87,
+            fontSize: 13.5,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void suggestRouteConfirmation(
+      BuildContext context, Function(bool) onRouteSelected) {
+    overlayEntryRoute = OverlayEntry(
+      builder: (context) => Positioned(
+        top: MediaQuery.of(context).padding.top + 22,
+        left: 5,
+        right: 5,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: Colors.white,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.directions_outlined,
+                  color: Color(0xFF5F6368),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    "Would you like to enable route suggestions?",
+                    style: GoogleFonts.inter(
+                      color: const Color(0xFF373737),
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.start,
+                    softWrap: true,
+                    overflow: TextOverflow.visible,
+                  ),
+                ),
+                const SizedBox(width: 2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    TextButton(
+                      onPressed: () {
+                        onRouteSelected(true); // user selects yes
+                        removeOverlay();
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        side: const BorderSide(
+                          color: Color(0xFF9C9C9C),
+                          width: 1,
+                        ),
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(60, 30),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        "Yes",
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.5,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () {
+                        onRouteSelected(false); // user selects no
+                        removeOverlay();
+                      },
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        side: const BorderSide(
+                          color: Color(0xFF9C9C9C),
+                          width: 1,
+                        ),
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(60, 30),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        "No",
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13.5,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    Overlay.of(context).insert(overlayEntryRoute!);
+  }
+
+  void removeOverlay() {
+    overlayEntryRoute?.remove();
+    overlayEntryRoute = null;
   }
 
   void showTopSnackBar(BuildContext context) {
