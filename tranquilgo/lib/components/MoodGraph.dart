@@ -17,6 +17,7 @@ class _GraphViewState extends State<GraphView> {
   final userId = FirebaseAuth.instance.currentUser!.uid;
   MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
   List<ChartData> chartData = [];
+  TooltipBehavior? tooltipBehavior;
 
   DateTime now = DateTime.now();
 
@@ -27,6 +28,7 @@ class _GraphViewState extends State<GraphView> {
   @override
   void initState() {
     super.initState();
+    tooltipBehavior = TooltipBehavior(enable: true);
     loadMoods();
   }
 
@@ -156,8 +158,9 @@ class _GraphViewState extends State<GraphView> {
                                 // pie chart
                                 Expanded(
                                     child: SfCircularChart(
+                                      tooltipBehavior: tooltipBehavior,
                                       series: <CircularSeries>[
-                                        PieSeries<ChartData, String>(
+                                        DoughnutSeries<ChartData, String>(
                                           dataSource: chartData,
                                           xValueMapper: (ChartData data, _) =>
                                               data.label,
@@ -166,6 +169,11 @@ class _GraphViewState extends State<GraphView> {
                                           pointColorMapper:
                                               (ChartData data, _) => data.color,
                                           radius: '88%',
+                                          innerRadius: '55%',
+                                          enableTooltip: true,
+                                          explode: true,
+                                          selectionBehavior:
+                                              SelectionBehavior(enable: true),
                                         )
                                       ],
                                     ),

@@ -343,12 +343,16 @@ class _MoodTrackingHistoryState extends State<MoodTrackingHistory> {
             height: 145,
             child: SfCircularChart(
               series: <CircularSeries>[
-                PieSeries<ChartData, String>(
+                DoughnutSeries<ChartData, String>(
                   dataSource: chartData,
                   xValueMapper: (ChartData data, _) => data.label,
                   yValueMapper: (ChartData data, _) => data.value,
                   pointColorMapper: (ChartData data, _) => data.color,
                   radius: '100%',
+                  innerRadius: '55%',
+                  enableTooltip: true,
+                  explode: true,
+                  selectionBehavior: SelectionBehavior(enable: true),
                 )
               ],
             ),
