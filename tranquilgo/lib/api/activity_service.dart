@@ -542,7 +542,7 @@ class ActivityService {
 
         // check if it's a new week
         if (data['startDate'] != startDate) {
-          await docRef.set({
+          await docRef.update({
             'activityCount': 0, // reset for the new week
             'startDate': startDate,
             'endDate': endDate,

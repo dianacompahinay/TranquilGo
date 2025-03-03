@@ -33,7 +33,6 @@ class _StatisticsPageState extends State<StatisticsPage> {
       final activityProvider =
           Provider.of<ActivityProvider>(context, listen: false);
       try {
-        activityProvider.initialLoad(userId);
         activityProvider.setGraphView(currentTab, startDate);
         activityProvider.listenToActivityStatsChanges(userId);
       } catch (e) {

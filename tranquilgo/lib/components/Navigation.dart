@@ -74,6 +74,8 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
     // update goal and reset weekly activity if the start of the week is not the current week's monday
     await activityProvider.updateWeeklyGoal(userId);
     await activityProvider.updateWeeklyActivity(userId);
+
+    activityProvider.initialLoad(userId);
   }
 
   @override

@@ -5,6 +5,8 @@ import 'package:googleapis_auth/auth_io.dart';
 import 'package:location/location.dart';
 import 'package:permission_handler/permission_handler.dart' as perm;
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class TrackerService {
   final Location location = Location();
@@ -15,6 +17,8 @@ class TrackerService {
   double distance = 0.0;
   double previousAcceleration = 0.0;
   final double stepThreshold = 1.2;
+
+  final String googleMapsApiKey = "AIzaSyDnZq2v-CpHrfkTzA0N-Iu4rfuDw0GUIGw";
 
   Future<bool> requestLocationPermission() async {
     var status = await perm.Permission.location.request();
@@ -105,6 +109,30 @@ class TrackerService {
 
       previousAcceleration = acceleration;
     });
+  }
+
+  Future<List<LatLng>> fetchRoute(LatLng start, LatLng end) async {
+    PolylinePoints polylinePoints = PolylinePoints();
+
+    // create a PolylineRequest object
+    PolylineRequest request = PolylineRequest(
+      origin: PointLatLng(start.latitude, start.longitude),
+      destination: PointLatLng(end.latitude, end.longitude),
+      mode: TravelMode.walking, // Walking route
+    );
+
+    PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
+      request: request,
+      googleApiKey: googleMapsApiKey,
+    );
+
+    if (result.points.isNotEmpty) {
+      return result.points
+          .map((point) => LatLng(point.latitude, point.longitude))
+          .toList();
+    } else {
+      throw Exception("Failed to fetch route");
+    }
   }
 
   void disposeService() {

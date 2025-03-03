@@ -27,9 +27,8 @@ class DashboardState extends State<Dashboard> {
           Provider.of<ActivityProvider>(context, listen: false);
       final mindfulnessProvider =
           Provider.of<MindfulnessProvider>(context, listen: false);
-      userProvider.fetchUserDetails(userId);
 
-      activityProvider.initialLoad(userId);
+      userProvider.fetchUserDetails(userId);
       activityProvider.listenToActivityChanges(userId);
       mindfulnessProvider.listenToMoodChanges(userId);
     });

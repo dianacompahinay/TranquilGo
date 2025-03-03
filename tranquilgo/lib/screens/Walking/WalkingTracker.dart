@@ -9,6 +9,7 @@ import 'dart:async';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/providers/TrackerProvider.dart';
+import 'package:my_app/providers/ActivityProvider.dart';
 
 class WalkingTracker extends StatefulWidget {
   const WalkingTracker({super.key});
@@ -55,7 +56,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
 
     // schedule the timer after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      locationTimer = Timer(const Duration(seconds: 3), () {
+      locationTimer = Timer(const Duration(seconds: 5), () {
         if (mounted && trackerProvider.currentLocation == null) {
           setState(() {
             showMap = false;
@@ -68,7 +69,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
           }
 
           if (!isFinish) {
-            // to prevent inserting the overlay when finish already within 3 seconds
+            // to prevent inserting the overlay when finish already within few seconds
             suggestRouteConfirmation(context, handleRouteSelection);
           }
         }
@@ -104,6 +105,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   @override
   Widget build(BuildContext context) {
     final trackerProvider = Provider.of<TrackerProvider>(context);
+    final activityProvider = Provider.of<ActivityProvider>(context);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -170,10 +172,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                         width: double.infinity,
                         margin: const EdgeInsets.only(top: 8),
                         child: MapScreen(
-                          trackerProvider: Provider.of<TrackerProvider>(
-                            context,
-                            listen: false,
-                          ),
+                          targetSteps: activityProvider.goalSteps,
                         ),
                       ),
 
