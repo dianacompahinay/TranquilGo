@@ -52,6 +52,9 @@ dependencies:
   googleapis_auth: ^1.6.0
   sensors_plus: ^6.1.1
   flutter_polyline_points: ^2.1.0
+  geocoding: ^3.0.0
+  google_places_flutter: ^2.1.0
+
 
 dev_dependencies:
   flutter_test:

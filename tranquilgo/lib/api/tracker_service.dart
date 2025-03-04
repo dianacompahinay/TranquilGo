@@ -2,15 +2,16 @@ import 'dart:async';
 import 'dart:math';
 import 'package:googleapis/fitness/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
-import 'package:location/location.dart';
+import 'package:location/location.dart' as loc;
 import 'package:permission_handler/permission_handler.dart' as perm;
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geocoding/geocoding.dart';
 
 class TrackerService {
-  final Location location = Location();
-  StreamSubscription<LocationData>? locationSubscription;
+  final loc.Location location = loc.Location();
+  StreamSubscription<loc.LocationData>? locationSubscription;
   StreamSubscription<AccelerometerEvent>? accelerometerSubscription;
 
   int stepCount = 0;
@@ -25,7 +26,7 @@ class TrackerService {
     return status == perm.PermissionStatus.granted;
   }
 
-  Future<LocationData?> getCurrentLocation() async {
+  Future<loc.LocationData?> getCurrentLocation() async {
     bool hasPermission = await requestLocationPermission();
     if (!hasPermission) {
       return null; // permission denied
@@ -42,7 +43,7 @@ class TrackerService {
     return await location.getLocation();
   }
 
-  void startLocationUpdates(Function(LocationData) onLocationUpdate) {
+  void startLocationUpdates(Function(loc.LocationData) onLocationUpdate) {
     locationSubscription = location.onLocationChanged.listen(onLocationUpdate);
   }
 
@@ -133,6 +134,29 @@ class TrackerService {
     } else {
       throw Exception("Failed to fetch route");
     }
+  }
+
+  Future<String> getPlaceName(LatLng location) async {
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        location.latitude,
+        location.longitude,
+      );
+
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks.first;
+
+        // get only a general location name, not street numbers
+        return place.name ??
+            place.locality ??
+            place.subAdministrativeArea ??
+            place.administrativeArea ??
+            "Unknown Location";
+      }
+    } catch (e) {
+      print("Error getting place name: $e");
+    }
+    return "Unknown Location";
   }
 
   void disposeService() {

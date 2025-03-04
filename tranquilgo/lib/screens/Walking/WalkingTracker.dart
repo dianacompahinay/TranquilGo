@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:my_app/components/TrackerActionButtons.dart';
 import 'package:my_app/components/TrackerConfirmationDialog.dart';
+// import 'package:my_app/components/TrackerSearchLocation.dart';
 import 'package:my_app/components/MapScreen.dart';
 
 import 'dart:async';
@@ -34,11 +35,11 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   bool showMap = true;
 
   OverlayEntry? overlayEntryRoute;
+  bool overlayShown = false; // prevent multiple overlays
   bool suggestRoute = false;
-  bool isDestinationVisible = true;
 
-  String locationFrom = "University of the Philippines Los Banos";
-  String locationTo = "Location B";
+  // bool showDirectionsButton = false;
+  // bool selectedDestination = false;
 
   @override
   void initState() {
@@ -61,27 +62,9 @@ class _WalkingTrackerState extends State<WalkingTracker> {
           setState(() {
             showMap = false;
           });
-        } else {
-          void handleRouteSelection(bool useSuggestedRoute) {
-            setState(() {
-              suggestRoute = useSuggestedRoute;
-            });
-          }
-
-          if (!isFinish) {
-            // to prevent inserting the overlay when finish already within few seconds
-            suggestRouteConfirmation(context, handleRouteSelection);
-          }
         }
       });
     });
-  }
-
-  @override
-  void dispose() {
-    locationTimer?.cancel();
-    removeOverlay();
-    super.dispose();
   }
 
   void startTimer() {
@@ -94,18 +77,39 @@ class _WalkingTrackerState extends State<WalkingTracker> {
     });
   }
 
-  String formatDuration(int seconds) {
-    int hours = seconds ~/ 3600;
-    int minutes = (seconds % 3600) ~/ 60;
-    int secs = seconds % 60;
-
-    return "${hours.toString()}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}";
+  @override
+  void dispose() {
+    locationTimer?.cancel();
+    removeOverlay();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final trackerProvider = Provider.of<TrackerProvider>(context);
     final activityProvider = Provider.of<ActivityProvider>(context);
+
+    void handleSuggestRouteSelection(bool useSuggestedRoute) {
+      setState(() {
+        suggestRoute = useSuggestedRoute;
+
+        // if not suggesting route, show directions button
+        // if (!useSuggestedRoute) {
+        //   showDirectionsButton = true;
+        // }
+      });
+    }
+
+    // show the overlay once when currentLocation is obtained
+    if (trackerProvider.currentLocation != null && !overlayShown) {
+      overlayShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!isFinish) {
+          // to prevent inserting the overlay when finish already within few seconds
+          selectRouteConfirmation(context, handleSuggestRouteSelection);
+        }
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -173,38 +177,63 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                         margin: const EdgeInsets.only(top: 8),
                         child: MapScreen(
                           targetSteps: activityProvider.goalSteps,
+                          isSuggestRouteEnabled: suggestRoute,
                         ),
                       ),
-
-                      // show destination when suggest route is enabled
-                      suggestRoute
-                          ? isDestinationVisible
-                              ? buildExpandedView()
-                              : buildCollapsedView()
-                          : const SizedBox(),
-
-                      // line
-                      Container(
-                        height: 8,
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(top: 8),
-                        decoration: const BoxDecoration(
-                          border: Border(
-                            top: BorderSide(
-                              color: Color(0xFFECECEC),
-                              width: 8,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                      // for camera button
                       Positioned(
                         bottom: 18,
                         right: 18,
+                        // child: Column(
+                        //   children: [
+                        // // for directions button
+                        //     !selectedDestination && showDirectionsButton
+                        //         ? GestureDetector(
+                        //             onTap: () {
+                        //               SearchLocationDialog dialog =
+                        //                   SearchLocationDialog();
+
+                        //               dialog.show(
+                        //                 context: context,
+
+                        //                 // pass the selected destination in the param
+                        //                 onSave: () {
+                        //                   // set to true if a a destination is selected so setting own destination will only be allowed once
+                        //                   setState(() {
+                        //                     selectedDestination = true;
+                        //                   });
+                        //                 },
+                        //               );
+                        //             },
+                        //             child: Container(
+                        //               width: 42,
+                        //               height: 42,
+                        //               decoration: BoxDecoration(
+                        //                 color: const Color(0xFFFDE7B1),
+                        //                 borderRadius: BorderRadius.circular(10),
+                        //                 boxShadow: [
+                        //                   BoxShadow(
+                        //                     color:
+                        //                         Colors.grey.withOpacity(0.25),
+                        //                     blurRadius: 2,
+                        //                     offset: const Offset(0, 1.2),
+                        //                   ),
+                        //                 ],
+                        //               ),
+                        //               child: const Icon(
+                        //                 Icons.directions,
+                        //                 color: Color(0xFFBF9552),
+                        //                 size: 26,
+                        //               ),
+                        //             ),
+                        //           )
+                        //         : const SizedBox(),
+
+                        //     const SizedBox(height: 10),
+
+                        // for camera button
                         child: GestureDetector(
                           onTap: () async {
-                            // Open camera to take a picture
+                            // open camera to take a picture
                             capturedImage = await picker.pickImage(
                                 source: ImageSource.camera);
                             if (capturedImage != null) {
@@ -234,6 +263,8 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                             ),
                           ),
                         ),
+                        //   ],
+                        // ),
                       ),
                     ],
                   ),
@@ -536,116 +567,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
     );
   }
 
-  Widget buildExpandedView() {
-    return Align(
-      alignment: Alignment.topRight,
-      child: Container(
-        margin: const EdgeInsets.only(top: 14),
-        width: 270,
-        height: 110,
-        padding: const EdgeInsets.fromLTRB(10, 10, 0, 10),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.horizontal(left: Radius.circular(6)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black26,
-              blurRadius: 1.5,
-              offset: Offset(0, 1),
-            )
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset(
-              "assets/icons/destination.png",
-              width: 25,
-              height: 55,
-              fit: BoxFit.cover,
-            ),
-            const SizedBox(width: 5),
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                buildTextContainer(locationFrom),
-                const SizedBox(height: 8),
-                buildTextContainer(locationTo),
-                const SizedBox(height: 8),
-              ],
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_forward_ios, size: 20),
-                onPressed: () {
-                  setState(() {
-                    isDestinationVisible = false;
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget buildCollapsedView() {
-    return Align(
-      alignment: Alignment.topRight,
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            isDestinationVisible = true;
-          });
-        },
-        child: Container(
-          margin: const EdgeInsets.only(top: 14),
-          height: 110,
-          width: 50,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.horizontal(left: Radius.circular(6)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black26,
-                blurRadius: 1.5,
-                offset: Offset(0, 1),
-              )
-            ],
-          ),
-          child: const Center(
-            child: Icon(Icons.arrow_back_ios, size: 20),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget buildTextContainer(String text) {
-    return Container(
-      width: 180,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey),
-        borderRadius: BorderRadius.circular(5),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Text(
-          text,
-          style: GoogleFonts.inter(
-            color: Colors.black87,
-            fontSize: 13.5,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
-  void suggestRouteConfirmation(
+  void selectRouteConfirmation(
       BuildContext context, Function(bool) onRouteSelected) {
     overlayEntryRoute = OverlayEntry(
       builder: (context) => Positioned(
@@ -685,7 +607,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                   children: [
                     TextButton(
                       onPressed: () {
-                        onRouteSelected(true); // user selects yes
+                        onRouteSelected(true);
                         removeOverlay();
                       },
                       style: TextButton.styleFrom(
@@ -713,7 +635,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                     const SizedBox(width: 8),
                     TextButton(
                       onPressed: () {
-                        onRouteSelected(false); // user selects no
+                        onRouteSelected(false);
                         removeOverlay();
                       },
                       style: TextButton.styleFrom(
@@ -753,6 +675,14 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   void removeOverlay() {
     overlayEntryRoute?.remove();
     overlayEntryRoute = null;
+  }
+
+  String formatDuration(int seconds) {
+    int hours = seconds ~/ 3600;
+    int minutes = (seconds % 3600) ~/ 60;
+    int secs = seconds % 60;
+
+    return "${hours.toString()}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}";
   }
 
   void showTopSnackBar(BuildContext context) {
