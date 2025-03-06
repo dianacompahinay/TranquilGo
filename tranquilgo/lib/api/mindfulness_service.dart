@@ -293,17 +293,16 @@ class MindfulnessService {
     }
   }
 
-  Future<File> resizeImage(File file) async {
-    return await compute(_resizeImageInIsolate, file);
+  Future<File> compressImage(File file) async {
+    return await compute(compressImageInIsolate, file);
   }
 
-  File _resizeImageInIsolate(File file) {
+  File compressImageInIsolate(File file) {
     final bytes = file.readAsBytesSync();
     final image = img.decodeImage(bytes);
-    final resized = img.copyResize(image!, width: 200);
-    final resizedFile = File(file.path)
-      ..writeAsBytesSync(img.encodeJpg(resized, quality: 85));
-    return resizedFile;
+    final compressedFile = File(file.path)
+      ..writeAsBytesSync(img.encodeJpg(image!, quality: 85));
+    return compressedFile;
   }
 
   Future<void> createJournalEntry(
@@ -318,8 +317,8 @@ class MindfulnessService {
             return null;
           }
 
-          // Resize and check for null
-          final resizedFile = await resizeImage(imageFile);
+          // compress and check for null
+          final resizedFile = await compressImage(imageFile);
           if (resizedFile == null) {
             print("Failed to resize image: ${imageFile.path}");
             return null;

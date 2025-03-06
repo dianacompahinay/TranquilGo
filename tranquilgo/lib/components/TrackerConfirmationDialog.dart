@@ -99,3 +99,106 @@ class ConfirmationDialog {
     );
   }
 }
+
+class TrackingPausedDialog extends StatelessWidget {
+  final VoidCallback onResume;
+  final double speed;
+
+  const TrackingPausedDialog(
+      {Key? key, required this.onResume, required this.speed})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+      ),
+      backgroundColor: Colors.white,
+      content: Padding(
+        padding: const EdgeInsets.only(top: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Average speed',
+              style: GoogleFonts.manrope(
+                textStyle: const TextStyle(
+                  color: Color(0xFF464646),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text.rich(
+              TextSpan(
+                text: speed.toStringAsFixed(2),
+                style: GoogleFonts.inter(
+                  color: const Color(0xFF464646),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w500,
+                ),
+                children: [
+                  TextSpan(
+                    text: "  km/h",
+                    style: GoogleFonts.manrope(
+                      color: const Color(0xFF505050),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              "Your speed is faster than a typical walking pace. Please slow down to ensure your activity is properly tracked as walking.",
+              style: GoogleFonts.manrope(
+                textStyle: const TextStyle(
+                  color: Color(0xFF464646),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.zero,
+          child: ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // close dialog
+              onResume(); // call resume function
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(5),
+                side: const BorderSide(
+                  color: Color(0xFFB1B1B1),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Text(
+              'Continue',
+              style: GoogleFonts.inter(
+                textStyle: const TextStyle(
+                  color: Color(0xFF4C4B4B),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

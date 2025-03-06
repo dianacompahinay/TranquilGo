@@ -16,7 +16,6 @@ class ActivityForm extends StatefulWidget {
   final int steps;
   final int duration;
   final double distance;
-  final double avgSpeed;
   final List<XFile> capturedImages;
 
   const ActivityForm({
@@ -26,7 +25,6 @@ class ActivityForm extends StatefulWidget {
     required this.steps,
     required this.duration,
     required this.distance,
-    required this.avgSpeed,
     required this.capturedImages,
   });
 
@@ -41,7 +39,6 @@ class _ActivityFormState extends State<ActivityForm> {
   late int steps = widget.steps;
   late int duration = widget.duration;
   late double distance = widget.distance;
-  late double avgSpeed = widget.avgSpeed;
   late Timestamp startTime = widget.startTime;
   late Timestamp endTime = widget.endTime;
   late List<XFile> capturedImages = widget.capturedImages;
@@ -94,8 +91,8 @@ class _ActivityFormState extends State<ActivityForm> {
         duration,
         steps,
         distance,
-        avgSpeed,
         confidenceLevel! + 1,
+        selectedMood!,
       );
 
       // plus 1 since selectedMood is index but mood is 1 to 5
@@ -193,8 +190,7 @@ class _ActivityFormState extends State<ActivityForm> {
                             const SizedBox(width: 10),
                             infoCard("Time", formatDuration(duration)),
                             const SizedBox(width: 10),
-                            infoCard(
-                                "Distance", roundOffDouble(distance / 1000, 2)),
+                            infoCard("Distance", roundOffDouble(distance, 2)),
                           ],
                         ),
                         const SizedBox(height: 20),

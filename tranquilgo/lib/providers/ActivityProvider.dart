@@ -290,15 +290,15 @@ class ActivityProvider with ChangeNotifier {
     int timeDuration,
     int numSteps,
     double distanceCovered,
-    double avgSpeed,
     int seScore,
+    int mood,
   ) async {
     isOverviewFetch = false;
     isStatsFetch = false;
 
     try {
       await activityService.createActivity(userId, date, startTime, endTime,
-          timeDuration, numSteps, distanceCovered, avgSpeed, seScore);
+          timeDuration, numSteps, distanceCovered, seScore, mood);
       notifyListeners();
 
       return 'success';

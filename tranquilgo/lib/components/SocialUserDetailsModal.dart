@@ -119,33 +119,86 @@ class UserDetailsModal {
                   Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const SizedBox(height: 10),
                       Row(
                         children: [
-                          IconButton(
-                            constraints: const BoxConstraints(),
-                            icon: const Icon(
-                              Icons.email,
-                              color: Color(0xFF92DBC9),
-                              size: 28,
-                            ),
-                            onPressed: () {
+                          // IconButton(
+                          //   constraints: const BoxConstraints(),
+                          //   icon: const Icon(
+                          //     Icons.email_outlined,
+                          //     color: Color(0xFF8A8A8A),
+                          //     size: 28,
+                          //   ),
+                          //   onPressed: () {
+                          //     MessageUserModal(user["userId"], user["username"])
+                          //         .show(context);
+                          //   },
+                          // ),
+                          // const SizedBox(width: 5),
+                          // IconButton(
+                          //   constraints: const BoxConstraints(),
+                          //   icon: const Icon(
+                          //     Icons.person_remove_outlined,
+                          //     color: Color(0xFF8A8A8A),
+                          //     size: 30,
+                          //   ),
+                          //   onPressed: () {
+                          //     confirmationToUnfriend(
+                          //         context, user["userId"], user["username"]);
+                          //   },
+                          // ),
+
+                          GestureDetector(
+                            onTap: () {
                               MessageUserModal(user["userId"], user["username"])
                                   .show(context);
                             },
-                          ),
-                          const SizedBox(width: 5),
-                          IconButton(
-                            constraints: const BoxConstraints(),
-                            icon: const Icon(
-                              Icons.person_remove,
-                              color: Color(0xFFC5C5C5),
-                              size: 30,
+                            child: Container(
+                              height: 30,
+                              width: 30,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF91CACE),
+                                borderRadius: BorderRadius.circular(5),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 1.5,
+                                    offset: Offset(2, 2),
+                                  )
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.email,
+                                color: Colors.white,
+                                size: 18,
+                              ),
                             ),
-                            onPressed: () {
+                          ),
+                          const SizedBox(width: 10),
+                          GestureDetector(
+                            onTap: () {
                               confirmationToUnfriend(
                                   context, user["userId"], user["username"]);
                             },
+                            child: Container(
+                              height: 30,
+                              width: 30,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFC5C5C5),
+                                borderRadius: BorderRadius.circular(5),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 1.5,
+                                    offset: Offset(2, 2),
+                                  )
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.person_remove,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -153,9 +206,10 @@ class UserDetailsModal {
                   ),
                 ],
               ),
+
               const SizedBox(height: 26),
-              _buildSectionTitle("Most Recent Activity"),
-              _buildActivityRow(
+              buildSectionTitle("Most Recent Activity"),
+              buildActivityRow(
                 "Total Steps",
                 "${user["steps"]}",
                 "Total Distance",
@@ -165,14 +219,14 @@ class UserDetailsModal {
               ),
               // const Divider(thickness: 0.7, height: 60),
               const SizedBox(height: 30),
-              _buildSectionTitle("This Week's Progress"),
-              _buildActivityRow(
+              buildSectionTitle("This Week's Progress"),
+              buildActivityRow(
                 "Total Steps",
                 "${user["weeklySteps"]}",
                 "Total Distance",
                 user["weeklyDistance"],
-                "Mood Rating",
-                "${user["weeklyMood"]}",
+                "",
+                "",
               ),
               const SizedBox(height: 20),
             ],
@@ -182,7 +236,7 @@ class UserDetailsModal {
     );
   }
 
-  static Widget _buildSectionTitle(String title) {
+  static Widget buildSectionTitle(String title) {
     return Container(
         margin: const EdgeInsets.only(bottom: 10),
         child: Text(
@@ -197,7 +251,7 @@ class UserDetailsModal {
         ));
   }
 
-  static Widget _buildActivityRow(
+  static Widget buildActivityRow(
     String label1,
     String value1,
     String label2,
@@ -208,9 +262,13 @@ class UserDetailsModal {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        buildActivityColumn(label1, value1),
-        buildActivityColumn(label2, value2),
-        buildActivityColumn(label3, value3),
+        Expanded(child: buildActivityColumn(label1, value1)),
+        Expanded(child: buildActivityColumn(label2, value2)),
+        Expanded(
+          child: label3.isNotEmpty
+              ? buildActivityColumn(label3, value3)
+              : const SizedBox(), // keep empty space for alignment
+        ),
       ],
     );
   }
@@ -269,9 +327,9 @@ class UserDetailsModal {
     showDialog(
       context: context,
       builder: (context) {
-        bool loadingState = false; // Moved inside the builder
+        bool loadingState = false;
         return StatefulBuilder(builder: (context, setState) {
-          // StatefulBuilder for UI updates
+          // stateful builder for UI updates
           return AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

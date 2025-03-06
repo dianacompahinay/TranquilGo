@@ -565,8 +565,8 @@ class ActivityService {
     int timeDuration,
     int numSteps,
     double distanceCovered,
-    double avgSpeed,
     int seScore,
+    int mood,
   ) async {
     try {
       DocumentReference weeklyActivityRef =
@@ -585,8 +585,8 @@ class ActivityService {
         'timeDuration': timeDuration,
         'numSteps': numSteps,
         'distanceCovered': distanceCovered,
-        'avgSpeed': avgSpeed,
         'seScore': seScore,
+        'recentMood': mood,
       });
 
       // update the weekly summary

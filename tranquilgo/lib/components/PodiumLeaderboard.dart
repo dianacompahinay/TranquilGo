@@ -35,14 +35,10 @@ class PodiumWidgetWithImage extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: const Color(0xFFFDFDFD),
                   borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
-                      spreadRadius: 0.2,
-                      blurRadius: 2,
-                      offset: const Offset(0, 1.2),
-                    ),
-                  ],
+                  border: Border.all(
+                    color: const Color(0xFFEBEBEB),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

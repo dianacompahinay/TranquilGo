@@ -44,10 +44,6 @@ class _ActionButtonsState extends State<ActionButtons> {
 
   Timestamp? startTime;
 
-  // Timer? timer;
-
-  late double avgSpeed = 5.2;
-
   @override
   void initState() {
     super.initState();
@@ -186,7 +182,6 @@ class _ActionButtonsState extends State<ActionButtons> {
                           duration: widget.timeDuration,
                           steps: widget.steps,
                           distance: widget.distance,
-                          avgSpeed: avgSpeed,
                           capturedImages: widget.capturedImages ?? [],
                         ),
                       ),

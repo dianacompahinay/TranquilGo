@@ -41,6 +41,8 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   // bool showDirectionsButton = false;
   // bool selectedDestination = false;
 
+  bool isDialogShowing = false;
+
   @override
   void initState() {
     super.initState();
@@ -110,6 +112,27 @@ class _WalkingTrackerState extends State<WalkingTracker> {
         }
       });
     }
+
+    // show dialog when tracking is paused due to high speed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (trackerProvider.isTrackingPaused && !isDialogShowing) {
+        setState(() {
+          isDialogShowing = true;
+        });
+        showDialog(
+          context: context,
+          builder: (_) => TrackingPausedDialog(
+            onResume: () {
+              trackerProvider.resumeTracking();
+              setState(() {
+                isDialogShowing = false;
+              });
+            },
+            speed: trackerProvider.currentSpeed,
+          ),
+        );
+      }
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -280,8 +303,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                                 "${trackerProvider.stepCount}", "large"),
                             buildMetricsCard(
                                 "Distance covered",
-                                (trackerProvider.distance / 1000)
-                                    .toStringAsFixed(3),
+                                trackerProvider.distance.toStringAsFixed(3),
                                 "large"),
                             buildMetricsCard("Time", displayTime, "large"),
                             Container(
@@ -351,8 +373,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                           buildMetricsCard("Time", displayTime, "small"),
                           buildMetricsCard(
                               "Distance covered",
-                              (trackerProvider.distance / 1000)
-                                  .toStringAsFixed(2),
+                              trackerProvider.distance.toStringAsFixed(2),
                               "small"),
                         ],
                       )
@@ -416,7 +437,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                           ),
                           if (trackerProvider.progress != null)
                             Text(
-                              "${(trackerProvider.progress! * 100).toStringAsFixed(1)}%",
+                              "${(trackerProvider.progress * 100).toStringAsFixed(1)}%",
                               style: GoogleFonts.manrope(
                                 textStyle: const TextStyle(
                                   color: Color(0xFF444444),
@@ -428,7 +449,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                         ],
                       ),
                       LinearProgressIndicator(
-                        value: trackerProvider.progress ?? 0,
+                        value: trackerProvider.progress,
                         minHeight: 8,
                         borderRadius:
                             const BorderRadius.all(Radius.circular(5)),
@@ -530,25 +551,29 @@ class _WalkingTrackerState extends State<WalkingTracker> {
       onStart: () {
         timeDuration = 0;
         startTimer();
-        trackerProvider.fetchStepAndDistance();
+        trackerProvider.startRealTimeTracking();
+        trackerProvider.monitorSpeed(); //  speed monitoring
         setState(() {
           buttonState = 'pause';
         });
       },
       onPause: () {
         timer?.cancel();
+        trackerProvider.pauseTracking();
         setState(() {
           buttonState = 'resume';
         });
       },
       onResume: () {
         startTimer();
+        trackerProvider.resumeTracking();
         setState(() {
           buttonState = 'pause';
         });
       },
       onFinish: () {
         timer?.cancel();
+        trackerProvider.pauseTracking();
         removeOverlay();
         setState(() {
           isFinish = true;
@@ -559,7 +584,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
           showMap = !showMap;
         });
       },
-      progress: trackerProvider.progress ?? 0,
+      progress: trackerProvider.progress,
       capturedImages: capturedImages,
       steps: trackerProvider.stepCount,
       distance: trackerProvider.distance,

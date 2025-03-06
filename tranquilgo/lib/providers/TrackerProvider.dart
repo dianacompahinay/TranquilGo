@@ -17,8 +17,8 @@ class TrackerProvider with ChangeNotifier {
   int stepCount = 0;
   double distance = 0.0;
   bool isFetching = true;
-  double _progress = 0.0;
-  int _targetSteps = 0;
+  double progress = 0.0;
+  int targetSteps = 0;
 
   LatLng? _suggestedDestination;
   List<LatLng> routePoints = [];
@@ -29,14 +29,16 @@ class TrackerProvider with ChangeNotifier {
   String _startLocationName = "";
   String _destinationLocationName = "";
 
+  double _currentSpeed = 0.0;
+  bool isTrackingPaused = false;
+
+  double get currentSpeed => _currentSpeed;
+
   LatLng? get suggestedDestination => _suggestedDestination;
   LocationData? get currentLocation => _currentLocation;
   String? get startLocationName => _startLocationName;
   String? get destinationLocationName => _destinationLocationName;
   List<Map<String, dynamic>>? get suggestions => _suggestions;
-
-  double? get progress => _progress;
-  int? get targetSteps => _targetSteps;
 
   final String placesApiKey = "AIzaSyAF97pejfG-jgwBotC2RVB0wj2-Tbn6SSU";
 
@@ -44,8 +46,11 @@ class TrackerProvider with ChangeNotifier {
     stepCount = 0;
     distance = 0.0;
     isFetching = false;
-    _progress = 0.0;
-    _targetSteps = await activityProvider.getTargetSteps(userId);
+    progress = 0.0;
+
+    trackerService.resetValues();
+    targetSteps = await activityProvider.getTargetSteps(userId);
+    isTrackingPaused = false;
 
     _suggestedDestination = null;
     routePoints = [];
@@ -54,32 +59,41 @@ class TrackerProvider with ChangeNotifier {
     _destinationLocationName = "";
   }
 
-  Future<void> fetchCurrentLocation() async {
-    trackerService.startLocationUpdates((locationData) {
-      _currentLocation = locationData;
+  void monitorSpeed() {
+    trackerService.monitorSpeed((speedMps) {
+      _currentSpeed = speedMps * 3.6; // store speed in km/h
+      notifyListeners();
+
+      // 9 km/h = 2.5 m/s
+      if (_currentSpeed > 9) {
+        pauseTracking();
+      }
+    });
+  }
+
+  void startRealTimeTracking() {
+    trackerService.startTracking((int newSteps, double newDistance) {
+      stepCount = newSteps;
+      distance = newDistance;
+      progress = newSteps / targetSteps;
       notifyListeners();
     });
   }
 
-  Future<void> fetchStepAndDistance() async {
-    isFetching = true;
-    notifyListeners();
-
-    final data = await trackerService.fetchStepAndDistance();
-
-    stepCount = data["steps"];
-    distance = data["distance"];
-    _progress = (stepCount / _targetSteps).clamp(0.0, 1.0);
-
-    isFetching = false;
-    notifyListeners();
+  void pauseTracking() {
+    isTrackingPaused = true;
+    trackerService.accelerometerSubscription?.cancel();
+    trackerService.locationSubscription?.cancel();
   }
 
-  void startFallbackTracking() {
-    trackerService.startFallbackStepTracking();
-    Timer.periodic(const Duration(seconds: 2), (timer) {
-      stepCount = trackerService.stepCount;
-      distance = trackerService.distance;
+  void resumeTracking() {
+    isTrackingPaused = false;
+    startRealTimeTracking();
+  }
+
+  Future<void> fetchCurrentLocation() async {
+    trackerService.startLocationUpdates((locationData) {
+      _currentLocation = locationData;
       notifyListeners();
     });
   }

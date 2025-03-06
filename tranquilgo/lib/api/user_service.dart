@@ -118,20 +118,46 @@ class UserDetailsService {
                   ? friendDoc["profileImage"]
                   : "no_image";
 
+              // fetch the latest activity data
+              DocumentSnapshot? latestActivityDoc = await firestore
+                  .collection("weekly_activity")
+                  .doc(friendId)
+                  .get();
+
+              Map<String, dynamic>? activityData = latestActivityDoc.exists
+                  ? latestActivityDoc.data() as Map<String, dynamic>
+                  : null;
+
+              // fetch the most recent activity entry
+              QuerySnapshot activitySnapshot = await firestore
+                  .collection("weekly_activity")
+                  .doc(friendId)
+                  .collection("activities")
+                  .orderBy("endTime",
+                      descending: true) // order by timestamp, latest first
+                  .limit(1)
+                  .get();
+
+              Map<String, dynamic>? latestActivity = activitySnapshot
+                      .docs.isNotEmpty
+                  ? activitySnapshot.docs.first.data() as Map<String, dynamic>
+                  : null;
+
               friends.add({
                 "userId": friendId,
                 "profileImage": userImage,
                 "username": friendDoc['username'],
                 "name": friendDoc['name'],
 
-                // temporary data
-                "activeStatus": "offline",
-                "steps": 2081,
-                "distance": "1.5 km",
-                "mood": 5.0,
-                "weeklySteps": 10088,
-                "weeklyDistance": "7.57 km",
-                "weeklyMood": 4.5,
+                // from latest activity
+                "activeStatus": friendData["activeStatus"] ?? "offline",
+                "steps": latestActivity?["numSteps"] ?? 0,
+                "distance": "${latestActivity?["distanceCovered"] ?? 0} km",
+                "mood": latestActivity?["recentMood"] ?? 0,
+
+                // from weekly summary
+                "weeklySteps": activityData?["totalStepsTaken"] ?? 0,
+                "weeklyDistance": "${activityData?["totalDistance"] ?? 0} km",
               });
             }
           }

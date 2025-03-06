@@ -111,14 +111,10 @@ class LeaderboardPageState extends State<LeaderboardPage> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFFDFDFD),
                               borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  spreadRadius: 0.2,
-                                  blurRadius: 2,
-                                  offset: const Offset(0, 1.2),
-                                ),
-                              ],
+                              border: Border.all(
+                                color: const Color(0xFFEBEBEB),
+                                width: 1,
+                              ),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -230,14 +226,6 @@ class TopUserImage extends StatelessWidget {
               color: Colors.white,
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.07),
-                spreadRadius: 2,
-                blurRadius: 10,
-                offset: const Offset(0, 0),
-              ),
-            ],
             borderRadius: BorderRadius.circular(50),
           ),
           child: ClipRRect(

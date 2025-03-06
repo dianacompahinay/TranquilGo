@@ -230,7 +230,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                                     .todayActivitySummary[
                                                 "totalSteps"])),
                                     todayStatsDetails('Total Distance',
-                                        '${(activityProvider.todayActivitySummary["totalDistance"] / 1000).toStringAsFixed(3)} km'),
+                                        '${activityProvider.todayActivitySummary["totalDistance"].toStringAsFixed(2)} km'),
                                     todayStatsDetails(
                                         'Total Duration',
                                         formatTimeDuration(activityProvider
@@ -498,7 +498,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                   'assets/icons/distance.png',
                                   "Total Distance",
                                   // "100 km",
-                                  "${activityProvider.activityStats["totalDistance"].toStringAsFixed(3)} km",
+                                  "${activityProvider.activityStats["totalDistance"].toStringAsFixed(2)} km",
                                 ),
                               ],
                             ),

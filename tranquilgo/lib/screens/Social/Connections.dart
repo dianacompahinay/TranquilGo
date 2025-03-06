@@ -148,18 +148,11 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                 child: Container(
                                   margin:
                                       const EdgeInsets.only(bottom: 6, top: 8),
-                                  padding: const EdgeInsets.all(12),
+                                  padding:
+                                      const EdgeInsets.fromLTRB(14, 12, 14, 12),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFCFCFC),
+                                    color: const Color(0xFFFFFFFF),
                                     borderRadius: BorderRadius.circular(8),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.grey.withOpacity(0.2),
-                                        spreadRadius: 0.2,
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 1.2),
-                                      ),
-                                    ],
                                   ),
                                   child: Row(
                                     mainAxisAlignment:
@@ -298,6 +291,7 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                 width: 55,
                 height: 55,
                 child: FloatingActionButton(
+                  elevation: 3,
                   onPressed: () async {
                     String? result =
                         await Navigator.pushNamed(context, '/searchusers');
