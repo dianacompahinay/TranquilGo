@@ -174,6 +174,7 @@ class _JournalEntriesState extends State<JournalEntries> {
             slivers: [
               SliverAppBar(
                 backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
                 toolbarHeight: 60,
                 leading: Container(
                   margin: const EdgeInsets.only(left: 10),

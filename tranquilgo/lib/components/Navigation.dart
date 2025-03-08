@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'NavigationBar.dart';
 
@@ -21,7 +22,8 @@ class DashboardWithNavigation extends StatefulWidget {
       _DashboardWithNavigationState();
 }
 
-class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
+class _DashboardWithNavigationState extends State<DashboardWithNavigation>
+    with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey<SocialPageState> socialPageKey = GlobalKey<SocialPageState>();
 
@@ -41,6 +43,10 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
   void initState() {
     super.initState();
     updateWeeklyGoalActivity();
+
+    WidgetsBinding.instance.addObserver(this);
+    setActiveStatus(true);
+
     pageController = PageController();
 
     // list of pages for each tab
@@ -78,9 +84,30 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
     activityProvider.initialLoad(userId);
   }
 
+  void setActiveStatus(bool isOnline) {
+    String? userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId != null) {
+      Provider.of<UserDetailsProvider>(context, listen: false)
+          .updateUserStatus(isOnline, userId);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      setActiveStatus(true); // user comes back, set online
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      setActiveStatus(false); // app minimized or closed, set offline
+    }
+  }
+
   @override
   void dispose() {
     pageController.dispose();
+    WidgetsBinding.instance.addObserver(this);
+    setActiveStatus(false);
     super.dispose();
   }
 
@@ -95,6 +122,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation> {
         // for sidebar menu
         backgroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         toolbarHeight: 60,
         leading: GestureDetector(
           onTap: () {

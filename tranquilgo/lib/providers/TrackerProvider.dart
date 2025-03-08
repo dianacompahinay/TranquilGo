@@ -66,6 +66,7 @@ class TrackerProvider with ChangeNotifier {
 
       // 9 km/h = 2.5 m/s
       if (_currentSpeed > 9) {
+        isTrackingPaused = true;
         pauseTracking();
       }
     });
@@ -81,7 +82,6 @@ class TrackerProvider with ChangeNotifier {
   }
 
   void pauseTracking() {
-    isTrackingPaused = true;
     trackerService.accelerometerSubscription?.cancel();
     trackerService.locationSubscription?.cancel();
   }

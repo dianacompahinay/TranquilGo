@@ -16,22 +16,6 @@ class ConnectionsPage extends StatefulWidget {
 class ConnectionsPageState extends State<ConnectionsPage> {
   bool isConnectionFailed = false;
 
-  // List<Map<String, dynamic>> users = [
-  //   {
-  //     "userid": "1",
-  //     "profileImage": "assets/images/user.jpg",
-  //     "username": "jandoe",
-  //     "name": "John Doe",
-  //     "activeStatus": "offline",
-  //     "steps": 2081,
-  //     "distance": "1.5 km",
-  //     "mood": 5.0,
-  //     "weeklySteps": 10088,
-  //     "weeklyDistance": "7.57 km",
-  //     "weeklyMood": 4.5,
-  //   },
-  // ];
-
   @override
   void initState() {
     super.initState();
@@ -40,13 +24,18 @@ class ConnectionsPageState extends State<ConnectionsPage> {
 
   Future<void> initializeFriends() async {
     final userId = FirebaseAuth.instance.currentUser!.uid;
+    // final userProvider = Provider.of<UserDetailsProvider>(context, listen: false);
+    // String? userId = FirebaseAuth.instance.currentUser?.uid;
 
     try {
       // fetch only if users list is empty
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final userProvider =
             Provider.of<UserDetailsProvider>(context, listen: false);
-        userProvider.fetchFriends(userId);
+        if (userId != null) {
+          userProvider.fetchFriends(userId);
+          userProvider.listenToFriends(userId);
+        }
       });
     } catch (e) {
       setState(() {

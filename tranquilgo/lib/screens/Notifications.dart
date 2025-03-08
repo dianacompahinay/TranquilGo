@@ -49,6 +49,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         toolbarHeight: 60,
         leading: Container(
           margin: const EdgeInsets.only(left: 10),
@@ -91,13 +92,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
         centerTitle: true,
       ),
       body: Container(
-        padding:
-            const EdgeInsets.only(left: 10, right: 26, top: 10, bottom: 24),
+        padding: const EdgeInsets.only(right: 20, bottom: 24),
         constraints: const BoxConstraints.expand(),
         decoration: const BoxDecoration(color: Colors.white),
         child: Column(
           children: [
-            const SizedBox(height: 10),
             buildTabs(),
             isConnectionFailed
                 ? SizedBox(
@@ -133,10 +132,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       itemCount: filteredNotifications.length +
                           (notifProvider.isLoading ? 1 : 0),
                       separatorBuilder: (context, index) => const Divider(
-                          height: 1,
-                          indent: 26,
-                          endIndent: 8,
-                          color: Color(0xFFE1E1E1)),
+                        height: 1.2,
+                        indent: 26,
+                        endIndent: 8,
+                        color: Color(0xFFECECEC),
+                      ),
                       itemBuilder: (context, index) {
                         if (notifProvider.isLoading &&
                             index == filteredNotifications.length) {
@@ -292,7 +292,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                           ),
                                     if (!notif["isRead"])
                                       Transform.translate(
-                                        offset: const Offset(-18, 16),
+                                        offset: const Offset(-12, 16),
                                         child: Container(
                                           width: 10,
                                           height: 10,
@@ -562,7 +562,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   Widget buildTabs() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      padding: const EdgeInsets.fromLTRB(40, 8, 20, 0),
       margin: const EdgeInsets.only(bottom: 16),
       child: Column(
         children: [

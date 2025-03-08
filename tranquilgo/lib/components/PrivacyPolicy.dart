@@ -9,6 +9,8 @@ class PrivacyPolicyPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         backgroundColor: Colors.white,
         leading: Container(
           margin: const EdgeInsets.only(left: 10),
@@ -43,7 +45,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             DefaultTextStyle(
               style: GoogleFonts.inter(
                 textStyle: const TextStyle(
-                  color: Color(0xFF494949),
+                  color: Colors.black87,
                   fontSize: 25,
                   fontWeight: FontWeight.w600,
                 ),
@@ -52,15 +54,15 @@ class PrivacyPolicyPage extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            const Text("Last Updated March 01, 2025"),
+            text("Last Updated March 01, 2025"),
             const SizedBox(height: 25),
-            const Text(
+            text(
               "This Privacy Notice describes how and why we might access, collect, store, use, and/or share your personal information when you use our services, including when you:",
             ),
             const SizedBox(height: 15),
             boldText("Questions or concerns?"),
             const SizedBox(height: 5),
-            const Text(
+            text(
               "Reading this Privacy Notice will help you understand your privacy rights and choices. If you do not agree with our policies and practices, please do not use our services. If you have any questions or concerns, please contact us at dpcompahinay@up.edu.ph.",
             ),
             const SizedBox(height: 20),
@@ -69,12 +71,12 @@ class PrivacyPolicyPage extends StatelessWidget {
             sectionTitle("1. WHAT INFORMATION DO WE COLLECT?"),
             const SizedBox(height: 15),
 
-            const Text(
+            text(
               "We collect personal information that you voluntarily provide to us when you register, express interest, participate in activities, or contact us.",
             ),
             const SizedBox(height: 10),
 
-            const Text(
+            text(
                 "The personal information we collect may include the following:"),
             const SizedBox(height: 10),
 
@@ -89,7 +91,7 @@ class PrivacyPolicyPage extends StatelessWidget {
 
             // Bold Heading with Description
             boldText("Sensitive Information"),
-            const Text(
+            text(
                 "We process the following categories of sensitive information with your consent:"),
             bulletPoint("Health data"),
             bulletPoint("Journal entries, notes, or other text inputs"),
@@ -97,7 +99,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             const SizedBox(height: 10),
 
             boldText("Application Data"),
-            const Text(
+            text(
               "If you use our application, we may collect the following information if you provide us access or permission:",
             ),
             const SizedBox(height: 10),
@@ -109,7 +111,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                 "We may request access to your camera, sensors, storage, photos, and other features. You can adjust these permissions in your device settings."),
 
             const SizedBox(height: 10),
-            const Text(
+            text(
                 "This information is primarily needed to maintain the security and operation of our application, for troubleshooting, and for our internal analytics and reporting purposes."),
 
             const SizedBox(height: 20),
@@ -117,10 +119,10 @@ class PrivacyPolicyPage extends StatelessWidget {
             boldText("Information Automatically Collected"),
             const SizedBox(height: 10),
 
-            const Text(
+            text(
                 "We automatically collect certain information when you visit, use, or navigate the services. This information does not reveal your specific identity (like your name or contact information) but may include device and usage information, such as your IP address, device characteristics, operating system, language preferences, reffering URLs, device name, country, location, information about how and when you use our services, and other technical information. This information is primarily needed to maintain the security and operation of our services, and for our internal analytics and reporting purposes."),
             const SizedBox(height: 10),
-            const Text("The information we collect includes:"),
+            text("The information we collect includes:"),
             const SizedBox(height: 10),
 
             bulletItalizedTitle(
@@ -141,14 +143,14 @@ class PrivacyPolicyPage extends StatelessWidget {
             const SizedBox(height: 20),
             boldText("Google API"),
             const SizedBox(height: 10),
-            const Text(
+            text(
               "Our use of information received from Google APIs will adhere to Google API Services User Data Policy, including the Limited Use requirements.",
             ),
             const SizedBox(height: 20),
 
             sectionTitle("2. HOW DO WE PROCESS YOUR INFORMATION?"),
             const SizedBox(height: 10),
-            const Text(
+            text(
               "We process your personal information for a variety of reasons depending on how you interact with our services, including:",
             ),
             const SizedBox(height: 10),
@@ -188,12 +190,12 @@ class PrivacyPolicyPage extends StatelessWidget {
             const SizedBox(height: 10),
             boldText(
                 "Vendors, Consultants, and Other Third-Party Service Providers."),
-            const Text(
+            text(
               "We may share your data with third-party vendors, service providers, contractors, or agents (\"third parties\") who perform services for us or on our behalf and require access to such information to do that work. We have contracts in place with our third parties, which are designed to help safeguard your personal information. This means that they cannot do anything with your personal information unless we have instructed them to do it. They will also not share your personal information with any organization apart from us. They also commit to protecting the data they hold on our behalf and to retain it for the period we instruct.",
             ),
             const SizedBox(height: 10),
 
-            const Text(
+            text(
                 "The third parties we may share personal information with are as follows:"),
             const SizedBox(height: 10),
 
@@ -206,7 +208,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             bulletBoldTitle("Database storage", "Firebase Firestore"),
             const SizedBox(height: 10),
 
-            const Text(
+            text(
                 "We also may need to share your personal information in the following situations:"),
             const SizedBox(height: 10),
 
@@ -224,20 +226,20 @@ class PrivacyPolicyPage extends StatelessWidget {
             sectionTitle("4. DO WE USE COOKIES AND TRACKING TECHNOLOGIES?"),
             const SizedBox(height: 10),
 
-            const Text(
+            text(
                 "We may use cookies and similar tracking technologies (like web beacons and pixels) to gather information when you interact with our Services. Some online tracking technologies help us maintain the security of our Services and your account, prevent crashes, fix bugs, save your preferences, and assist with basic site functions."),
             const SizedBox(height: 15),
-            const Text(
+            text(
                 "We also permit third parties and service providers to use online tracking technologies on our Services for analytics and advertising, including to help manage and display advertisements, to tailor advertisements to your interests, or to send abandoned shopping cart reminders (depending on your communication preferences). The third parties and service providers use their technology to provide advertising about products and services tailored to your interests which may appear either on our Services or on other websites."),
             const SizedBox(height: 15),
-            const Text(
+            text(
                 "Specific information about how we use such technologies and how you can refuse certain cookies is set out in our Cookie Notice."),
 
             const SizedBox(height: 20),
 
             boldText("Google Analytics"),
             const SizedBox(height: 5),
-            const Text(
+            text(
                 "We may share your information with Google Analytics to track and analyze the use of the Services. To opt out of being tracked by Google Analytics across the Services, visit https://tools.google.com/dlpage/gaoptout. For more information on the privacy practices of Google, please visit the Google Privacy & Terms page."),
 
             const SizedBox(height: 20),
@@ -245,22 +247,22 @@ class PrivacyPolicyPage extends StatelessWidget {
             sectionTitle(
                 "5. DO WE OFFER ARTIFICIAL INTELLIGENCE-BASED PRODUCTS?"),
             const SizedBox(height: 10),
-            const Text(
+            text(
                 "As part of our Services, we offer products, features, or tools powered by artificial intelligence, machine learning, or similar technologies (collectively, \"AI Products\"). These tools are designed to enhance your experience and provide you with innovative solutions. The terms in this Privacy Notice govern your use of the AI Products within our Services."),
             const SizedBox(height: 20),
 
             boldText("Use of AI Technologies"),
             const SizedBox(height: 5),
-            const Text(
+            text(
                 "We provide the AI Products through third-party service providers (\"AI Service Providers\"), including Google Cloud AI. As outlined in this Privacy Notice, your input, output, and personal information will be shared with and processed by these AI Service Providers to enable your use of our AI Products for purposes outlined in [\"WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?\"] You must not use the AI Products in any way that violates the terms or policies of any AI Service Provider."),
             const SizedBox(height: 20),
 
             sectionTitle("6. HOW LONG DO WE KEEP YOUR INFORMATION?"),
             const SizedBox(height: 10),
-            const Text(
+            text(
                 "We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Notice, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). No purpose in this notice will require us keeping your personal information for longer than three (3) months past the termination of the user's account."),
 
-            const Text(
+            text(
                 "When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymize such information, or, if this is not possible (for example, because your personal information has been stored in backup archives), then we will securely store your personal information and isolate it from any further processing until deletion is possible."),
 
             const SizedBox(height: 20),
@@ -268,17 +270,17 @@ class PrivacyPolicyPage extends StatelessWidget {
             sectionTitle("7. WHAT ARE YOUR PRIVACY RIGHTS?"),
             const SizedBox(height: 10),
             boldText("Withdrawing your consent:"),
-            const Text(
+            text(
                 "If we are relying on your consent to process your personal information, which may be express and/or implied consent depending on the applicable law, you have the right to withdraw your consent at any time. You can withdraw your consent at any time by contacting us by using the contact details provided in the section \"HOW CAN YOU CONTACT US ABOUT THIS NOTICE?\" below."),
             const SizedBox(height: 10),
-            const Text(
+            text(
                 "However, please note that this will not affect the lawfulness of the processing before its withdrawal nor, when applicable law allows, will it affect the processing of your personal information conducted in reliance on lawful processing grounds other than consent."),
 
             const SizedBox(height: 10),
 
             sectionTitle("Account Information"),
             const SizedBox(height: 5),
-            const Text(
+            text(
                 "If you would at any time like to review or change the information in your account or terminate your account, you can:"),
             const SizedBox(height: 10),
             bulletPoint("Contact us for data requests"),
@@ -286,34 +288,34 @@ class PrivacyPolicyPage extends StatelessWidget {
             bulletPoint("Update account settings"),
             const SizedBox(height: 10),
 
-            const Text(
+            text(
                 "Upon your request to terminate your account, we will deactivate or delete your account and information from our active databases. However, we may retain some information in our files to prevent fraud, troubleshoot problems, assist with any investigations, enforce our legal terms and/or comply with applicable legal requirements."),
-            const Text(
+            text(
                 "If you have questions or comments about your privacy rights, you may email us at dpcompahinay@up.edu.ph."),
             const SizedBox(height: 20),
 
             sectionTitle("8. CONTROLS FOR DO-NOT-TRACK FEATURES"),
             const SizedBox(height: 10),
-            const Text(
+            text(
                 "Most web browsers and some mobile operating systems and mobile applications include a Do-Not-Track (\"DNT\") feature or setting you can activate to signal your privacy preference not to have data about your online browsing activities monitored and collected. At this stage, no uniform technology standard for recognizing and implementing DNT signals has been finalized. As such, we do not currently respond to DNT browser signals or any other mechanism that automatically communicates your choice not to be tracked online. If a standard for online tracking is adopted that we must follow in the future, we will inform you about that practice in a revised version of this Privacy Notice."),
             const SizedBox(height: 20),
 
             sectionTitle(
                 "9. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?"),
             const SizedBox(height: 10),
-            const Text(
+            text(
               "You have the right to request access, corrections, or deletion of your data. Contact us to submit a data subject access request.",
             ),
             const SizedBox(height: 20),
 
             sectionTitle("10. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?"),
             const SizedBox(height: 10),
-            const Text(
+            text(
                 "If you have any inquiries or feedback regarding this notice, you can reach us via email at dpcompahinay@up.edu.ph or call us at 09615121467."),
             const SizedBox(height: 20),
-            const Text("University of the Philippines Los Baños"),
-            const Text("Los Baños, Laguna"),
-            const Text("Philippines"),
+            text("University of the Philippines Los Baños"),
+            text("Los Baños, Laguna"),
+            text("Philippines"),
             const SizedBox(height: 20),
           ],
         )),
@@ -321,38 +323,65 @@ class PrivacyPolicyPage extends StatelessWidget {
     );
   }
 
+  Widget text(String text) {
+    return Text(
+      text,
+      style: GoogleFonts.inter(
+        fontSize: 13.5,
+      ),
+    );
+  }
+
   Widget sectionTitle(String text) {
     return Text(
       text,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      style: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
     );
   }
 
   Widget boldText(String text) {
-    return Text(text,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ));
+    return Text(
+      text,
+      style: GoogleFonts.inter(
+        fontSize: 14.5,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
+    );
   }
 
   Widget italicText(String text) {
-    return Text(text, style: const TextStyle(fontStyle: FontStyle.italic));
+    return Text(text, style: GoogleFonts.inter(fontStyle: FontStyle.italic));
   }
 
   Widget bulletPoint(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 15),
-      child: Text("• $text"),
+      child: Text(
+        "• $text",
+        style: GoogleFonts.inter(
+          fontSize: 13.5,
+          color: Colors.black87,
+        ),
+      ),
     );
   }
 
   Widget boldBulletPoint(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 15),
-      child: Text("• $text",
-          style: const TextStyle(
-              fontWeight: FontWeight.bold, color: Colors.black87)),
+      child: Text(
+        "• $text",
+        style: GoogleFonts.inter(
+          fontSize: 13.5,
+          fontWeight: FontWeight.bold,
+          color: Colors.black87,
+        ),
+      ),
     );
   }
 
@@ -361,7 +390,10 @@ class PrivacyPolicyPage extends StatelessWidget {
       padding: const EdgeInsets.only(left: 15),
       child: RichText(
         text: TextSpan(
-          style: const TextStyle(fontSize: 14, color: Colors.black87),
+          style: GoogleFonts.inter(
+            fontSize: 13.5,
+            color: Colors.black87,
+          ),
           children: [
             TextSpan(
               text: "• $title. ",
@@ -379,7 +411,7 @@ class PrivacyPolicyPage extends StatelessWidget {
       padding: const EdgeInsets.only(left: 15),
       child: RichText(
         text: TextSpan(
-          style: const TextStyle(fontSize: 14, color: Colors.black87),
+          style: const TextStyle(fontSize: 13.5, color: Colors.black87),
           children: [
             TextSpan(
               text: "• $title. ",

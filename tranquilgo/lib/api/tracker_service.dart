@@ -26,6 +26,8 @@ class TrackerService {
     stepCount = 0;
     distance = 0;
     previousAcceleration = 0;
+    lastLocation = null;
+    currentSpeed = 0;
   }
 
   Future<bool> requestLocationPermission() async {
@@ -84,8 +86,8 @@ class TrackerService {
               currentLocation.longitude);
 
           if (metersMoved > 0) {
-            distance += metersMoved;
-            updated = true; // mark update as needed
+            distance += (metersMoved / 1000); // convert to km
+            updated = true;
           }
         }
 
@@ -118,7 +120,7 @@ class TrackerService {
 
         // when GPS is off, estimate distance using step count
         if (!gpsEnabled) {
-          distance = stepCount * 0.0008; // 0.8m per step -> convert to km
+          distance += 0.0008; // 0.8m per step -> convert to km
         }
 
         updated = true; // mark update as needed

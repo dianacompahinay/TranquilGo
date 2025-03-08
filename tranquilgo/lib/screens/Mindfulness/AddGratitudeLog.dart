@@ -43,6 +43,7 @@ class _AddGratitudeLogPageState extends State<AddGratitudeLogPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: 60,
         leading: Container(

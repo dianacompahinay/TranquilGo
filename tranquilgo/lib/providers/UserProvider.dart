@@ -57,6 +57,11 @@ class UserDetailsProvider with ChangeNotifier {
     isTopUsersFetched = false;
   }
 
+  void updateUserStatus(bool isOnline, String userId) {
+    _userDetailsService.updateUserStatus(isOnline, userId);
+    notifyListeners();
+  }
+
   Future<int?> getUsersCount() async {
     AggregateQuerySnapshot query =
         await firestore.collection("users").count().get();
@@ -134,6 +139,59 @@ class UserDetailsProvider with ChangeNotifier {
 
   void setSearchQuery(String query) {
     searchQuery = query;
+  }
+
+  void listenToFriends(String userId) {
+    FirebaseFirestore.instance
+        .collection("friends")
+        .doc(userId)
+        .snapshots()
+        .listen((userDoc) async {
+      if (userDoc.exists) {
+        Map<String, dynamic> connections = userDoc["friendList"];
+
+        for (var friendId in connections.keys) {
+          if (connections[friendId]["status"] == "friend") {
+            FirebaseFirestore.instance
+                .collection("users")
+                .doc(friendId)
+                .snapshots()
+                .listen((friendDoc) {
+              if (friendDoc.exists) {
+                Map<String, dynamic> friendData =
+                    friendDoc.data() as Map<String, dynamic>;
+
+                String userImage = friendData.containsKey("profileImage")
+                    ? friendDoc["profileImage"]
+                    : "no_image";
+
+                Map<String, dynamic> friendInfo = {
+                  "userId": friendId,
+                  "profileImage": userImage,
+                  "username": friendDoc["username"],
+                  "name": friendDoc["name"],
+                  "activeStatus": friendData["activeStatus"] ?? "offline",
+                };
+
+                // find the existing friend in the list
+                int existingIndex = friends
+                    .indexWhere((friend) => friend["userId"] == friendId);
+
+                if (existingIndex != -1) {
+                  // update only the changed friend
+                  friends[existingIndex] = friendInfo;
+                } else {
+                  // add new friend if not already in the list
+                  _friends.add(friendInfo);
+                }
+
+                notifyListeners();
+              }
+            });
+          }
+        }
+      }
+    });
   }
 
   Future<void> fetchFriends(String userId) async {

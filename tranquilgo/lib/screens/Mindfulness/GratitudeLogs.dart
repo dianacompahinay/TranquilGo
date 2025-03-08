@@ -119,6 +119,7 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
             slivers: [
               SliverAppBar(
                 backgroundColor: const Color(0xFFFFFFFF),
+                surfaceTintColor: Colors.transparent,
                 toolbarHeight: 60,
                 leading: Container(
                   margin: const EdgeInsets.only(left: 10),

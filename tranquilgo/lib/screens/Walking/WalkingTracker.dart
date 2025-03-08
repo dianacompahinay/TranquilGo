@@ -138,6 +138,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: 60,
         leading: Container(

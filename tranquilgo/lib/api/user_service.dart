@@ -35,6 +35,20 @@ class UserDetailsService {
     cloudName: 'de8e3mj0x',
   );
 
+  void updateUserStatus(bool isOnline, String userId) {
+    if (userId.isNotEmpty) {
+      final userRef =
+          FirebaseFirestore.instance.collection("users").doc(userId);
+
+      userRef.update({
+        "activeStatus": isOnline ? "active" : "offline",
+        "lastSeen": isOnline ? null : FieldValue.serverTimestamp(),
+      }).catchError((error) {
+        print("Failed to update user status: $error");
+      });
+    }
+  }
+
   Future<List<Map<String, dynamic>>> fetchUsers(
       String userId, String? lastUserId) async {
     int limit = 6;
@@ -148,16 +162,18 @@ class UserDetailsService {
                 "profileImage": userImage,
                 "username": friendDoc['username'],
                 "name": friendDoc['name'],
+                "activeStatus": friendData["activeStatus"] ?? "offline",
 
                 // from latest activity
-                "activeStatus": friendData["activeStatus"] ?? "offline",
                 "steps": latestActivity?["numSteps"] ?? 0,
-                "distance": "${latestActivity?["distanceCovered"] ?? 0} km",
+                "distance":
+                    "${(latestActivity?["distanceCovered"] ?? 0).toStringAsFixed(2)} km",
                 "mood": latestActivity?["recentMood"] ?? 0,
 
                 // from weekly summary
                 "weeklySteps": activityData?["totalStepsTaken"] ?? 0,
-                "weeklyDistance": "${activityData?["totalDistance"] ?? 0} km",
+                "weeklyDistance":
+                    "${(activityData?["totalDistance"] ?? 0).toStringAsFixed(2)} km",
               });
             }
           }
