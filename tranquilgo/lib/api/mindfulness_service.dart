@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloudinary_sdk/cloudinary_sdk.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
+import 'package:my_app/local_db.dart';
 
 class MindfulnessService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -69,35 +73,41 @@ class MindfulnessService {
 
   Future<Map<DateTime, int>> fetchAllMoodRecords(String userId) async {
     try {
-      CollectionReference moodCollection = firestore
-          .collection('mindfulness')
-          .doc(userId)
-          .collection('mood_record');
-
-      QuerySnapshot moodSnapshot = await moodCollection.get();
-
       Map<DateTime, int> moodData = {};
 
-      for (QueryDocumentSnapshot doc in moodSnapshot.docs) {
-        // extract month and year from the ID
-        List<String> parts = doc.id.split('-');
-        int month = int.parse(parts[0]);
-        int year = int.parse(parts[1]);
+      if (await LocalDatabase.isOnline()) {
+        // fetch from Firestore if online
+        CollectionReference moodCollection = FirebaseFirestore.instance
+            .collection('mindfulness')
+            .doc(userId)
+            .collection('mood_record');
 
-        // mood data map
-        Map<String, dynamic> moods = doc.get('moods');
+        QuerySnapshot moodSnapshot = await moodCollection.get();
 
-        moods.forEach((date, moodValue) {
-          int roundedMood = (moodValue as num).round();
+        for (QueryDocumentSnapshot doc in moodSnapshot.docs) {
+          List<String> parts = doc.id.split('-');
+          int month = int.parse(parts[0]);
+          int year = int.parse(parts[1]);
 
-          DateTime moodDate = DateTime(year, month, int.parse(date));
-          moodData[moodDate] = roundedMood;
-        });
+          Map<String, dynamic> moods = doc.get('moods');
+          moods.forEach((date, moodValue) {
+            int roundedMood = (moodValue as num).round();
+            DateTime moodDate = DateTime(year, month, int.parse(date));
+            moodData[moodDate] = roundedMood;
+
+            // Save to local storage for offline access
+            LocalDatabase.saveMood(userId, doc.id, date, roundedMood.toDouble(),
+                roundedMood.toDouble(), 1, 1);
+          });
+        }
+      } else {
+        // Fetch from local storage if offline
+        moodData = await LocalDatabase.getAllStoredMoodRecords(userId);
       }
 
       return moodData;
     } catch (e) {
-      throw Exception('Failed to fetch all mood records');
+      throw Exception('Failed to fetch all mood records: ${e.toString()}');
     }
   }
 
@@ -105,31 +115,38 @@ class MindfulnessService {
       String userId, int month, int year) async {
     try {
       String monthYear = '${month.toString().padLeft(2, '0')}-$year';
-
-      DocumentReference moodDocRef = firestore
-          .collection('mindfulness')
-          .doc(userId)
-          .collection('mood_record')
-          .doc(monthYear);
-
-      DocumentSnapshot moodSnapshot = await moodDocRef.get();
-
       Map<DateTime, int> moodData = {};
 
-      if (moodSnapshot.exists) {
-        Map<String, dynamic> moods = moodSnapshot.get('moods');
+      if (await LocalDatabase.isOnline()) {
+        DocumentReference moodDocRef = FirebaseFirestore.instance
+            .collection('mindfulness')
+            .doc(userId)
+            .collection('mood_record')
+            .doc(monthYear);
 
-        moods.forEach((date, moodValue) {
-          int roundedMood = (moodValue as num).round();
-          DateTime moodDate = DateTime(year, month, int.parse(date));
-          moodData[moodDate] = roundedMood;
-        });
+        DocumentSnapshot moodSnapshot = await moodDocRef.get();
+
+        if (moodSnapshot.exists) {
+          Map<String, dynamic> moods = moodSnapshot.get('moods');
+
+          moods.forEach((date, moodValue) {
+            int roundedMood = (moodValue as num).round();
+            DateTime moodDate = DateTime(year, month, int.parse(date));
+            moodData[moodDate] = roundedMood;
+
+            // Save to local storage for offline use
+            LocalDatabase.saveMood(userId, monthYear, date,
+                roundedMood.toDouble(), roundedMood.toDouble(), 1, 1);
+          });
+        }
+      } else {
+        // Fetch from local storage if offline
+        moodData = await LocalDatabase.getStoredMoodRecords(userId, monthYear);
       }
 
       return moodData;
     } catch (e) {
-      print('Error fetching mood records: $e');
-      throw Exception('Failed to fetch mood records');
+      throw Exception('Failed to fetch mood records: ${e.toString()}');
     }
   }
 
@@ -139,51 +156,58 @@ class MindfulnessService {
       String monthYear = DateFormat('MM-yyyy').format(now);
       String date = DateFormat('dd').format(now);
 
-      DocumentReference moodDocRef = firestore
-          .collection('mindfulness')
-          .doc(userId)
-          .collection('mood_record')
-          .doc(monthYear);
-
-      DocumentSnapshot moodSnapshot = await moodDocRef.get();
-
-      // if multiple activities are recorded in a day, the mood value is averaged
-      // daily_mood field is included to maintain the day's average
-
       double newSum = selectedMood.toDouble();
       double newAvg = selectedMood.toDouble();
       int newCount = 1;
 
-      if (moodSnapshot.exists && moodSnapshot.data() != null) {
-        Map<String, dynamic> data = moodSnapshot.data() as Map<String, dynamic>;
+      if (await LocalDatabase.isOnline()) {
+        // Fetch from Firestore if online
+        DocumentReference moodDocRef = FirebaseFirestore.instance
+            .collection('mindfulness')
+            .doc(userId)
+            .collection('mood_record')
+            .doc(monthYear);
 
-        if (data.containsKey('daily_mood')) {
-          Map<String, dynamic> dailyMood = data['daily_mood'];
+        DocumentSnapshot moodSnapshot = await moodDocRef.get();
 
-          String lastUpdatedDate = dailyMood['current_date'] ?? "";
-          if (lastUpdatedDate == date) {
-            // if same day, update sum and count
-            double prevSum = (dailyMood['sum'] as num).toDouble();
-            int prevCount = (dailyMood['count'] as num).toInt();
+        if (moodSnapshot.exists && moodSnapshot.data() != null) {
+          Map<String, dynamic> data =
+              moodSnapshot.data() as Map<String, dynamic>;
 
-            newSum = prevSum + selectedMood;
-            newCount = prevCount + 1;
-            newAvg = newSum / newCount;
+          if (data.containsKey('daily_mood')) {
+            Map<String, dynamic> dailyMood = data['daily_mood'];
+            String lastUpdatedDate = dailyMood['current_date'] ?? "";
+
+            if (lastUpdatedDate == date) {
+              double prevSum = (dailyMood['sum'] as num).toDouble();
+              int prevCount = (dailyMood['count'] as num).toInt();
+
+              newSum = prevSum + selectedMood;
+              newCount = prevCount + 1;
+              newAvg = newSum / newCount;
+            }
           }
         }
-      }
 
-      await moodDocRef.set({
-        'daily_mood': {
-          'current_date': date, // track the last updated date
-          'sum': newSum,
-          'count': newCount,
-          'average': newAvg,
-        },
-        'moods': {
-          date: newAvg, // save daily average in moods map
-        },
-      }, SetOptions(merge: true));
+        // Save to Firestore
+        await moodDocRef.set({
+          'daily_mood': {
+            'current_date': date,
+            'sum': newSum,
+            'count': newCount,
+            'average': newAvg,
+          },
+          'moods': {date: newAvg},
+        }, SetOptions(merge: true));
+
+        // Save to local database (mark as synced)
+        await LocalDatabase.saveMood(
+            userId, monthYear, date, newAvg, newSum, newCount, 1);
+      } else {
+        // Save to local storage when offline (mark as unsynced)
+        await LocalDatabase.saveMood(
+            userId, monthYear, date, newAvg, newSum, newCount, 0);
+      }
     } catch (e) {
       throw Exception('Failed to save mood record: ${e.toString()}');
     }
@@ -193,103 +217,114 @@ class MindfulnessService {
 
   Future<DateTime?> getUserCreatedAt(String userId) async {
     try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
+      final db = await LocalDatabase.database;
 
-      if (userDoc.exists) {
-        Timestamp? createdAtTimestamp = userDoc['createdAt'] as Timestamp?;
-        if (createdAtTimestamp != null) {
-          DateTime createdAt = createdAtTimestamp.toDate();
-          return DateTime(createdAt.year, createdAt.month);
-          // format: DateTime(YYYY, MM)
-        }
+      List<Map<String, dynamic>> result = await db.query(
+        'users',
+        columns: ['createdAt'],
+        where: 'userId = ?',
+        whereArgs: [userId],
+      );
+
+      if (result.isNotEmpty) {
+        String createdAtStr = result.first['createdAt'];
+        DateTime createdAt = DateTime.parse(createdAtStr);
+        return DateTime(createdAt.year, createdAt.month);
       }
+
+      return null;
     } catch (e) {
-      throw Exception('Failed to fetch logs: ${e.toString()}');
+      throw Exception("Failed to get user createdAt");
     }
-    return null;
   }
 
-  Future<int?> getUserEntriesCount(
-      String userId, DateTime selectedMonth) async {
-    FirebaseFirestore firestore = FirebaseFirestore.instance;
+  Future<int> getUserEntriesCount(String userId, DateTime selectedMonth) async {
+    try {
+      final db = await LocalDatabase.database;
 
-    DateTime startOfMonth =
-        DateTime(selectedMonth.year, selectedMonth.month, 1);
-    DateTime endOfMonth =
-        DateTime(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59);
+      DateTime startOfMonth =
+          DateTime(selectedMonth.year, selectedMonth.month, 1);
+      DateTime endOfMonth =
+          DateTime(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59);
 
-    // convert DateTime to Timestamp
-    Timestamp startTimestamp = Timestamp.fromDate(startOfMonth);
-    Timestamp endTimestamp = Timestamp.fromDate(endOfMonth);
+      // query local database for count of entries within the selected month
+      List<Map<String, dynamic>> result = await db.rawQuery('''
+        SELECT COUNT(*) as count FROM journal_entries 
+          WHERE userId = ? 
+          AND timestamp >= ? 
+          AND timestamp <= ?
+          ''', [
+        userId,
+        startOfMonth.toIso8601String(),
+        endOfMonth.toIso8601String()
+      ]);
 
-    AggregateQuerySnapshot query = await firestore
-        .collection('mindfulness')
-        .doc(userId)
-        .collection('journal_entries')
-        .where("timestamp", isGreaterThanOrEqualTo: startTimestamp)
-        .where("timestamp", isLessThanOrEqualTo: endTimestamp)
-        .count()
-        .get();
-
-    return query.count;
+      return result.isNotEmpty ? result.first['count'] as int : 0;
+    } catch (e) {
+      throw Exception("Failed to get user entries count");
+    }
   }
 
   Future<List<Map<String, dynamic>>> fetchEntries(
       String userId, String? lastEntryId, DateTime selectedMonth) async {
-    int limit = 6; // fetch in batches
-    FirebaseFirestore firestore = FirebaseFirestore.instance;
-
     try {
+      final db = await LocalDatabase.database;
+      int limit = 6; // fetch in batches
+
       DateTime startOfMonth =
           DateTime(selectedMonth.year, selectedMonth.month, 1);
-      // moves to the next month and sets the time to 11:59:59 PM
       DateTime endOfMonth =
           DateTime(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59);
 
-      Query query = firestore
-          .collection("mindfulness")
-          .doc(userId)
-          .collection("journal_entries")
-          .where("timestamp", isGreaterThanOrEqualTo: startOfMonth)
-          .where("timestamp", isLessThanOrEqualTo: endOfMonth)
-          .orderBy("timestamp", descending: true)
-          .limit(limit);
+      // Base query
+      String query = '''
+        SELECT * FROM journal_entries 
+          WHERE userId = ? 
+          AND timestamp >= ? 
+          AND timestamp <= ? 
+          ORDER BY timestamp DESC 
+          LIMIT ?
+        ''';
 
+      List<dynamic> queryArgs = [
+        userId,
+        startOfMonth.toIso8601String(),
+        endOfMonth.toIso8601String(),
+        limit
+      ];
+
+      // if paginating, fetch only after last entry
       if (lastEntryId != null) {
-        DocumentSnapshot lastDoc = await firestore
-            .collection("mindfulness")
-            .doc(userId)
-            .collection("journal_entries")
-            .doc(lastEntryId)
-            .get();
-        if (lastDoc.exists) {
-          query = query.startAfterDocument(lastDoc);
-        } else {
-          return [];
-        }
+        query = '''
+          SELECT * FROM journal_entries 
+            WHERE userId = ? 
+            AND timestamp >= ? 
+            AND timestamp <= ? 
+            AND id < ? 
+            ORDER BY timestamp DESC 
+            LIMIT ?
+          ''';
+        queryArgs.insert(3, lastEntryId);
       }
 
-      QuerySnapshot snapshot = await query.get();
+      // execute query
+      List<Map<String, dynamic>> result = await db.rawQuery(query, queryArgs);
 
-      return snapshot.docs.map((doc) {
-        Timestamp timestamp = doc["timestamp"] as Timestamp;
-        DateTime dateTime = timestamp.toDate();
+      return result.map((entry) {
+        DateTime dateTime = DateTime.parse(entry["timestamp"]);
         String formattedDate = DateFormat('MMMM dd, yyyy').format(dateTime);
 
         return {
-          "entryId": doc.id,
-          "timestamp": timestamp.millisecondsSinceEpoch,
+          "entryId": entry["id"],
+          "timestamp": dateTime.millisecondsSinceEpoch,
           "date": formattedDate,
-          "images": List<String>.from(doc["images"] ?? []),
-          "content": doc["content"] ?? "",
-          "updatedAt": (doc.data() as Map<String, dynamic>?)?["updatedAt"],
+          "images": jsonDecode(entry["images"]) as List<String>,
+          "content": entry["content"] ?? "",
+          "updatedAt": entry["updatedAt"],
         };
       }).toList();
     } catch (e) {
-      throw Exception('Failed to fetch journal entries: ${e.toString()}');
+      throw Exception("Failed to fetch journal entries");
     }
   }
 
@@ -308,103 +343,67 @@ class MindfulnessService {
   Future<void> createJournalEntry(
       String userId, List<File> images, String content) async {
     try {
-      List<String> uploadedImageUrls = [];
+      List<String> localImagePaths = [];
+      Directory appDir = await getApplicationDocumentsDirectory();
+      String imagesDir = "${appDir.path}/journal_images";
+      await Directory(imagesDir).create(recursive: true);
 
-      if (images.isNotEmpty) {
-        List<Future<String?>> uploadTasks = images.map((imageFile) async {
-          if (!imageFile.existsSync()) {
-            print("File does not exist: ${imageFile.path}");
-            return null;
-          }
+      // save images locally
+      for (File imageFile in images) {
+        if (!imageFile.existsSync()) continue;
 
-          // compress and check for null
-          final resizedFile = await compressImage(imageFile);
-          if (resizedFile == null) {
-            print("Failed to resize image: ${imageFile.path}");
-            return null;
-          }
+        File resizedFile = await compressImage(imageFile);
+        String uniqueFileName = "${const Uuid().v4()}.jpg";
+        File savedFile = File("$imagesDir/$uniqueFileName");
 
-          final response = await cloudinary.uploadResource(
-            CloudinaryUploadResource(
-              filePath: resizedFile.path,
-              resourceType: CloudinaryResourceType.image,
-              folder: 'journal_entries/$userId',
-              publicId: "$userId${DateTime.now().millisecondsSinceEpoch}",
-            ),
-          );
-
-          if (response.isSuccessful) {
-            return response.secureUrl;
-          } else {
-            print("Cloudinary upload failed: ${response.error}");
-            return null;
-          }
-        }).toList();
-
-        uploadedImageUrls =
-            (await Future.wait(uploadTasks)).whereType<String>().toList();
+        await resizedFile.copy(savedFile.path);
+        localImagePaths.add(savedFile.path);
       }
 
-      // ensure Firestore is initialized before writing
-      if (firestore == null) {
-        throw Exception("Firestore is not initialized.");
-      }
+      // generate journal id
+      String journalId = const Uuid().v4();
+      DateTime timestamp = DateTime.now();
 
-      Timestamp timestamp = Timestamp.now();
-      await firestore
-          .collection("mindfulness")
-          .doc(userId)
-          .collection("journal_entries")
-          .add({
-        "timestamp": timestamp,
-        "images": uploadedImageUrls, // empty list if no images
-        "content": content,
-      });
-
-      print("Journal entry created successfully!");
+      // save locally
+      await LocalDatabase.saveJournalEntry(
+          journalId, userId, content, localImagePaths, timestamp);
     } catch (e) {
-      print("Error creating journal entry: $e");
-      throw Exception("Failed to create journal entry");
+      throw Exception("Failed to save journal entry");
     }
   }
 
   Future<void> editEntry(String userId, String entryId, List<String> images,
       String content) async {
+    final db = await LocalDatabase.database;
+    String updatedAt = DateFormat('MMM dd, yyyy hh:mm a')
+        .format(DateTime.now().toUtc().add(const Duration(hours: 8)));
     try {
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
-      DocumentReference entryRef = firestore
-          .collection("mindfulness")
-          .doc(userId)
-          .collection("journal_entries")
-          .doc(entryId);
-
-      DocumentSnapshot entrySnapshot = await entryRef.get();
-      if (entrySnapshot.exists) {
-        String updatedAt = DateFormat('MMM dd, yyyy hh:mm a')
-            .format(DateTime.now().toUtc().add(const Duration(hours: 8)));
-
-        await entryRef.update({
-          "images": images,
+      await db.update(
+        'journal_entries',
+        {
+          "images": jsonEncode(images),
           "content": content,
           "updatedAt": updatedAt,
-        });
-      }
+          "synced": 0, // mark as needing sync
+        },
+        where: "id = ? AND userId = ?",
+        whereArgs: [entryId, userId],
+      );
     } catch (e) {
       throw Exception("Failed to edit journal entry");
     }
   }
 
   Future<void> deleteEntry(String userId, String entryId) async {
-    try {
-      await firestore
-          .collection("mindfulness")
-          .doc(userId)
-          .collection("journal_entries")
-          .doc(entryId)
-          .delete();
-    } catch (e) {
-      throw Exception('Failed to delete entry: ${e.toString()}');
-    }
+    final db = await LocalDatabase.database;
+
+    // mark as deleted locally
+    await db.update(
+      'journal_entries',
+      {"deleted": 1, "synced": 0}, // mark as deleted but unsynced
+      where: "id = ? AND userId = ?",
+      whereArgs: [entryId, userId],
+    );
   }
 
   // GRATITUDE LOGS
@@ -421,42 +420,33 @@ class MindfulnessService {
 
   Future<List<Map<String, dynamic>>> fetchLogs(
       String userId, String? lastLogId) async {
-    int limit = 8; // fetch by batch
+    final db = await LocalDatabase.database;
+    int limit = 8; // Fetch by batch
 
     try {
-      Query query = firestore
-          .collection("mindfulness")
-          .doc(userId)
-          .collection("gratitude_logs")
-          .orderBy("timestamp", descending: true) // Order by timestamp
-          .limit(limit);
+      // Fetch logs stored in local database
+      String query = '''
+      SELECT * FROM gratitude_logs 
+      WHERE userId = ? 
+      ORDER BY timestamp DESC 
+      LIMIT ?
+    ''';
+      List<dynamic> queryArgs = [userId, limit];
 
       if (lastLogId != null) {
-        DocumentSnapshot lastDoc = await firestore
-            .collection('mindfulness')
-            .doc(userId)
-            .collection("gratitude_logs")
-            .doc(lastLogId)
-            .get();
-        if (lastDoc.exists) {
-          query = query.startAfterDocument(lastDoc);
-        } else {
-          return [];
-        }
+        query = '''
+        SELECT * FROM gratitude_logs 
+        WHERE userId = ? 
+        AND id < ? 
+        ORDER BY timestamp DESC 
+        LIMIT ?
+      ''';
+        queryArgs.insert(1, lastLogId);
       }
 
-      QuerySnapshot snapshot = await query.get();
-
-      return snapshot.docs.map((doc) {
-        DateTime timestamp = (doc["timestamp"] as Timestamp).toDate();
-        String formattedDate = DateFormat('MMM d, yyyy').format(timestamp);
-
-        return {
-          "logId": doc.id,
-          "date": formattedDate,
-          "content": doc["content"],
-        };
-      }).toList();
+      List<Map<String, dynamic>> localLogs =
+          await db.rawQuery(query, queryArgs);
+      return localLogs; // return only local logs
     } catch (e) {
       throw Exception('Failed to fetch logs: ${e.toString()}');
     }
@@ -466,14 +456,29 @@ class MindfulnessService {
     try {
       DateTime timestamp = DateTime.now().toUtc();
 
-      await firestore
-          .collection("mindfulness")
-          .doc(userId)
-          .collection("gratitude_logs")
-          .add({
-        "timestamp": timestamp,
+      // Prepare log data
+      Map<String, dynamic> logData = {
+        "userId": userId,
+        "timestamp": timestamp.toIso8601String(),
         "content": content,
-      });
+        "synced": 0, // Mark as unsynced by default
+      };
+
+      if (await LocalDatabase.isOnline()) {
+        // If online, save directly to Firestore
+        await firestore
+            .collection("mindfulness")
+            .doc(userId)
+            .collection("gratitude_logs")
+            .add({
+          "timestamp": timestamp,
+          "content": content,
+        });
+
+        logData["synced"] = 1; // Mark as synced
+      }
+      // save log locally
+      await LocalDatabase.saveGratitudeLog(logData);
     } catch (e) {
       throw Exception('Failed to create log: ${e.toString()}');
     }
@@ -481,14 +486,34 @@ class MindfulnessService {
 
   Future<void> deleteLog(String userId, String logId) async {
     try {
-      await firestore
-          .collection("mindfulness")
-          .doc(userId)
-          .collection("gratitude_logs")
-          .doc(logId)
-          .delete();
+      final db = await LocalDatabase.database;
+
+      // soft delete: Mark as deleted locally
+      await db.update(
+        'gratitude_logs',
+        {"deleted": 1}, // Mark as deleted
+        where: "id = ? AND userId = ?",
+        whereArgs: [logId, userId],
+      );
+
+      // if online, sync the deletion to Firestore
+      if (await LocalDatabase.isOnline()) {
+        await firestore
+            .collection("mindfulness")
+            .doc(userId)
+            .collection("gratitude_logs")
+            .doc(logId)
+            .delete();
+
+        // remove from local database after successful sync
+        await db.delete(
+          'gratitude_logs',
+          where: "id = ? AND userId = ?",
+          whereArgs: [logId, userId],
+        );
+      }
     } catch (e) {
-      throw Exception('Failed to delete log: ${e.toString()}');
+      throw Exception("Failed to delete log");
     }
   }
 }

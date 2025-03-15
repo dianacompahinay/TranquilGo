@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/api/notif_service.dart';
 import 'package:my_app/api/user_service.dart';
-// import 'package:my_app/api/activity_service.dart';
+import 'package:my_app/local_db.dart';
 
 class AuthService {
   final FirebaseAuth firebaseAuth = FirebaseAuth.instance;
@@ -69,6 +69,7 @@ class AuthService {
       // ActivityService weeklyActivity = ActivityService();
       // weeklyActivity.createWeeklyActivityForNewUser(userId);
 
+      LocalDatabase.saveUserCreatedAt(userId, DateTime.now());
       return userCredential.user;
     } catch (e) {
       throw Exception('Sign-up failed: ${e.toString()}');

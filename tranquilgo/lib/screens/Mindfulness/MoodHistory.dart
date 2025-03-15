@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:intl/intl.dart';
 
@@ -15,7 +16,6 @@ class MoodTrackingHistory extends StatefulWidget {
 
 class _MoodTrackingHistoryState extends State<MoodTrackingHistory> {
   final userId = FirebaseAuth.instance.currentUser!.uid;
-  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
   Map<String, List<ChartData>> monthlyMoodData = {};
 
   bool isConnectionFailed = false;
@@ -28,6 +28,9 @@ class _MoodTrackingHistoryState extends State<MoodTrackingHistory> {
   }
 
   Future<void> loadMoodData() async {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
+
     setState(() {
       isLoading = true;
     });

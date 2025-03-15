@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/local_db.dart';
 import 'package:my_app/providers/MindfulnessProvider.dart';
+import 'package:provider/provider.dart';
 
 class JournalEntries extends StatefulWidget {
   const JournalEntries({super.key});
@@ -13,8 +17,6 @@ class JournalEntries extends StatefulWidget {
 
 class _JournalEntriesState extends State<JournalEntries> {
   final userId = FirebaseAuth.instance.currentUser!.uid;
-
-  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
   List<Map<String, dynamic>> journalEntries = [];
 
   bool isAscending = false;
@@ -23,16 +25,42 @@ class _JournalEntriesState extends State<JournalEntries> {
   DateTime? startingMonthTab;
 
   bool fetchLoading = false;
+  bool syncing = false;
   bool loadingMonthTab = false;
   bool isConnectionFailed = false;
 
   @override
   void initState() {
     super.initState();
+    initializeJournal();
+  }
+
+  void initializeJournal() async {
+    setState(() {
+      loadingMonthTab = true;
+    });
+    if (await LocalDatabase.needsJournalSync(userId)) {
+      setState(() {
+        syncing = true;
+      });
+
+      if (await LocalDatabase.isOnline()) {
+        await LocalDatabase.syncMissingJournalEntries(userId);
+        await LocalDatabase.syncEditedEntries();
+        await LocalDatabase.syncDeletedEntries();
+      }
+    }
+
+    setState(() {
+      syncing = false;
+      loadingMonthTab = false;
+    });
     getStartingMonthTab();
   }
 
   Future<void> getStartingMonthTab() async {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
     setState(() {
       loadingMonthTab = true;
     });
@@ -55,6 +83,8 @@ class _JournalEntriesState extends State<JournalEntries> {
   }
 
   Future<void> initializeEntries() async {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
     setState(() {
       fetchLoading = true;
       journalEntries = [];
@@ -114,19 +144,6 @@ class _JournalEntriesState extends State<JournalEntries> {
     }
   }
 
-  // // list of journal entries with DateTime
-  // List<Map<String, dynamic>> journalEntries = [
-  //   {
-  //     'entryId': '1',
-  //     'date': January 22, 2025 at 10:29:45 PM UTC+8,  // timestamp
-  //     'images': <String>[
-  //       // imgUrls
-  //     ],
-  //     'content':
-  //         'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Phasellus lacinia erat vel ex interdum, nec facilisis enim volutpat. Integer feugiat massa ut sollicitudin auctor. Donec tincidunt volutpat nulla, vitae gravida orci efficitur ac. Vestibulum ullamcorper tortor vitae justo cursus, ac rutrum erat pretium. Cras sed ante id risus gravida vulputate. Sed id risus nec nisl luctus aliquet. Nullam tristique magna nec lectus mollis, eget faucibus felis posuere. Morbi eget velit sed urna lacinia volutpat. Integer luctus eu lorem vel faucibus. Ut gravida dui sit amet orci tempor, sit amet viverra risus euismod.',
-  //   },
-  //   ]
-
   void sortEntries() {
     setState(() {
       journalEntries.sort((a, b) => isAscending
@@ -135,7 +152,7 @@ class _JournalEntriesState extends State<JournalEntries> {
     });
   }
 
-  void showImageModal(String imageUrl) {
+  void showImageModal(File imageFile) {
     showDialog(
       context: context,
       builder: (context) {
@@ -143,19 +160,26 @@ class _JournalEntriesState extends State<JournalEntries> {
           backgroundColor: Colors.transparent,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.contain,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                );
+            child: Builder(
+              builder: (context) {
+                if (imageFile.existsSync()) {
+                  return Image.file(
+                    imageFile, // load from local file
+                    fit: BoxFit.cover,
+                  );
+                } else {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: Icon(
+                        // file is missing
+                        Icons.broken_image,
+                        color: Colors.grey[600],
+                        size: 50,
+                      ),
+                    ),
+                  );
+                }
               },
             ),
           ),
@@ -346,8 +370,7 @@ class _JournalEntriesState extends State<JournalEntries> {
                               ),
                             ],
                           ),
-
-                          isConnectionFailed
+                          syncing
                               ? SizedBox(
                                   height:
                                       MediaQuery.of(context).size.height * 0.5,
@@ -356,16 +379,14 @@ class _JournalEntriesState extends State<JournalEntries> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        Image.asset(
-                                          'assets/icons/error.png',
-                                          width: 32,
-                                          height: 32,
-                                          fit: BoxFit.contain,
-                                          color: const Color(0xFF999999),
+                                        const Icon(
+                                          Icons.sync_alt_rounded,
+                                          color: Color(0xFF999999),
+                                          size: 30,
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          "Connection Failed",
+                                          "Syncing Entries",
                                           style: GoogleFonts.poppins(
                                             textStyle: const TextStyle(
                                               color: Color(0xFF999999),
@@ -379,9 +400,7 @@ class _JournalEntriesState extends State<JournalEntries> {
                                     ),
                                   ),
                                 )
-                              : journalEntries.isEmpty &&
-                                      !fetchLoading &&
-                                      !loadingMonthTab
+                              : isConnectionFailed
                                   ? SizedBox(
                                       height:
                                           MediaQuery.of(context).size.height *
@@ -392,7 +411,7 @@ class _JournalEntriesState extends State<JournalEntries> {
                                               MainAxisAlignment.center,
                                           children: [
                                             Image.asset(
-                                              'assets/icons/rainy.png',
+                                              'assets/icons/error.png',
                                               width: 32,
                                               height: 32,
                                               fit: BoxFit.contain,
@@ -400,7 +419,7 @@ class _JournalEntriesState extends State<JournalEntries> {
                                             ),
                                             const SizedBox(height: 8),
                                             Text(
-                                              "It's empty here...",
+                                              "Connection Failed",
                                               style: GoogleFonts.poppins(
                                                 textStyle: const TextStyle(
                                                   color: Color(0xFF999999),
@@ -414,44 +433,84 @@ class _JournalEntriesState extends State<JournalEntries> {
                                         ),
                                       ),
                                     )
-                                  :
-                                  // load journal entries
-                                  Column(
-                                      children: [
-                                        ...journalEntries
-                                            .asMap()
-                                            .entries
-                                            .map((entry) {
-                                          int i = entry.key;
-                                          var data = entry.value;
-
-                                          return journalEntry(
-                                            index: i,
-                                            entryId: data['entryId'],
-                                            date: data['date'],
-                                            images: data['images'],
-                                            content: data['content'],
-                                            updatedAt: data['updatedAt'],
-                                          );
-                                        }).toList(),
-                                        fetchLoading
-                                            ? SizedBox(
-                                                height: MediaQuery.of(context)
-                                                        .size
-                                                        .height *
-                                                    0.15,
-                                                child: const Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    color: Color(0xFF36B9A5),
-                                                    strokeWidth: 5,
-                                                  ),
+                                  : journalEntries.isEmpty &&
+                                          !fetchLoading &&
+                                          !loadingMonthTab
+                                      ? SizedBox(
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .height *
+                                              0.5,
+                                          child: Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Image.asset(
+                                                  'assets/icons/rainy.png',
+                                                  width: 32,
+                                                  height: 32,
+                                                  fit: BoxFit.contain,
+                                                  color:
+                                                      const Color(0xFF999999),
                                                 ),
-                                              )
-                                            : const SizedBox(),
-                                        const SizedBox(height: 45),
-                                      ],
-                                    ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  "It's empty here...",
+                                                  style: GoogleFonts.poppins(
+                                                    textStyle: const TextStyle(
+                                                      color: Color(0xFF999999),
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      fontSize: 14,
+                                                    ),
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        )
+                                      :
+                                      // load journal entries
+                                      Column(
+                                          children: [
+                                            ...journalEntries
+                                                .asMap()
+                                                .entries
+                                                .map((entry) {
+                                              int i = entry.key;
+                                              var data = entry.value;
+
+                                              return journalEntry(
+                                                index: i,
+                                                entryId: data['entryId'],
+                                                date: data['date'],
+                                                images: data['images'],
+                                                content: data['content'],
+                                                updatedAt: data['updatedAt'],
+                                              );
+                                            }).toList(),
+                                            fetchLoading
+                                                ? SizedBox(
+                                                    height:
+                                                        MediaQuery.of(context)
+                                                                .size
+                                                                .height *
+                                                            0.15,
+                                                    child: const Center(
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        color:
+                                                            Color(0xFF36B9A5),
+                                                        strokeWidth: 5,
+                                                      ),
+                                                    ),
+                                                  )
+                                                : const SizedBox(),
+                                            const SizedBox(height: 45),
+                                          ],
+                                        ),
                           const SizedBox(height: 45),
                         ],
                       ),
@@ -578,6 +637,8 @@ class _JournalEntriesState extends State<JournalEntries> {
     required String content,
     required String? updatedAt,
   }) {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
     final isExpanded = expandedTexts[index] ?? false;
 
     return Column(
@@ -667,9 +728,9 @@ class _JournalEntriesState extends State<JournalEntries> {
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: images.map<Widget>((imageUrl) {
+              children: images.map<Widget>((imagePath) {
                 return GestureDetector(
-                  onTap: () => showImageModal(imageUrl),
+                  onTap: () => showImageModal(File(imagePath)),
                   child: Container(
                     margin: const EdgeInsets.only(left: 2, right: 8),
                     width: 100,
@@ -679,30 +740,28 @@ class _JournalEntriesState extends State<JournalEntries> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        imageUrl,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            color: Colors.grey[100],
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.grey[400],
+                      child: Builder(
+                        builder: (context) {
+                          File imageFile = File(imagePath);
+
+                          if (imageFile.existsSync()) {
+                            return Image.file(
+                              imageFile, // load from local file
+                              fit: BoxFit.cover,
+                            );
+                          } else {
+                            return Container(
+                              color: Colors.grey[200],
+                              child: Center(
+                                child: Icon(
+                                  // file is missing
+                                  Icons.broken_image,
+                                  color: Colors.grey[600],
+                                  size: 50,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Center(
-                            child: Icon(
-                              Icons.broken_image,
-                              color: Colors.grey[600],
-                              size: 50,
-                            ),
-                          );
+                            );
+                          }
                         },
                       ),
                     ),

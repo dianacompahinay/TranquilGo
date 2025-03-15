@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:my_app/providers/MindfulnessProvider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
 class AddGratitudeLogPage extends StatefulWidget {
   const AddGratitudeLogPage({super.key});
@@ -12,11 +13,13 @@ class AddGratitudeLogPage extends StatefulWidget {
 }
 
 class _AddGratitudeLogPageState extends State<AddGratitudeLogPage> {
-  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
   final TextEditingController contentController = TextEditingController();
   bool isLoading = false;
 
   void saveEntry() async {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
+
     setState(() {
       isLoading = true;
     });

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/providers/MindfulnessProvider.dart';
+import 'package:provider/provider.dart';
 
 class AddJournalPage extends StatefulWidget {
   const AddJournalPage({super.key});
@@ -15,13 +16,15 @@ class AddJournalPage extends StatefulWidget {
 }
 
 class _AddJournalPageState extends State<AddJournalPage> {
-  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
   final TextEditingController contentController = TextEditingController();
   final ImagePicker picker = ImagePicker();
   final List<File> images = []; // list to store captured images
   bool isLoading = false;
 
   void saveEntry() async {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
+
     setState(() {
       isLoading = true;
     });

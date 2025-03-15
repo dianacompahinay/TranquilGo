@@ -120,7 +120,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             const SizedBox(height: 10),
 
             text(
-                "We automatically collect certain information when you visit, use, or navigate the services. This information does not reveal your specific identity (like your name or contact information) but may include device and usage information, such as your IP address, device characteristics, operating system, language preferences, reffering URLs, device name, country, location, information about how and when you use our services, and other technical information. This information is primarily needed to maintain the security and operation of our services, and for our internal analytics and reporting purposes."),
+                "We automatically collect certain information when you visit, use, or navigate the services. This information does not reveal your specific identity (like your name or contact information) but may include device and usage information, such as your IP address, device characteristics, operating system, language preferences, referring URLs, device name, country, location, information about how and when you use our services, and other technical information. This information is primarily needed to maintain the security and operation of our services, and for our internal analytics and reporting purposes."),
             const SizedBox(height: 10),
             text("The information we collect includes:"),
             const SizedBox(height: 10),
@@ -172,7 +172,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             const SizedBox(height: 5),
             bulletBoldTitle(
               "To protect our services",
-              "We may process your information as part of our efforts to keep our services safe and secure, incliding fraud monitoring and prevention.",
+              "We may process your information as part of our efforts to keep our services safe and secure, including fraud monitoring and prevention.",
             ),
             const SizedBox(height: 5),
             boldBulletPoint("To enhance social interactions."),

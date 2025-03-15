@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:my_app/local_db.dart';
 
 class ActivityService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -368,6 +369,13 @@ class ActivityService {
         }
       }
 
+      // save locally if offline
+      if (!await LocalDatabase.isOnline()) {
+        await LocalDatabase.saveStreak(userId, newStreak);
+        return;
+      }
+
+      // update Firestore if online
       await userDocRef.update({
         'streak': newStreak,
         if (type == "create") 'lastActivityDate': DateTime.now(),
@@ -569,48 +577,29 @@ class ActivityService {
     int mood,
   ) async {
     try {
-      DocumentReference weeklyActivityRef =
-          firestore.collection('weekly_activity').doc(userId);
-
       String activityId = firestore.collection('weekly_activity').doc().id;
       String formattedDate = formatDate(date);
-      CollectionReference activitiesRef =
-          weeklyActivityRef.collection('activities');
 
-      // create the activity entry in the subcollection
-      await activitiesRef.doc(activityId).set({
+      Map<String, dynamic> activityData = {
+        'id': activityId,
+        'userId': userId,
         'date': formattedDate,
-        'startTime': startTime,
-        'endTime': endTime,
+        'startTime': startTime.toDate().toIso8601String(),
+        'endTime': endTime.toDate().toIso8601String(),
         'timeDuration': timeDuration,
         'numSteps': numSteps,
         'distanceCovered': distanceCovered,
         'seScore': seScore,
-        'recentMood': mood,
-      });
+        'mood': mood,
+        'synced': 0
+      };
 
-      // update the weekly summary
-      DocumentSnapshot weeklySnapshot = await weeklyActivityRef.get();
-      if (weeklySnapshot.exists) {
-        Map<String, dynamic> weeklyData =
-            weeklySnapshot.data() as Map<String, dynamic>;
-
-        await weeklyActivityRef.update({
-          'activityCount': (weeklyData['activityCount'] ?? 0) + 1,
-          'totalSEscore': (weeklyData['totalSEscore'] ?? 0.0) + seScore,
-          'totalDistance':
-              (weeklyData['totalDistance'] ?? 0.0) + distanceCovered,
-          'totalStepsTaken': (weeklyData['totalStepsTaken'] ?? 0) + numSteps,
-        });
+      // check internet connectivity
+      if (await LocalDatabase.isOnline()) {
+        await LocalDatabase.syncActivityToFirestore(activityData);
+      } else {
+        await LocalDatabase.saveActivity(activityData);
       }
-
-      // update user's steps
-      await firestore.collection('users').doc(userId).update({
-        "steps": FieldValue.increment(numSteps),
-      });
-
-      // update user's streak
-      await updateStreak(userId, "create");
     } catch (e) {
       throw Exception('Failed to create activity: ${e.toString()}');
     }

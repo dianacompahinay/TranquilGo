@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/providers/MindfulnessProvider.dart';
+import 'package:provider/provider.dart';
 
 class ViewJournalPage extends StatefulWidget {
   final Map<String, dynamic>? arguments;
@@ -15,7 +17,7 @@ class ViewJournalPage extends StatefulWidget {
 
 class _ViewJournalPageState extends State<ViewJournalPage> {
   final userId = FirebaseAuth.instance.currentUser!.uid;
-  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
+
   TextEditingController contentController = TextEditingController();
 
   String? entryId;
@@ -45,6 +47,8 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
   }
 
   void saveEntry() async {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
     setState(() {
       isLoading = true;
       isUpdated = true;
@@ -66,6 +70,7 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
 
   @override
   Widget build(BuildContext context) {
+    final mindfulnessProvider = Provider.of<MindfulnessProvider>(context);
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
@@ -206,12 +211,13 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
                                 children:
                                     images.asMap().entries.map<Widget>((entry) {
                                   int index = entry.key;
-                                  String imageUrl = entry.value;
+                                  String imagePath = entry.value;
 
                                   return Stack(
                                     children: [
                                       GestureDetector(
-                                        onTap: () => showImageModal(imageUrl),
+                                        onTap: () =>
+                                            showImageModal(File(imagePath)),
                                         child: Container(
                                           margin: const EdgeInsets.only(
                                               left: 2, right: 8),
@@ -224,37 +230,29 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
                                           child: ClipRRect(
                                             borderRadius:
                                                 BorderRadius.circular(8),
-                                            child: Image.network(
-                                              imageUrl,
-                                              fit: BoxFit.cover,
-                                              loadingBuilder: (context, child,
-                                                  loadingProgress) {
-                                                if (loadingProgress == null) {
-                                                  return child;
+                                            child: Builder(
+                                              builder: (context) {
+                                                File imageFile =
+                                                    File(imagePath);
+
+                                                if (imageFile.existsSync()) {
+                                                  return Image.file(
+                                                    imageFile, // load from local file
+                                                    fit: BoxFit.cover,
+                                                  );
+                                                } else {
+                                                  return Container(
+                                                    color: Colors.grey[200],
+                                                    child: Center(
+                                                      child: Icon(
+                                                        // file is missing
+                                                        Icons.broken_image,
+                                                        color: Colors.grey[600],
+                                                        size: 50,
+                                                      ),
+                                                    ),
+                                                  );
                                                 }
-                                                return Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                    value: loadingProgress
-                                                                .expectedTotalBytes !=
-                                                            null
-                                                        ? loadingProgress
-                                                                .cumulativeBytesLoaded /
-                                                            (loadingProgress
-                                                                    .expectedTotalBytes ??
-                                                                1)
-                                                        : null,
-                                                  ),
-                                                );
-                                              },
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                return const Center(
-                                                  child: Icon(
-                                                      Icons.broken_image,
-                                                      size: 40,
-                                                      color: Colors.grey),
-                                                );
                                               },
                                             ),
                                           ),
@@ -375,7 +373,7 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
     );
   }
 
-  void showImageModal(String imageUrl) {
+  void showImageModal(File imageFile) {
     showDialog(
       context: context,
       builder: (context) {
@@ -383,19 +381,26 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
           backgroundColor: Colors.transparent,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              imageUrl,
-              fit: BoxFit.contain,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return const Center(
-                  child: CircularProgressIndicator(),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return const Center(
-                  child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
-                );
+            child: Builder(
+              builder: (context) {
+                if (imageFile.existsSync()) {
+                  return Image.file(
+                    imageFile, // load from local file
+                    fit: BoxFit.cover,
+                  );
+                } else {
+                  return Container(
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: Icon(
+                        // file is missing
+                        Icons.broken_image,
+                        color: Colors.grey[600],
+                        size: 50,
+                      ),
+                    ),
+                  );
+                }
               },
             ),
           ),

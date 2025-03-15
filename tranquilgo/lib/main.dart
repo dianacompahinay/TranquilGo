@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:my_app/local_db.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/AuthProvider.dart';
@@ -35,6 +36,9 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  syncOfflineActivities(); // sync offline data at startup
+
   runApp(
     MultiProvider(
       providers: [
@@ -48,6 +52,18 @@ void main() async {
       child: const MainApp(),
     ),
   );
+}
+
+void syncOfflineActivities() async {
+  if (!await LocalDatabase.isOnline()) return;
+
+  Future.microtask(() async {
+    await LocalDatabase.syncActivities();
+    await LocalDatabase.syncStreakData();
+    await LocalDatabase.syncMoodRecords();
+    await LocalDatabase.syncJournalEntries();
+    await LocalDatabase.syncGratitudeLogs();
+  });
 }
 
 class MainApp extends StatelessWidget {

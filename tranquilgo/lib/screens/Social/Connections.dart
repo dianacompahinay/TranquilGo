@@ -5,6 +5,7 @@ import 'package:my_app/components/SocialUserDetailsModal.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:my_app/providers/UserProvider.dart';
+import 'package:my_app/local_db.dart';
 
 class ConnectionsPage extends StatefulWidget {
   const ConnectionsPage({Key? key}) : super(key: key);
@@ -42,6 +43,10 @@ class ConnectionsPageState extends State<ConnectionsPage> {
         isConnectionFailed = true;
       });
     }
+  }
+
+  Future<bool> checkIfOnline() async {
+    return await LocalDatabase.isOnline();
   }
 
   @override
@@ -232,34 +237,43 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                           ),
                                         ),
                                       ),
-                                      Row(
-                                        children: [
-                                          userProvider.friends[index]
-                                                      ["activeStatus"] ==
-                                                  "active"
-                                              ? const Icon(Icons.circle,
-                                                  size: 12,
-                                                  color: Color(0xFFA8EFD3))
-                                              : const Icon(
-                                                  Icons.circle_outlined,
-                                                  size: 12,
-                                                  color: Color(0xFFB5B5B5)),
-                                          const SizedBox(width: 5),
-                                          Text(
-                                            userProvider.friends[index]
-                                                        ["activeStatus"] ==
-                                                    "active"
-                                                ? "Active"
-                                                : "Offline",
-                                            style: GoogleFonts.inter(
-                                              textStyle: const TextStyle(
-                                                color: Color(0xFF656263),
-                                                fontWeight: FontWeight.w500,
-                                                fontSize: 11,
+                                      FutureBuilder<bool>(
+                                        future: checkIfOnline(),
+                                        builder: (context, snapshot) {
+                                          bool isOnline =
+                                              snapshot.data ?? false;
+                                          return Row(
+                                            children: [
+                                              userProvider.friends[index][
+                                                              "activeStatus"] ==
+                                                          "active" &&
+                                                      isOnline
+                                                  ? const Icon(Icons.circle,
+                                                      size: 12,
+                                                      color: Color(0xFFA8EFD3))
+                                                  : const Icon(
+                                                      Icons.circle_outlined,
+                                                      size: 12,
+                                                      color: Color(0xFFB5B5B5)),
+                                              const SizedBox(width: 5),
+                                              Text(
+                                                userProvider.friends[index][
+                                                                "activeStatus"] ==
+                                                            "active" &&
+                                                        isOnline
+                                                    ? "Active"
+                                                    : "Offline",
+                                                style: GoogleFonts.inter(
+                                                  textStyle: const TextStyle(
+                                                    color: Color(0xFF656263),
+                                                    fontWeight: FontWeight.w500,
+                                                    fontSize: 11,
+                                                  ),
+                                                ),
                                               ),
-                                            ),
-                                          ),
-                                        ],
+                                            ],
+                                          );
+                                        },
                                       ),
                                       const SizedBox(width: 22),
                                       InviteUser(

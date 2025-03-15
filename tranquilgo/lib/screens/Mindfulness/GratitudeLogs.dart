@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:my_app/local_db.dart';
 import 'package:my_app/providers/MindfulnessProvider.dart';
+import 'package:provider/provider.dart';
 
 class GratitudeLogs extends StatefulWidget {
   const GratitudeLogs({super.key});
@@ -12,22 +14,38 @@ class GratitudeLogs extends StatefulWidget {
 }
 
 class _GratitudeLogsState extends State<GratitudeLogs> {
-  MindfulnessProvider mindfulnessProvider = MindfulnessProvider();
+  final userId = FirebaseAuth.instance.currentUser!.uid;
+
   List<Map<String, dynamic>> logs = [];
   bool fetchLoading = false;
+  bool syncing = false;
   bool deleteLoading = false;
   bool isConnectionFailed = false;
   bool deleteMode = false;
 
   @override
-  void initState() {
+  void initState() async {
     super.initState();
     initializeLogs();
+
+    if (await LocalDatabase.needsLogSync(userId)) {
+      setState(() {
+        syncing = true;
+      });
+
+      if (await LocalDatabase.isOnline()) {
+        await LocalDatabase.syncMissingLogs(userId);
+        await LocalDatabase.syncDeletedLogs();
+      }
+    }
+    setState(() {
+      syncing = false;
+    });
   }
 
   Future<void> initializeLogs() async {
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
     setState(() {
       fetchLoading = true;
       logs = [];
@@ -85,6 +103,8 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
   }
 
   void deleteLog(BuildContext context, String logId, int index) async {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
     setState(() {
       deleteLoading = true;
     });
@@ -191,7 +211,7 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                               ),
                             ),
                           ),
-                          isConnectionFailed
+                          syncing
                               ? SizedBox(
                                   height:
                                       MediaQuery.of(context).size.height * 0.5,
@@ -200,16 +220,14 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        Image.asset(
-                                          'assets/icons/error.png',
-                                          width: 32,
-                                          height: 32,
-                                          fit: BoxFit.contain,
-                                          color: const Color(0xFF999999),
+                                        const Icon(
+                                          Icons.sync_alt_rounded,
+                                          color: Color(0xFF999999),
+                                          size: 30,
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          "Connection Failed",
+                                          "Syncing Entries",
                                           style: GoogleFonts.poppins(
                                             textStyle: const TextStyle(
                                               color: Color(0xFF999999),
@@ -223,18 +241,18 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                                     ),
                                   ),
                                 )
-                              : logs.isEmpty && !fetchLoading
+                              : isConnectionFailed
                                   ? SizedBox(
                                       height:
                                           MediaQuery.of(context).size.height *
-                                              0.75,
+                                              0.5,
                                       child: Center(
                                         child: Column(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: [
                                             Image.asset(
-                                              'assets/icons/rainy.png',
+                                              'assets/icons/error.png',
                                               width: 32,
                                               height: 32,
                                               fit: BoxFit.contain,
@@ -242,7 +260,7 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                                             ),
                                             const SizedBox(height: 8),
                                             Text(
-                                              "It's empty here...",
+                                              "Connection Failed",
                                               style: GoogleFonts.poppins(
                                                 textStyle: const TextStyle(
                                                   color: Color(0xFF999999),
@@ -256,123 +274,170 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                                         ),
                                       ),
                                     )
-                                  : MasonryGridView.count(
-                                      padding: const EdgeInsets.only(top: 10),
-                                      crossAxisCount: 2,
-                                      mainAxisSpacing: 16.0,
-                                      crossAxisSpacing: 16.0,
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      itemCount: logs.length,
-                                      itemBuilder:
-                                          (BuildContext context, int index) {
-                                        // if (index == 0) {
-                                        //   return Container(
-                                        //     margin: const EdgeInsets.symmetric(
-                                        //         horizontal: 2, vertical: 2),
-                                        //     height: 70,
-                                        //     decoration: BoxDecoration(
-                                        //       color: Colors.white,
-                                        //       borderRadius:
-                                        //           BorderRadius.circular(7),
-                                        //       boxShadow: [
-                                        //         BoxShadow(
-                                        //           color: Colors.grey
-                                        //               .withOpacity(0.6),
-                                        //           spreadRadius: 0,
-                                        //           blurRadius: 2,
-                                        //           offset: const Offset(0, 1),
-                                        //         ),
-                                        //       ],
-                                        //     ),
-                                        //     child: Center(
-                                        //       child: Text(
-                                        //         'Positivity',
-                                        //         style: GoogleFonts.poppins(
-                                        //           textStyle: const TextStyle(
-                                        //             fontSize: 20,
-                                        //             fontWeight: FontWeight.bold,
-                                        //             color: Color(0xFF696969),
-                                        //           ),
-                                        //         ),
-                                        //       ),
-                                        //     ),
-                                        //   );
-                                        // } else {
-                                        return GestureDetector(
-                                          onTap: () {
-                                            showDialog(
-                                              context: context,
-                                              builder: (BuildContext context) {
-                                                return AlertDialog(
-                                                  backgroundColor: Colors.white,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            5),
-                                                  ),
-                                                  titlePadding:
-                                                      const EdgeInsets.fromLTRB(
-                                                          20, 10, 10, 8),
-                                                  contentPadding:
-                                                      const EdgeInsets.fromLTRB(
-                                                          20, 0, 26, 26),
-                                                  title: Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      Text(
-                                                        logs[index]['date']!,
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                          textStyle:
-                                                              const TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            fontSize: 16,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      IconButton(
-                                                        icon: const Icon(
-                                                            Icons.close,
-                                                            color: Colors.grey),
-                                                        onPressed: () {
-                                                          Navigator.pop(
-                                                              context);
-                                                        },
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  content: SizedBox(
-                                                    height: 170,
-                                                    child:
-                                                        SingleChildScrollView(
-                                                      child: Text(
-                                                        logs[index]['content']!,
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                          textStyle:
-                                                              const TextStyle(
-                                                            fontSize: 14,
-                                                            color: Colors.black,
-                                                          ),
-                                                        ),
-                                                      ),
+                                  : logs.isEmpty && !fetchLoading
+                                      ? SizedBox(
+                                          height: MediaQuery.of(context)
+                                                  .size
+                                                  .height *
+                                              0.75,
+                                          child: Center(
+                                            child: Column(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Image.asset(
+                                                  'assets/icons/rainy.png',
+                                                  width: 32,
+                                                  height: 32,
+                                                  fit: BoxFit.contain,
+                                                  color:
+                                                      const Color(0xFF999999),
+                                                ),
+                                                const SizedBox(height: 8),
+                                                Text(
+                                                  "It's empty here...",
+                                                  style: GoogleFonts.poppins(
+                                                    textStyle: const TextStyle(
+                                                      color: Color(0xFF999999),
+                                                      fontWeight:
+                                                          FontWeight.w400,
+                                                      fontSize: 14,
                                                     ),
                                                   ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        )
+                                      : MasonryGridView.count(
+                                          padding:
+                                              const EdgeInsets.only(top: 10),
+                                          crossAxisCount: 2,
+                                          mainAxisSpacing: 16.0,
+                                          crossAxisSpacing: 16.0,
+                                          shrinkWrap: true,
+                                          physics:
+                                              const NeverScrollableScrollPhysics(),
+                                          itemCount: logs.length,
+                                          itemBuilder: (BuildContext context,
+                                              int index) {
+                                            // if (index == 0) {
+                                            //   return Container(
+                                            //     margin: const EdgeInsets.symmetric(
+                                            //         horizontal: 2, vertical: 2),
+                                            //     height: 70,
+                                            //     decoration: BoxDecoration(
+                                            //       color: Colors.white,
+                                            //       borderRadius:
+                                            //           BorderRadius.circular(7),
+                                            //       boxShadow: [
+                                            //         BoxShadow(
+                                            //           color: Colors.grey
+                                            //               .withOpacity(0.6),
+                                            //           spreadRadius: 0,
+                                            //           blurRadius: 2,
+                                            //           offset: const Offset(0, 1),
+                                            //         ),
+                                            //       ],
+                                            //     ),
+                                            //     child: Center(
+                                            //       child: Text(
+                                            //         'Positivity',
+                                            //         style: GoogleFonts.poppins(
+                                            //           textStyle: const TextStyle(
+                                            //             fontSize: 20,
+                                            //             fontWeight: FontWeight.bold,
+                                            //             color: Color(0xFF696969),
+                                            //           ),
+                                            //         ),
+                                            //       ),
+                                            //     ),
+                                            //   );
+                                            // } else {
+                                            return GestureDetector(
+                                              onTap: () {
+                                                showDialog(
+                                                  context: context,
+                                                  builder:
+                                                      (BuildContext context) {
+                                                    return AlertDialog(
+                                                      backgroundColor:
+                                                          Colors.white,
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(5),
+                                                      ),
+                                                      titlePadding:
+                                                          const EdgeInsets
+                                                              .fromLTRB(
+                                                              20, 10, 10, 8),
+                                                      contentPadding:
+                                                          const EdgeInsets
+                                                              .fromLTRB(
+                                                              20, 0, 26, 26),
+                                                      title: Row(
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .spaceBetween,
+                                                        children: [
+                                                          Text(
+                                                            logs[index]
+                                                                ['date']!,
+                                                            style: GoogleFonts
+                                                                .poppins(
+                                                              textStyle:
+                                                                  const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                fontSize: 16,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          IconButton(
+                                                            icon: const Icon(
+                                                                Icons.close,
+                                                                color: Colors
+                                                                    .grey),
+                                                            onPressed: () {
+                                                              Navigator.pop(
+                                                                  context);
+                                                            },
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      content: SizedBox(
+                                                        height: 170,
+                                                        child:
+                                                            SingleChildScrollView(
+                                                          child: Text(
+                                                            logs[index]
+                                                                ['content']!,
+                                                            style: GoogleFonts
+                                                                .poppins(
+                                                              textStyle:
+                                                                  const TextStyle(
+                                                                fontSize: 14,
+                                                                color: Colors
+                                                                    .black,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
                                                 );
                                               },
+                                              child: buildLogCard(
+                                                  logs[index], index),
                                             );
-                                          },
-                                          child:
-                                              buildLogCard(logs[index], index),
-                                        );
-                                      }
-                                      // },
-                                      ),
+                                          }
+                                          // },
+                                          ),
                           fetchLoading
                               ? SizedBox(
                                   height:
