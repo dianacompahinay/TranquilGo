@@ -126,17 +126,21 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                               return GestureDetector(
                                 onTap: () async {
                                   // UserDetailsModal.show(context, users[index]);
-                                  String? result = await UserDetailsModal.show(
-                                      context, userProvider.friends[index]);
+                                  bool isOnline = await checkIfOnline();
+                                  if (isOnline) {
+                                    String? result =
+                                        await UserDetailsModal.show(context,
+                                            userProvider.friends[index]);
 
-                                  if (result != null && result.isNotEmpty) {
-                                    final userProvider =
-                                        Provider.of<UserDetailsProvider>(
-                                            context,
-                                            listen: false);
-                                    userProvider.setFetchToFalse();
-                                    await initializeFriends();
-                                    setState(() {});
+                                    if (result != null && result.isNotEmpty) {
+                                      final userProvider =
+                                          Provider.of<UserDetailsProvider>(
+                                              context,
+                                              listen: false);
+                                      userProvider.setFetchToFalse();
+                                      await initializeFriends();
+                                      setState(() {});
+                                    }
                                   }
                                 },
                                 child: Container(
@@ -276,11 +280,47 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                                         },
                                       ),
                                       const SizedBox(width: 22),
-                                      InviteUser(
-                                          receiverId:
-                                              '${userProvider.friends[index]["userId"]}',
-                                          userName:
-                                              '${userProvider.friends[index]["username"]}')
+                                      FutureBuilder<bool>(
+                                        future: checkIfOnline(),
+                                        builder: (context, snapshot) {
+                                          bool isOnline =
+                                              snapshot.data ?? false;
+                                          if (isOnline) {
+                                            return InviteUser(
+                                                receiverId:
+                                                    '${userProvider.friends[index]["userId"]}',
+                                                userName:
+                                                    '${userProvider.friends[index]["username"]}');
+                                          } else {
+                                            return const SizedBox(
+                                              width: 30,
+                                              height: 22,
+                                              child: Stack(
+                                                alignment: Alignment.center,
+                                                children: [
+                                                  Positioned(
+                                                    left: 0,
+                                                    child: Icon(
+                                                      Icons
+                                                          .directions_walk_rounded,
+                                                      size: 22,
+                                                      color: Color(0xFF41B8A7),
+                                                    ),
+                                                  ),
+                                                  Positioned(
+                                                    right: 0,
+                                                    child: Icon(
+                                                      Icons.add,
+                                                      size: 14,
+                                                      color: Color(0xFF41B8A7),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -288,35 +328,45 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                             },
                           ),
             // search user
-            Align(
-              alignment: const Alignment(1.05, 0.95),
-              child: SizedBox(
-                width: 55,
-                height: 55,
-                child: FloatingActionButton(
-                  elevation: 3,
-                  onPressed: () async {
-                    String? result =
-                        await Navigator.pushNamed(context, '/searchusers');
-                    if (result != null && result.isNotEmpty) {
-                      final userProvider = Provider.of<UserDetailsProvider>(
-                          context,
-                          listen: false);
-                      userProvider.setFetchToFalse();
-                      initializeFriends();
-                    }
-                  },
-                  backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: const Icon(
-                    Icons.person_search_outlined,
-                    color: Color(0xFF55AC9F),
-                    size: 30,
-                  ),
-                ),
-              ),
+            FutureBuilder<bool>(
+              future: checkIfOnline(),
+              builder: (context, snapshot) {
+                bool isOnline = snapshot.data ?? false;
+                if (isOnline) {
+                  return Align(
+                    alignment: const Alignment(1.05, 0.95),
+                    child: SizedBox(
+                      width: 55,
+                      height: 55,
+                      child: FloatingActionButton(
+                        elevation: 3,
+                        onPressed: () async {
+                          String? result = await Navigator.pushNamed(
+                              context, '/searchusers');
+                          if (result != null && result.isNotEmpty) {
+                            final userProvider =
+                                Provider.of<UserDetailsProvider>(context,
+                                    listen: false);
+                            userProvider.setFetchToFalse();
+                            initializeFriends();
+                          }
+                        },
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                        child: const Icon(
+                          Icons.person_search_outlined,
+                          color: Color(0xFF55AC9F),
+                          size: 30,
+                        ),
+                      ),
+                    ),
+                  );
+                } else {
+                  return const SizedBox();
+                }
+              },
             ),
           ],
         ),

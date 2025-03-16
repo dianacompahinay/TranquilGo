@@ -62,7 +62,9 @@ void syncOfflineActivities() async {
     await LocalDatabase.syncStreakData();
     await LocalDatabase.syncMoodRecords();
     await LocalDatabase.syncJournalEntries();
+    await LocalDatabase.syncDeletedEntries();
     await LocalDatabase.syncGratitudeLogs();
+    await LocalDatabase.syncDeletedLogs();
   });
 }
 

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloudinary_sdk/cloudinary_sdk.dart';
@@ -81,7 +80,7 @@ class LocalDatabase {
         // create table for gratitude logs
         await db.execute('''
         CREATE TABLE gratitude_logs(
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT PRIMARY KEY,
           userId TEXT,
           timestamp TEXT,
           content TEXT,
@@ -288,7 +287,7 @@ class LocalDatabase {
 
     Map<DateTime, int> moodData = {};
     for (var record in records) {
-      DateTime moodDate = DateTime.parse('${monthYear}-${record['date']}');
+      DateTime moodDate = DateTime.parse('$monthYear-${record['date']}');
       moodData[moodDate] = (record['average'] as num).round();
     }
 
@@ -344,7 +343,7 @@ class LocalDatabase {
         'id': id,
         'userId': userId,
         'content': content,
-        'images': images.join(','), // store as comma-separated string
+        'images': images.join('-*-'),
         'timestamp': timestamp.toIso8601String(),
         'synced': 0, // mark as unsynced
       },
@@ -369,9 +368,10 @@ class LocalDatabase {
     for (var journal in unsyncedEntries) {
       String userId = journal['userId'];
       String content = journal['content'];
-      List<String> localImagePaths = List<String>.from(journal['images']);
+      String? updatedAt = journal['updatedAt'];
+      List<String> localImagePaths = journal['images'];
       DateTime originalTimestamp =
-          DateTime.parse(journal['timestamp']); // Use saved timestamp
+          DateTime.parse(journal['timestamp']); // use saved timestamp
 
       List<String> uploadedImageUrls = [];
       for (String localPath in localImagePaths) {
@@ -383,7 +383,7 @@ class LocalDatabase {
             filePath: localPath,
             resourceType: CloudinaryResourceType.image,
             folder: 'journal_entries/$userId',
-            publicId: "$userId${originalTimestamp.millisecondsSinceEpoch}",
+            publicId: basenameWithoutExtension(localPath),
           ),
         );
 
@@ -402,6 +402,7 @@ class LocalDatabase {
         "timestamp": Timestamp.fromDate(originalTimestamp),
         "images": uploadedImageUrls,
         "content": content,
+        "updatedAt": updatedAt
       });
 
       // mark as synced
@@ -417,12 +418,15 @@ class LocalDatabase {
     );
 
     return results.map((entry) {
+      print(entry['images']);
+
       return {
         'id': entry['id'],
         'userId': entry['userId'],
         'content': entry['content'],
         'images':
-            (entry['images'] as String).split(','), // Convert string to list
+            (entry['images'] as String).split('-*-'), // convert string to list
+        'updatedAt': entry['updatedAt'],
         'timestamp': entry['timestamp'],
       };
     }).toList();
@@ -505,8 +509,8 @@ class LocalDatabase {
           "timestamp":
               (entryData["timestamp"] as Timestamp).toDate().toIso8601String(),
           "content": entryData["content"] ?? "",
-          "images": jsonEncode(localPaths), // save as local paths
-          "updatedAt": entryData["updatedAt"] ?? null,
+          "images": localPaths.join('-*-'), // save as local paths
+          "updatedAt": entryData["updatedAt"],
           'synced': 1, // mark as synced
         });
       }
@@ -514,42 +518,6 @@ class LocalDatabase {
 
     for (var entry in missingEntries) {
       await db.insert("journal_entries", entry);
-    }
-  }
-
-  static Future<void> syncEditedEntries() async {
-    if (!await isOnline()) return;
-
-    final db = await database;
-    List<Map<String, dynamic>> unsyncedEntries = await db.query(
-      'journal_entries',
-      where: "synced = 0 AND deleted = 0", // not synced and not deleted
-    );
-
-    FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-    for (var entry in unsyncedEntries) {
-      String entryId = entry["id"];
-      String userId = entry["userId"];
-
-      await firestore
-          .collection("mindfulness")
-          .doc(userId)
-          .collection("journal_entries")
-          .doc(entryId)
-          .update({
-        "images": jsonDecode(entry["images"]),
-        "content": entry["content"],
-        "updatedAt": entry["updatedAt"], // Now present only if edited
-      });
-
-      // Mark as synced in local database
-      await db.update(
-        'journal_entries',
-        {"synced": 1},
-        where: "id = ? AND userId = ?",
-        whereArgs: [entryId, userId],
-      );
     }
   }
 
@@ -575,7 +543,7 @@ class LocalDatabase {
           .doc(entryId)
           .delete();
 
-      // Remove from local database after successful deletion
+      // remove from local database after successful deletion
       await db.delete(
         'journal_entries',
         where: "id = ? AND userId = ?",
@@ -598,7 +566,7 @@ class LocalDatabase {
         try {
           localPaths.add(await downloadImage(url, localPath));
         } catch (e) {
-          print("Failed to download image: $url - $e");
+          throw Exception("Failed to download image: $url - $e");
         }
       }
     }

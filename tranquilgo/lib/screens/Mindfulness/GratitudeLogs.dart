@@ -24,8 +24,12 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
   bool deleteMode = false;
 
   @override
-  void initState() async {
+  void initState() {
     super.initState();
+    initializeGratitudePage();
+  }
+
+  void initializeGratitudePage() async {
     initializeLogs();
 
     if (await LocalDatabase.needsLogSync(userId)) {
@@ -35,7 +39,6 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
 
       if (await LocalDatabase.isOnline()) {
         await LocalDatabase.syncMissingLogs(userId);
-        await LocalDatabase.syncDeletedLogs();
       }
     }
     setState(() {

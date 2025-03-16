@@ -46,8 +46,6 @@ class _JournalEntriesState extends State<JournalEntries> {
 
       if (await LocalDatabase.isOnline()) {
         await LocalDatabase.syncMissingJournalEntries(userId);
-        await LocalDatabase.syncEditedEntries();
-        await LocalDatabase.syncDeletedEntries();
       }
     }
 

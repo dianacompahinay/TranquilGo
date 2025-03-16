@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'NavigationBar.dart';
 
@@ -54,7 +53,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
       const Dashboard(),
       const Mindfulness(),
       SocialPage(key: socialPageKey), // Assign the key inside initState
-      StatisticsPage(),
+      const StatisticsPage(),
     ];
 
     // for fetching username in sidebar profile
@@ -85,11 +84,13 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
   }
 
   void setActiveStatus(bool isOnline) {
-    String? userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId != null) {
-      Provider.of<UserDetailsProvider>(context, listen: false)
-          .updateUserStatus(isOnline, userId);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      String? userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        Provider.of<UserDetailsProvider>(context, listen: false)
+            .updateUserStatus(isOnline, userId);
+      }
+    });
   }
 
   @override
@@ -113,9 +114,6 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
 
   @override
   Widget build(BuildContext context) {
-    final userProfileProvider = Provider.of<UserDetailsProvider>(context);
-    final userDetails = userProfileProvider.userDetails;
-
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
@@ -247,16 +245,22 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
                           Expanded(
                             child: Padding(
                               padding: const EdgeInsets.only(right: 5),
-                              child: Text(
-                                "${userDetails == null ? 'Username' : userDetails['username']}",
-                                style: GoogleFonts.inter(
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 15,
-                                  color: Colors.black,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                                softWrap: false,
+                              child: Consumer<UserDetailsProvider>(
+                                builder: (context, userProfileProvider, child) {
+                                  final userDetails =
+                                      userProfileProvider.userDetails;
+                                  return Text(
+                                    "${userDetails == null ? 'Username' : userDetails['username']}",
+                                    style: GoogleFonts.inter(
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 15,
+                                      color: Colors.black,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    softWrap: false,
+                                  );
+                                },
                               ),
                             ),
                           ),

@@ -190,7 +190,27 @@ class DashboardState extends State<Dashboard> {
                         ],
                       );
                     } else {
-                      return const SizedBox();
+                      // no connection
+                      return Center(
+                        child: Container(
+                          width: double.infinity,
+                          height: 130,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: Colors.grey.shade400, width: 1.5),
+                          ),
+                          child: Center(
+                            child: Image.asset(
+                              'assets/images/no-internet.png',
+                              width: 55,
+                              height: 55,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      );
                     }
                   },
                 ),

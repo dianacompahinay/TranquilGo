@@ -1,8 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloudinary_sdk/cloudinary_sdk.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
@@ -134,13 +134,13 @@ class MindfulnessService {
             DateTime moodDate = DateTime(year, month, int.parse(date));
             moodData[moodDate] = roundedMood;
 
-            // Save to local storage for offline use
+            // save to local storage for offline use
             LocalDatabase.saveMood(userId, monthYear, date,
                 roundedMood.toDouble(), roundedMood.toDouble(), 1, 1);
           });
         }
       } else {
-        // Fetch from local storage if offline
+        // fetch from local storage if offline
         moodData = await LocalDatabase.getStoredMoodRecords(userId, monthYear);
       }
 
@@ -161,7 +161,7 @@ class MindfulnessService {
       int newCount = 1;
 
       if (await LocalDatabase.isOnline()) {
-        // Fetch from Firestore if online
+        // fetch from Firestore if online
         DocumentReference moodDocRef = FirebaseFirestore.instance
             .collection('mindfulness')
             .doc(userId)
@@ -189,7 +189,7 @@ class MindfulnessService {
           }
         }
 
-        // Save to Firestore
+        // save to Firestore
         await moodDocRef.set({
           'daily_mood': {
             'current_date': date,
@@ -200,11 +200,11 @@ class MindfulnessService {
           'moods': {date: newAvg},
         }, SetOptions(merge: true));
 
-        // Save to local database (mark as synced)
+        // save to local database (mark as synced)
         await LocalDatabase.saveMood(
             userId, monthYear, date, newAvg, newSum, newCount, 1);
       } else {
-        // Save to local storage when offline (mark as unsynced)
+        // save to local storage when offline (mark as unsynced)
         await LocalDatabase.saveMood(
             userId, monthYear, date, newAvg, newSum, newCount, 0);
       }
@@ -242,26 +242,25 @@ class MindfulnessService {
     try {
       final db = await LocalDatabase.database;
 
-      DateTime startOfMonth =
-          DateTime(selectedMonth.year, selectedMonth.month, 1);
-      DateTime endOfMonth =
-          DateTime(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59);
+      // get the date range for the current month
+      String startOfMonth = DateTime(selectedMonth.year, selectedMonth.month, 1)
+          .toIso8601String();
+      String endOfMonth =
+          DateTime(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59)
+              .toIso8601String();
 
       // query local database for count of entries within the selected month
       List<Map<String, dynamic>> result = await db.rawQuery('''
-        SELECT COUNT(*) as count FROM journal_entries 
-          WHERE userId = ? 
-          AND timestamp >= ? 
-          AND timestamp <= ?
-          ''', [
-        userId,
-        startOfMonth.toIso8601String(),
-        endOfMonth.toIso8601String()
-      ]);
+      SELECT COUNT(*) as count FROM journal_entries 
+        WHERE userId = ? 
+        AND timestamp >= ? 
+        AND timestamp <= ?
+        AND deleted == 0
+    ''', [userId, startOfMonth, endOfMonth]);
 
-      return result.isNotEmpty ? result.first['count'] as int : 0;
+      return Sqflite.firstIntValue(result) ?? 0;
     } catch (e) {
-      throw Exception("Failed to get user entries count");
+      throw Exception("Failed to get user entries count: ${e.toString()}");
     }
   }
 
@@ -271,29 +270,26 @@ class MindfulnessService {
       final db = await LocalDatabase.database;
       int limit = 6; // fetch in batches
 
-      DateTime startOfMonth =
-          DateTime(selectedMonth.year, selectedMonth.month, 1);
-      DateTime endOfMonth =
-          DateTime(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59);
+      String startOfMonth = DateTime(selectedMonth.year, selectedMonth.month, 1)
+          .toIso8601String();
+      String endOfMonth =
+          DateTime(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59)
+              .toIso8601String();
 
-      // Base query
+      // base query
       String query = '''
         SELECT * FROM journal_entries 
           WHERE userId = ? 
           AND timestamp >= ? 
           AND timestamp <= ? 
+          AND deleted == 0
           ORDER BY timestamp DESC 
           LIMIT ?
         ''';
 
-      List<dynamic> queryArgs = [
-        userId,
-        startOfMonth.toIso8601String(),
-        endOfMonth.toIso8601String(),
-        limit
-      ];
+      List<dynamic> queryArgs = [userId, startOfMonth, endOfMonth, limit];
 
-      // if paginating, fetch only after last entry
+      // for fetch by batch, fetch only after last entry
       if (lastEntryId != null) {
         query = '''
           SELECT * FROM journal_entries 
@@ -309,16 +305,21 @@ class MindfulnessService {
 
       // execute query
       List<Map<String, dynamic>> result = await db.rawQuery(query, queryArgs);
-
       return result.map((entry) {
         DateTime dateTime = DateTime.parse(entry["timestamp"]);
         String formattedDate = DateFormat('MMMM dd, yyyy').format(dateTime);
+
+        // ensure images field is a valid JSON array, fallback to empty list if invalid
+        List<String> images =
+            entry["images"] != null && entry["images"].isNotEmpty
+                ? entry["images"].split('-*-') // unique separator
+                : [];
 
         return {
           "entryId": entry["id"],
           "timestamp": dateTime.millisecondsSinceEpoch,
           "date": formattedDate,
-          "images": jsonDecode(entry["images"]) as List<String>,
+          "images": images,
           "content": entry["content"] ?? "",
           "updatedAt": entry["updatedAt"],
         };
@@ -375,13 +376,13 @@ class MindfulnessService {
   Future<void> editEntry(String userId, String entryId, List<String> images,
       String content) async {
     final db = await LocalDatabase.database;
-    String updatedAt = DateFormat('MMM dd, yyyy hh:mm a')
-        .format(DateTime.now().toUtc().add(const Duration(hours: 8)));
+    String updatedAt =
+        DateFormat('MMM dd, yyyy hh:mm a').format(DateTime.now().toUtc());
     try {
       await db.update(
         'journal_entries',
         {
-          "images": jsonEncode(images),
+          "images": images.join('-*-'),
           "content": content,
           "updatedAt": updatedAt,
           "synced": 0, // mark as needing sync
@@ -400,7 +401,7 @@ class MindfulnessService {
     // mark as deleted locally
     await db.update(
       'journal_entries',
-      {"deleted": 1, "synced": 0}, // mark as deleted but unsynced
+      {"deleted": 1}, // mark as deleted but unsynced
       where: "id = ? AND userId = ?",
       whereArgs: [entryId, userId],
     );
@@ -408,26 +409,32 @@ class MindfulnessService {
 
   // GRATITUDE LOGS
 
-  Future<int?> getUserLogsCount(String userId) async {
-    AggregateQuerySnapshot query = await firestore
-        .collection('mindfulness')
-        .doc(userId)
-        .collection('gratitude_logs')
-        .count()
-        .get();
-    return query.count;
+  Future<int> getUserLogsCount(String userId) async {
+    try {
+      final db = await LocalDatabase.database;
+
+      List<Map<String, dynamic>> result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM gratitude_logs WHERE userId = ? AND deleted == 0',
+        [userId],
+      );
+
+      return Sqflite.firstIntValue(result) ?? 0;
+    } catch (e) {
+      throw Exception("Failed to get logs count");
+    }
   }
 
   Future<List<Map<String, dynamic>>> fetchLogs(
       String userId, String? lastLogId) async {
     final db = await LocalDatabase.database;
-    int limit = 8; // Fetch by batch
+    int limit = 8; // fetch by batch
 
     try {
-      // Fetch logs stored in local database
+      // fetch logs stored in local database
       String query = '''
       SELECT * FROM gratitude_logs 
       WHERE userId = ? 
+      AND deleted == 0
       ORDER BY timestamp DESC 
       LIMIT ?
     ''';
@@ -446,7 +453,17 @@ class MindfulnessService {
 
       List<Map<String, dynamic>> localLogs =
           await db.rawQuery(query, queryArgs);
-      return localLogs; // return only local logs
+      return localLogs.map((log) {
+        String timestampString = log["timestamp"];
+        DateTime timestamp = DateTime.parse(timestampString);
+        String formattedDate = DateFormat('MMM d, yyyy').format(timestamp);
+
+        return {
+          "logId": log["id"],
+          "date": formattedDate,
+          "content": log["content"],
+        };
+      }).toList();
     } catch (e) {
       throw Exception('Failed to fetch logs: ${e.toString()}');
     }
@@ -456,12 +473,15 @@ class MindfulnessService {
     try {
       DateTime timestamp = DateTime.now().toUtc();
 
-      // Prepare log data
+      String logId = const Uuid().v4();
+
+      // prepare log data
       Map<String, dynamic> logData = {
+        "id": logId,
         "userId": userId,
         "timestamp": timestamp.toIso8601String(),
         "content": content,
-        "synced": 0, // Mark as unsynced by default
+        "synced": 0, // mark as unsynced by default
       };
 
       if (await LocalDatabase.isOnline()) {
@@ -470,12 +490,13 @@ class MindfulnessService {
             .collection("mindfulness")
             .doc(userId)
             .collection("gratitude_logs")
-            .add({
+            .doc(logId)
+            .set({
           "timestamp": timestamp,
           "content": content,
         });
 
-        logData["synced"] = 1; // Mark as synced
+        logData["synced"] = 1; // mark as synced
       }
       // save log locally
       await LocalDatabase.saveGratitudeLog(logData);
@@ -488,7 +509,7 @@ class MindfulnessService {
     try {
       final db = await LocalDatabase.database;
 
-      // soft delete: Mark as deleted locally
+      // soft delete: mark as deleted locally
       await db.update(
         'gratitude_logs',
         {"deleted": 1}, // Mark as deleted
