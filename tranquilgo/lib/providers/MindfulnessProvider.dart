@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/api/mindfulness_service.dart';
 import 'package:my_app/providers/ActivityProvider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class MindfulnessProvider with ChangeNotifier {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -85,12 +86,13 @@ class MindfulnessProvider with ChangeNotifier {
 
   // JOURNAL ENTRIES
 
-  Future<DateTime?> getUserCreatedAt(String userId) async {
+  Future<DateTime> getUserCreatedAt(String userId) async {
     try {
-      DateTime? monthYear = await service.getUserCreatedAt(userId);
+      DateTime monthYear = await service.getUserCreatedAt(userId);
       return monthYear;
     } catch (e) {
-      return null;
+      DateTime today = DateTime.now();
+      return DateTime(today.year, today.month);
     }
   }
 
@@ -105,9 +107,9 @@ class MindfulnessProvider with ChangeNotifier {
   }
 
   Future<List<Map<String, dynamic>>> fetchEntries(
-      String userId, String? lastEntryId, DateTime selectedMonth) async {
+      String userId, DateTime selectedMonth) async {
     List<Map<String, dynamic>> entries = [];
-    entries = await service.fetchEntries(userId, lastEntryId, selectedMonth);
+    entries = await service.fetchEntries(userId, selectedMonth);
 
     return entries;
   }
@@ -158,10 +160,9 @@ class MindfulnessProvider with ChangeNotifier {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchLogs(
-      String userId, String? lastLogId) async {
+  Future<List<Map<String, dynamic>>> fetchLogs(String userId) async {
     List<Map<String, dynamic>> logs = [];
-    logs = await service.fetchLogs(userId, lastLogId);
+    logs = await service.fetchLogs(userId);
 
     return logs;
   }
@@ -185,6 +186,21 @@ class MindfulnessProvider with ChangeNotifier {
       return "success";
     } catch (e) {
       return "Unexpected error occurred while deleting the log.";
+    }
+  }
+
+  Future<void> checkAndRequestPermissions() async {
+    if (Platform.isAndroid) {
+      if (await Permission.photos.isDenied) {
+        await Permission.photos.request();
+      }
+      if (await Permission.camera.isDenied) {
+        await Permission.camera.request();
+      }
+      if (await Permission.storage.isDenied &&
+          Platform.version.startsWith('10')) {
+        await Permission.storage.request();
+      }
     }
   }
 }

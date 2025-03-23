@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:my_app/local_db.dart';
 import 'NavigationBar.dart';
 
 import 'package:my_app/screens/Dashboard.dart';
@@ -42,6 +43,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
   void initState() {
     super.initState();
     updateWeeklyGoalActivity();
+    syncUserCreatedAt();
 
     WidgetsBinding.instance.addObserver(this);
     setActiveStatus(true);
@@ -64,6 +66,11 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
             .fetchUserDetails(userId);
       }
     });
+  }
+
+  void syncUserCreatedAt() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    await LocalDatabase.syncUserCreatedAt(userId!);
   }
 
   void updateWeeklyGoalActivity() async {

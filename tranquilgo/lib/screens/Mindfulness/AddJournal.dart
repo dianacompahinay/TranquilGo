@@ -204,7 +204,10 @@ class _AddJournalPageState extends State<AddJournalPage> {
                               // open camera to take a picture
                               final ImagePicker picker = ImagePicker();
                               XFile? capturedImage = await picker.pickImage(
-                                  source: ImageSource.camera);
+                                source: ImageSource.camera,
+                                preferredCameraDevice: CameraDevice.rear,
+                                imageQuality: 85,
+                              );
                               if (capturedImage != null) {
                                 File imageFile = File(capturedImage.path);
                                 setState(() {

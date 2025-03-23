@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:my_app/local_db.dart';
 import 'package:my_app/providers/MindfulnessProvider.dart';
 import 'package:provider/provider.dart';
@@ -21,12 +22,12 @@ class _JournalEntriesState extends State<JournalEntries> {
 
   bool isAscending = false;
   Map<int, bool> expandedTexts = {}; // for see more and show less
-  DateTime? selectedMonth = DateTime.now();
-  DateTime? startingMonthTab;
+  DateTime selectedMonth = DateTime.now();
+  DateTime startingMonthTab = DateTime.now();
 
-  bool fetchLoading = false;
+  bool fetchLoading = true;
   bool syncing = false;
-  bool loadingMonthTab = false;
+  bool loadingMonthTab = true;
   bool isConnectionFailed = false;
 
   @override
@@ -36,6 +37,10 @@ class _JournalEntriesState extends State<JournalEntries> {
   }
 
   void initializeJournal() async {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
+    await mindfulnessProvider.checkAndRequestPermissions();
+
     setState(() {
       loadingMonthTab = true;
     });
@@ -89,55 +94,15 @@ class _JournalEntriesState extends State<JournalEntries> {
     });
 
     try {
-      int totalEntries = await mindfulnessProvider.getUserEntriesCount(
-              userId, selectedMonth!) ??
-          0;
-
-      int fetchedCount = 0;
-
-      // fetch the first batch of entries
-      List<Map<String, dynamic>> initialEntries =
-          await mindfulnessProvider.fetchEntries(userId, null, selectedMonth!);
-
-      if (initialEntries.isNotEmpty) {
-        fetchedCount += initialEntries.length;
-        setState(() {
-          journalEntries = initialEntries;
-        });
-      }
-
-      if (fetchedCount == totalEntries) {
-        setState(() {
-          fetchLoading = false;
-        });
-      }
-
-      // continue fetching remaining entries in batches
-      while (fetchedCount < totalEntries) {
-        List<Map<String, dynamic>> fetchedEntries =
-            await mindfulnessProvider.fetchEntries(
-                userId, journalEntries.last["entryId"], selectedMonth!);
-
-        if (fetchedEntries.isNotEmpty) {
-          fetchedCount += fetchedEntries.length;
-          setState(() {
-            journalEntries.addAll(fetchedEntries);
-            // sort entries every fetch, relevant specially when sorting is specified
-            sortEntries();
-          });
-        }
-
-        if (fetchedCount == totalEntries) {
-          setState(() {
-            fetchLoading = false;
-          });
-          break;
-        }
-      }
+      journalEntries =
+          await mindfulnessProvider.fetchEntries(userId, selectedMonth);
     } catch (e) {
       setState(() {
-        fetchLoading = false;
         isConnectionFailed = true;
+      });
+    } finally {
+      setState(() {
+        fetchLoading = false;
       });
     }
   }
@@ -294,7 +259,7 @@ class _JournalEntriesState extends State<JournalEntries> {
                                       ),
                                     ]
                                   : generateMonthTabs(DateTime.now(),
-                                      startingMonthTab!, selectedMonth),
+                                      startingMonthTab, selectedMonth),
                             ),
                           ),
                           const SizedBox(height: 15),
@@ -595,7 +560,7 @@ class _JournalEntriesState extends State<JournalEntries> {
 
   // generate month tabs dynamically
   List<Widget> generateMonthTabs(
-      DateTime startMonth, DateTime endMonth, DateTime? selectedMonth) {
+      DateTime startMonth, DateTime endMonth, DateTime selectedMonth) {
     // ensure startMonth is after or equal to endMonth
     if (startMonth.isBefore(endMonth)) {
       final temp = startMonth;
@@ -615,8 +580,8 @@ class _JournalEntriesState extends State<JournalEntries> {
         monthTab(
           monthName,
           currentMonth,
-          isActive: selectedMonth?.month == currentMonth.month &&
-              selectedMonth?.year == currentMonth.year,
+          isActive: selectedMonth.month == currentMonth.month &&
+              selectedMonth.year == currentMonth.year,
         ),
       );
       // decrement the month

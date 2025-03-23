@@ -337,6 +337,19 @@ class LocalDatabase {
   static Future<void> saveJournalEntry(String id, String userId, String content,
       List<String> images, DateTime timestamp) async {
     final db = await database;
+
+    // Check if the journal entry already exists
+    final existing = await db.query(
+      'journal_entries',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    if (existing.isNotEmpty) {
+      print("Entry already exists: Skipping duplicate insert.");
+      return; // Avoid duplicate insertion
+    }
+
     await db.insert(
       'journal_entries',
       {
@@ -345,9 +358,8 @@ class LocalDatabase {
         'content': content,
         'images': images.join('-*-'),
         'timestamp': timestamp.toIso8601String(),
-        'synced': 0, // mark as unsynced
+        'synced': 0, // Mark as unsynced
       },
-      conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
@@ -418,8 +430,6 @@ class LocalDatabase {
     );
 
     return results.map((entry) {
-      print(entry['images']);
-
       return {
         'id': entry['id'],
         'userId': entry['userId'],
@@ -604,6 +614,47 @@ class LocalDatabase {
       },
       conflictAlgorithm: ConflictAlgorithm.replace, // update if exists
     );
+  }
+
+  static Future<void> syncUserCreatedAt(String userId) async {
+    final db = await database;
+
+    // check if createdAt is already stored locally
+    List<Map<String, dynamic>> localResult = await db.query(
+      'users',
+      columns: ['createdAt'],
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+
+    if (localResult.isEmpty || localResult.first['createdAt'] == null) {
+      // fetch from firestore if not found in local database
+      DateTime? createdAt = await getUserCreatedAtOnline(userId);
+
+      if (createdAt != null) {
+        await saveUserCreatedAt(userId, createdAt);
+      }
+    }
+  }
+
+  static Future<DateTime?> getUserCreatedAtOnline(String userId) async {
+    try {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (userDoc.exists) {
+        Timestamp? createdAtTimestamp = userDoc['createdAt'] as Timestamp?;
+        if (createdAtTimestamp != null) {
+          DateTime createdAt = createdAtTimestamp.toDate();
+          return DateTime(createdAt.year, createdAt.month);
+        }
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch logs: ${e.toString()}');
+    }
+    return null;
   }
 
   // MINDFULNESS: GRATITUDE LOGS -----------------------------------------------

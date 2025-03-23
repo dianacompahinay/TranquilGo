@@ -55,8 +55,8 @@ dependencies:
   geocoding: ^3.0.0
   google_places_flutter: ^2.1.0
   sqflite: ^2.4.2
-  uuid: ^4.5.1
-  
+  uuid: ^4.5.1  
+  heif_converter: ^1.0.1
 
 dev_dependencies:
   flutter_test:

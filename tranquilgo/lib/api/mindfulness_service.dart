@@ -1,11 +1,14 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloudinary_sdk/cloudinary_sdk.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:heif_converter/heif_converter.dart';
+import 'package:image/image.dart' as img;
+
 import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as img;
 import 'package:intl/intl.dart';
 import 'package:my_app/local_db.dart';
 
@@ -215,7 +218,7 @@ class MindfulnessService {
 
   // JOURNAL ENTRIES
 
-  Future<DateTime?> getUserCreatedAt(String userId) async {
+  Future<DateTime> getUserCreatedAt(String userId) async {
     try {
       final db = await LocalDatabase.database;
 
@@ -230,9 +233,11 @@ class MindfulnessService {
         String createdAtStr = result.first['createdAt'];
         DateTime createdAt = DateTime.parse(createdAtStr);
         return DateTime(createdAt.year, createdAt.month);
+      } else {
+        // temporary only to prevent error
+        DateTime today = DateTime.now();
+        return DateTime(today.year, today.month);
       }
-
-      return null;
     } catch (e) {
       throw Exception("Failed to get user createdAt");
     }
@@ -256,7 +261,7 @@ class MindfulnessService {
         AND timestamp >= ? 
         AND timestamp <= ?
         AND deleted == 0
-    ''', [userId, startOfMonth, endOfMonth]);
+      ''', [userId, startOfMonth, endOfMonth]);
 
       return Sqflite.firstIntValue(result) ?? 0;
     } catch (e) {
@@ -265,10 +270,9 @@ class MindfulnessService {
   }
 
   Future<List<Map<String, dynamic>>> fetchEntries(
-      String userId, String? lastEntryId, DateTime selectedMonth) async {
+      String userId, DateTime selectedMonth) async {
     try {
       final db = await LocalDatabase.database;
-      int limit = 6; // fetch in batches
 
       String startOfMonth = DateTime(selectedMonth.year, selectedMonth.month, 1)
           .toIso8601String();
@@ -284,24 +288,9 @@ class MindfulnessService {
           AND timestamp <= ? 
           AND deleted == 0
           ORDER BY timestamp DESC 
-          LIMIT ?
         ''';
 
-      List<dynamic> queryArgs = [userId, startOfMonth, endOfMonth, limit];
-
-      // for fetch by batch, fetch only after last entry
-      if (lastEntryId != null) {
-        query = '''
-          SELECT * FROM journal_entries 
-            WHERE userId = ? 
-            AND timestamp >= ? 
-            AND timestamp <= ? 
-            AND id < ? 
-            ORDER BY timestamp DESC 
-            LIMIT ?
-          ''';
-        queryArgs.insert(3, lastEntryId);
-      }
+      List<dynamic> queryArgs = [userId, startOfMonth, endOfMonth];
 
       // execute query
       List<Map<String, dynamic>> result = await db.rawQuery(query, queryArgs);
@@ -329,6 +318,80 @@ class MindfulnessService {
     }
   }
 
+  Future<File> convertToJpg(File imageFile) async {
+    final token = ServicesBinding.rootIsolateToken;
+    if (token == null) {
+      throw Exception(
+          "RootIsolateToken is null. Ensure this runs in UI isolate.");
+    }
+
+    return compute(convertToJpgIsolate, Args(imageFile.path, token));
+  }
+
+  // isolate function to avoid UI thread overload
+  Future<File> convertToJpgIsolate(Args params) async {
+    BackgroundIsolateBinaryMessenger.ensureInitialized(params.token);
+
+    String filePath = params.filePath;
+    String newPath = filePath.replaceAll(RegExp(r'\.\w+$'), '.jpg');
+    File imageFile = File(filePath);
+
+    try {
+      Uint8List imageBytes;
+
+      // heic/heif conversion
+      if (filePath.toLowerCase().endsWith('.heic') ||
+          filePath.toLowerCase().endsWith('.heif')) {
+        String? jpgPath =
+            await HeifConverter.convert(filePath, output: newPath);
+        if (jpgPath == null) {
+          throw Exception("HEIC conversion failed");
+        }
+
+        File jpgFile = File(jpgPath);
+        img.Image converted = await fixImageOrientation(jpgFile);
+
+        // convert back to file
+        await jpgFile.writeAsBytes(img.encodeJpg(converted, quality: 80));
+
+        return jpgFile;
+      }
+
+      // read image bytes
+      imageBytes = await imageFile.readAsBytes();
+
+      // decode Image
+      img.Image? decodedImage = img.decodeImage(imageBytes);
+      if (decodedImage == null) {
+        throw Exception("Unsupported image format: $filePath");
+      }
+
+      // reduce size
+      decodedImage = img.copyResize(decodedImage, width: 1000);
+      List<int> jpgBytes = img.encodeJpg(decodedImage, quality: 90);
+
+      // save new file
+      File jpgFile = File(newPath);
+      await jpgFile.writeAsBytes(jpgBytes);
+
+      return jpgFile;
+    } catch (e) {
+      throw Exception("Error converting image: $e");
+    }
+  }
+
+  Future<img.Image> fixImageOrientation(File imageFile) async {
+    try {
+      img.Image? decodedImage = img.decodeImage(imageFile.readAsBytesSync());
+      if (decodedImage == null) {
+        throw Exception("Failed to decode image.");
+      }
+      return img.copyRotate(decodedImage, angle: 90); // rotate 90°
+    } catch (e) {
+      throw Exception("Image rotation failed.");
+    }
+  }
+
   Future<File> compressImage(File file) async {
     return await compute(compressImageInIsolate, file);
   }
@@ -353,7 +416,8 @@ class MindfulnessService {
       for (File imageFile in images) {
         if (!imageFile.existsSync()) continue;
 
-        File resizedFile = await compressImage(imageFile);
+        File processedFile = await convertToJpg(imageFile);
+        File resizedFile = await compressImage(processedFile);
         String uniqueFileName = "${const Uuid().v4()}.jpg";
         File savedFile = File("$imagesDir/$uniqueFileName");
 
@@ -424,10 +488,8 @@ class MindfulnessService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchLogs(
-      String userId, String? lastLogId) async {
+  Future<List<Map<String, dynamic>>> fetchLogs(String userId) async {
     final db = await LocalDatabase.database;
-    int limit = 8; // fetch by batch
 
     try {
       // fetch logs stored in local database
@@ -436,20 +498,8 @@ class MindfulnessService {
       WHERE userId = ? 
       AND deleted == 0
       ORDER BY timestamp DESC 
-      LIMIT ?
     ''';
-      List<dynamic> queryArgs = [userId, limit];
-
-      if (lastLogId != null) {
-        query = '''
-        SELECT * FROM gratitude_logs 
-        WHERE userId = ? 
-        AND id < ? 
-        ORDER BY timestamp DESC 
-        LIMIT ?
-      ''';
-        queryArgs.insert(1, lastLogId);
-      }
+      List<dynamic> queryArgs = [userId];
 
       List<Map<String, dynamic>> localLogs =
           await db.rawQuery(query, queryArgs);
@@ -537,4 +587,10 @@ class MindfulnessService {
       throw Exception("Failed to delete log");
     }
   }
+}
+
+class Args {
+  final String filePath;
+  final RootIsolateToken token;
+  Args(this.filePath, this.token);
 }
