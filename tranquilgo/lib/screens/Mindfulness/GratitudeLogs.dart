@@ -108,7 +108,7 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFFFFF),
+      backgroundColor: const Color(0xFFFCFCFC),
       body: Stack(
         children: [
           CustomScrollView(
@@ -326,11 +326,11 @@ class _GratitudeLogsState extends State<GratitudeLogs> {
                                                     style: GoogleFonts.poppins(
                                                       textStyle:
                                                           const TextStyle(
-                                                        fontSize: 20,
+                                                        fontSize: 18.5,
                                                         fontWeight:
-                                                            FontWeight.bold,
+                                                            FontWeight.w700,
                                                         color:
-                                                            Color(0xFF696969),
+                                                            Color(0xFF656565),
                                                       ),
                                                     ),
                                                   ),

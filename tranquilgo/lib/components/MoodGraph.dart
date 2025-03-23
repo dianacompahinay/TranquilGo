@@ -174,6 +174,7 @@ class _GraphViewState extends State<GraphView> {
                                           explode: true,
                                           selectionBehavior:
                                               SelectionBehavior(enable: true),
+                                          animationDuration: 1100,
                                         )
                                       ],
                                     ),

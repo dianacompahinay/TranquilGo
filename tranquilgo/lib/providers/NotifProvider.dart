@@ -8,12 +8,14 @@ class NotificationsProvider with ChangeNotifier {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final UserDetailsService userDetailsService = UserDetailsService();
   List<Map<String, dynamic>> _allNotifications = [];
+  bool _hasUnreadNotif = false;
   bool _isLoading = false;
 
   bool isNotifsFetched = false;
 
   List<Map<String, dynamic>> get allNotifications => _allNotifications;
   bool get notifsFetched => isNotifsFetched;
+  bool get hasUnreadNotif => _hasUnreadNotif;
   bool get isLoading => _isLoading;
 
   void clearUserData() {
@@ -82,6 +84,9 @@ class NotificationsProvider with ChangeNotifier {
           _allNotifications.insert(0, newNotification);
           notifyListeners();
         }
+
+        // update the indicator if there are unread notifications
+        hasUnreadNotifications(userId);
       }
     });
   }
@@ -266,6 +271,15 @@ class NotificationsProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       print('Error updating the notif: $e');
+    }
+  }
+
+  Future<void> hasUnreadNotifications(String receiverId) async {
+    try {
+      _hasUnreadNotif = await notifService.hasUnreadNotifications(receiverId);
+      notifyListeners();
+    } catch (e) {
+      print('Error fetching if there is unread notif: $e');
     }
   }
 }

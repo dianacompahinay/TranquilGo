@@ -430,8 +430,8 @@ class MindfulnessService {
   Future<void> editEntry(String userId, String entryId, List<String> images,
       String content) async {
     final db = await LocalDatabase.database;
-    String updatedAt =
-        DateFormat('MMM dd, yyyy hh:mm a').format(DateTime.now().toUtc());
+    String updatedAt = DateFormat('MMM dd, yyyy hh:mm a')
+        .format(DateTime.now().toUtc().add(const Duration(hours: 8)));
     try {
       await db.update(
         'journal_entries',

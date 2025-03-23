@@ -321,8 +321,8 @@ class _MoodTrackingHistoryState extends State<MoodTrackingHistory> {
     return Container(
       padding: const EdgeInsets.only(left: 10, right: 10, top: 12, bottom: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9F9F9),
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xFFFCFCFC),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.2),
@@ -358,6 +358,7 @@ class _MoodTrackingHistoryState extends State<MoodTrackingHistory> {
                   enableTooltip: true,
                   explode: true,
                   selectionBehavior: SelectionBehavior(enable: true),
+                  animationDuration: 0,
                 )
               ],
             ),

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:my_app/local_db.dart';
 
 class NotificationsService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -335,6 +336,24 @@ class NotificationsService {
           .update({'isRead': false});
     } catch (e) {
       throw Exception('Failed to update notifications: ${e.toString()}');
+    }
+  }
+
+  // function for checking if there is at least one unread notification
+  Future<bool> hasUnreadNotifications(String receiverId) async {
+    try {
+      bool isOnline = await LocalDatabase.isOnline();
+      if (!isOnline) return false;
+
+      QuerySnapshot notifSnapshot = await firestore
+          .collection('notifications')
+          .where('receiverId', isEqualTo: receiverId)
+          .where('isRead', isEqualTo: false)
+          .limit(1)
+          .get();
+      return notifSnapshot.docs.isNotEmpty;
+    } catch (e) {
+      return false; // return false if error occurs
     }
   }
 }

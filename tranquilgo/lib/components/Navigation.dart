@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:my_app/local_db.dart';
+import 'package:my_app/providers/NotifProvider.dart';
 import 'NavigationBar.dart';
 
 import 'package:my_app/screens/Dashboard.dart';
@@ -121,6 +122,8 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
 
   @override
   Widget build(BuildContext context) {
+    final notifProvider = Provider.of<NotificationsProvider>(context);
+
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
@@ -142,25 +145,41 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
           ),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: const Icon(
-                Icons.notifications_none_rounded,
-                color: Color(0xFF110000),
-              ),
-              iconSize: 26,
-              onPressed: () async {
-                // Navigator.pushNamed(context, '/notifs');
-                final result = await Navigator.pushNamed(context, '/notifs');
+          Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.notifications_none_rounded,
+                    color: Color(0xFF110000),
+                  ),
+                  iconSize: 26,
+                  onPressed: () async {
+                    final result =
+                        await Navigator.pushNamed(context, '/notifs');
 
-                if (result == "newFriendAdded") {
-                  // call a method in Companions to refresh user list
-                  socialPageKey.currentState?.refreshConnections();
-                }
-              },
-            ),
-          ),
+                    if (result == "newFriendAdded") {
+                      // call a method in Companions to refresh user list
+                      socialPageKey.currentState?.refreshConnections();
+                    }
+                  },
+                ),
+              ),
+              if (notifProvider.hasUnreadNotif)
+                Transform.translate(
+                  offset: const Offset(27, 14),
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF73D2C3),
+                    ),
+                  ),
+                ),
+            ],
+          )
         ],
 
         title: Text(

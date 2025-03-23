@@ -579,10 +579,10 @@ class UserProfilePageState extends State<UserProfilePage> {
     String? userId = FirebaseAuth.instance.currentUser?.uid;
 
     try {
-      await authProvider.logout();
-
       Provider.of<UserDetailsProvider>(context, listen: false)
           .updateUserStatus(false, userId!);
+
+      await authProvider.logout();
 
       // navigate to the login screen or home page after logout
       Navigator.of(context).pushReplacementNamed('/welcome');
