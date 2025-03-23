@@ -17,7 +17,6 @@ class DashboardWithNavigation extends StatefulWidget {
   const DashboardWithNavigation({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _DashboardWithNavigationState createState() =>
       _DashboardWithNavigationState();
 }
@@ -43,7 +42,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
   void initState() {
     super.initState();
     updateWeeklyGoalActivity();
-    syncUserCreatedAt();
+    syncData();
 
     WidgetsBinding.instance.addObserver(this);
     setActiveStatus(true);
@@ -68,9 +67,10 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
     });
   }
 
-  void syncUserCreatedAt() async {
+  void syncData() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     await LocalDatabase.syncUserCreatedAt(userId!);
+    await LocalDatabase.syncOnlineMoodRecords(userId);
   }
 
   void updateWeeklyGoalActivity() async {

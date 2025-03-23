@@ -243,21 +243,53 @@ class LocalDatabase {
   // MINDFULNESS: MOOD ---------------------------------------------------------
 
   static Future<void> saveMood(String userId, String monthYear, String date,
-      double avgMood, double sum, int count, int synced) async {
+      double selectedMood, int synced) async {
     final db = await database;
-    await db.insert(
+
+    // check if an entry exists for the given userId, monthYear, and date
+    final List<Map<String, dynamic>> existingRecords = await db.query(
       'mood_records',
-      {
-        'userId': userId,
-        'monthYear': monthYear,
-        'date': date,
-        'average': avgMood,
-        'sum': sum,
-        'count': count,
-        'synced': synced // 1 = Synced, 0 = Not Synced
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      where: 'userId = ? AND monthYear = ? AND date = ?',
+      whereArgs: [userId, monthYear, date],
     );
+
+    if (existingRecords.isNotEmpty) {
+      // record exists, update sum, count, and average
+      Map<String, dynamic> existingRecord = existingRecords.first;
+      double prevSum = (existingRecord['sum'] as num).toDouble();
+      int prevCount = (existingRecord['count'] as num).toInt();
+
+      double newSum = prevSum + selectedMood;
+      int newCount = prevCount + 1;
+      double newAvg = newSum / newCount;
+
+      await db.update(
+        'mood_records',
+        {
+          'average': newAvg,
+          'sum': newSum,
+          'count': newCount,
+          'synced': synced, // keep synced status
+        },
+        where: 'userId = ? AND monthYear = ? AND date = ?',
+        whereArgs: [userId, monthYear, date],
+      );
+    } else {
+      // no record exists, insert new entry
+      await db.insert(
+        'mood_records',
+        {
+          'userId': userId,
+          'monthYear': monthYear,
+          'date': date,
+          'average': selectedMood,
+          'sum': selectedMood,
+          'count': 1,
+          'synced': synced, // 1 = Synced, 0 = Not Synced
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
   }
 
   static Future<Map<DateTime, int>> getAllStoredMoodRecords(
@@ -268,15 +300,18 @@ class LocalDatabase {
 
     Map<DateTime, int> moodData = {};
     for (var record in records) {
-      DateTime moodDate =
-          DateTime.parse('${record['monthYear']}-${record['date']}');
+      // extract year and month from "MM-YYYY"
+      List<String> parts = record['monthYear'].split('-');
+      int month = int.parse(parts[0]); // extract month
+      int year = int.parse(parts[1]); // extract year
+
+      DateTime moodDate = DateTime(year, month, int.parse(record['date']));
       moodData[moodDate] = (record['average'] as num).round();
     }
-
     return moodData;
   }
 
-  static Future<Map<DateTime, int>> getStoredMoodRecords(
+  static Future<Map<DateTime, int>> getCurrentMonthMoods(
       String userId, String monthYear) async {
     final db = await database;
     List<Map<String, dynamic>> records = await db.query(
@@ -287,15 +322,46 @@ class LocalDatabase {
 
     Map<DateTime, int> moodData = {};
     for (var record in records) {
-      DateTime moodDate = DateTime.parse('$monthYear-${record['date']}');
+      // extract year and month from "MM-YYYY"
+      List<String> parts = monthYear.split('-');
+      int month = int.parse(parts[0]); // extract month
+      int year = int.parse(parts[1]); // extract year
+
+      DateTime moodDate = DateTime(year, month, int.parse(record['date']));
       moodData[moodDate] = (record['average'] as num).round();
     }
 
     return moodData;
   }
 
+  // sync mood record from firestore
+  static Future<void> syncOnlineMoodRecords(String userId) async {
+    if (!await isOnline()) return;
+
+    try {
+      // fetch from Firestore if online
+      CollectionReference moodCollection = FirebaseFirestore.instance
+          .collection('mindfulness')
+          .doc(userId)
+          .collection('mood_record');
+
+      QuerySnapshot moodSnapshot = await moodCollection.get();
+
+      for (QueryDocumentSnapshot doc in moodSnapshot.docs) {
+        Map<String, dynamic> moods = doc.get('moods');
+        moods.forEach((date, moodValue) {
+          int roundedMood = (moodValue as num).round();
+          // save to local storage
+          saveMood(userId, doc.id, date, roundedMood.toDouble(), 1);
+        });
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch all mood records: ${e.toString()}');
+    }
+  }
+
   // sync local mood records to Firestore when online
-  static Future<void> syncMoodRecords() async {
+  static Future<void> syncLocalMoodRecords() async {
     if (!await isOnline()) return;
 
     final db = await database;

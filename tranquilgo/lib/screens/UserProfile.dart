@@ -1,9 +1,8 @@
-// ignore_for_file: use_build_context_synchronously, avoid_print
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:my_app/local_db.dart';
 import 'package:shimmer/shimmer.dart';
 
 import 'package:provider/provider.dart';
@@ -77,6 +76,10 @@ class UserProfilePageState extends State<UserProfilePage> {
     usernameController.dispose();
     emailController.dispose();
     super.dispose();
+  }
+
+  Future<bool> checkIfOnline() async {
+    return await LocalDatabase.isOnline();
   }
 
   @override
@@ -273,42 +276,54 @@ class UserProfilePageState extends State<UserProfilePage> {
                             margin: const EdgeInsets.only(bottom: 6),
                           ),
                         )
-                      : ElevatedButton(
-                          onPressed: isUpdating
-                              ? null
-                              : () {
-                                  handleSave();
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF55AC9F),
-                            minimumSize: const Size(double.infinity, 42),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                          ),
-                          child: isUpdating
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 4,
-                                  ),
-                                )
-                              : DefaultTextStyle(
-                                  style: GoogleFonts.inter(
-                                    textStyle: const TextStyle(
-                                      color: Color(0xFFFFFFFF),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  child: Text(isEditable
-                                      ? 'Save Changes'
-                                      : 'Edit Profile'),
+                      : FutureBuilder<bool>(
+                          future: checkIfOnline(),
+                          builder: (context, snapshot) {
+                            bool isOnline = snapshot.data ?? false;
+                            return ElevatedButton(
+                              onPressed: isUpdating
+                                  ? null
+                                  : !isOnline
+                                      ? () {
+                                          showBottomSnackBar(context,
+                                              "Cannot edit profile without an internet connection.");
+                                        }
+                                      : () {
+                                          handleSave();
+                                        },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF55AC9F),
+                                minimumSize: const Size(double.infinity, 42),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(5),
                                 ),
+                              ),
+                              child: isUpdating
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 4,
+                                      ),
+                                    )
+                                  : DefaultTextStyle(
+                                      style: GoogleFonts.inter(
+                                        textStyle: const TextStyle(
+                                          color: Color(0xFFFFFFFF),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        isEditable
+                                            ? 'Save Changes'
+                                            : 'Edit Profile',
+                                      ),
+                                    ),
+                            );
+                          },
                         ),
-
                   const SizedBox(height: 16),
 
                   // log out button
@@ -561,8 +576,14 @@ class UserProfilePageState extends State<UserProfilePage> {
   void logOut() async {
     final authProvider =
         Provider.of<AuthenticationProvider>(context, listen: false);
+    String? userId = FirebaseAuth.instance.currentUser?.uid;
+
     try {
       await authProvider.logout();
+
+      Provider.of<UserDetailsProvider>(context, listen: false)
+          .updateUserStatus(false, userId!);
+
       // navigate to the login screen or home page after logout
       Navigator.of(context).pushReplacementNamed('/welcome');
     } catch (e) {

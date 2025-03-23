@@ -60,7 +60,7 @@ void syncOfflineActivities() async {
   Future.microtask(() async {
     await LocalDatabase.syncActivities();
     await LocalDatabase.syncStreakData();
-    await LocalDatabase.syncMoodRecords();
+    await LocalDatabase.syncLocalMoodRecords();
     await LocalDatabase.syncJournalEntries();
     await LocalDatabase.syncDeletedEntries();
     await LocalDatabase.syncGratitudeLogs();

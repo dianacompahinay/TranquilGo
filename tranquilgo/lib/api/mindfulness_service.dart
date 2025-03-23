@@ -97,14 +97,10 @@ class MindfulnessService {
             int roundedMood = (moodValue as num).round();
             DateTime moodDate = DateTime(year, month, int.parse(date));
             moodData[moodDate] = roundedMood;
-
-            // Save to local storage for offline access
-            LocalDatabase.saveMood(userId, doc.id, date, roundedMood.toDouble(),
-                roundedMood.toDouble(), 1, 1);
           });
         }
       } else {
-        // Fetch from local storage if offline
+        // fetch from local storage if offline
         moodData = await LocalDatabase.getAllStoredMoodRecords(userId);
       }
 
@@ -136,15 +132,11 @@ class MindfulnessService {
             int roundedMood = (moodValue as num).round();
             DateTime moodDate = DateTime(year, month, int.parse(date));
             moodData[moodDate] = roundedMood;
-
-            // save to local storage for offline use
-            LocalDatabase.saveMood(userId, monthYear, date,
-                roundedMood.toDouble(), roundedMood.toDouble(), 1, 1);
           });
         }
       } else {
         // fetch from local storage if offline
-        moodData = await LocalDatabase.getStoredMoodRecords(userId, monthYear);
+        moodData = await LocalDatabase.getCurrentMonthMoods(userId, monthYear);
       }
 
       return moodData;
@@ -204,12 +196,10 @@ class MindfulnessService {
         }, SetOptions(merge: true));
 
         // save to local database (mark as synced)
-        await LocalDatabase.saveMood(
-            userId, monthYear, date, newAvg, newSum, newCount, 1);
+        await LocalDatabase.saveMood(userId, monthYear, date, newAvg, 1);
       } else {
         // save to local storage when offline (mark as unsynced)
-        await LocalDatabase.saveMood(
-            userId, monthYear, date, newAvg, newSum, newCount, 0);
+        await LocalDatabase.saveMood(userId, monthYear, date, newAvg, 0);
       }
     } catch (e) {
       throw Exception('Failed to save mood record: ${e.toString()}');

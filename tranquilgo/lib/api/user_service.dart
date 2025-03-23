@@ -4,29 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloudinary_sdk/cloudinary_sdk.dart';
 import 'package:image/image.dart' as img;
 import 'package:my_app/api/notif_service.dart';
+import 'package:my_app/api/mindfulness_service.dart';
 
 class UserDetailsService {
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final NotificationsService notif = NotificationsService();
-
-  // Future<void> createFriendsDocumentsForAllUsers() async {
-  //   // Get the list of all users
-  //   QuerySnapshot usersSnapshot = await firestore.collection("users").get();
-
-  //   // Loop through all users and create a friends document for each
-  //   for (var doc in usersSnapshot.docs) {
-  //     String userId = doc.id; // User's UID
-  //     String username =
-  //         doc["username"]; // Assuming you store usernames in 'username' field
-
-  //     // Create the friends document for this user
-  //     await firestore.collection("friends").doc(userId).set({
-  //       "username": username,
-  //       "friendList": {},
-  //     });
-  //   }
-  // }
+  final MindfulnessService mindfulness = MindfulnessService();
 
   // cloudinary instance
   final cloudinary = Cloudinary.full(
@@ -329,7 +313,8 @@ class UserDetailsService {
         return null;
       }
 
-      final compressedFile = await compressImage(File(imageFile.path));
+      File processedFile = await mindfulness.convertToJpg(imageFile);
+      final compressedFile = await compressImage(processedFile);
 
       // upload image to cloudinary
       final response = await cloudinary.uploadResource(
