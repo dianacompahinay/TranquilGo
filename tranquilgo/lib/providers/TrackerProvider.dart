@@ -22,6 +22,8 @@ class TrackerProvider with ChangeNotifier {
 
   LatLng? _suggestedDestination;
   List<LatLng> routePoints = [];
+  List<LatLng> userRoutePoints = [];
+
   bool isFetchingRoute = false;
 
   List<Map<String, dynamic>> _suggestions = [];
@@ -53,19 +55,29 @@ class TrackerProvider with ChangeNotifier {
     isTrackingPaused = false;
 
     _suggestedDestination = null;
-    routePoints = [];
     isFetchingRoute = false;
     _startLocationName = "";
     _destinationLocationName = "";
+
+    trackerService.resetValues();
   }
 
   void monitorSpeed() {
+    const double maxWalkingSpeed = 9.0; // 9 km/h
+    int highSpeedCount = 0; // track consecutive high-speed occurrences
+
     trackerService.monitorSpeed((speedMps) {
-      _currentSpeed = speedMps * 3.6; // store speed in km/h
+      double speedKph = speedMps * 3.6; // convert to km/h
+      _currentSpeed = speedKph;
       notifyListeners();
 
-      // 9 km/h = 2.5 m/s
-      if (_currentSpeed > 9) {
+      if (speedKph > maxWalkingSpeed) {
+        highSpeedCount++;
+      } else {
+        highSpeedCount = 0; // reset count when back to normal speed
+      }
+
+      if (highSpeedCount >= 3) {
         isTrackingPaused = true;
         pauseTracking();
       }
@@ -100,7 +112,7 @@ class TrackerProvider with ChangeNotifier {
 
   // estimates distance based on target steps
   double estimateDistanceFromSteps(int targetSteps) {
-    const double strideLengthKm = 0.0008; // 0.8m per step (converted to km)
+    const double strideLengthKm = 0.0007; // 0.7m per step (converted to km)
     return targetSteps * strideLengthKm;
   }
 
@@ -141,8 +153,12 @@ class TrackerProvider with ChangeNotifier {
 
     try {
       double estimatedDistance = estimateDistanceFromSteps(targetSteps);
-      _suggestedDestination =
+
+      LatLng randomDest =
           estimateDestination(currentLocation, estimatedDistance);
+
+      _suggestedDestination =
+          await trackerService.findClosestLandmark(randomDest);
 
       // get place names for start and destination
       _startLocationName = await trackerService.getPlaceName(currentLocation);
@@ -159,6 +175,32 @@ class TrackerProvider with ChangeNotifier {
 
     isFetchingRoute = false;
     notifyListeners();
+  }
+
+  Future<void> trackUserRoute(Stream<LocationData> locationStream) async {
+    locationStream.listen((locData) {
+      if (locData.latitude != null && locData.longitude != null) {
+        LatLng newPoint = LatLng(locData.latitude!, locData.longitude!);
+
+        // add to user route list if it is a significant move
+        if (userRoutePoints.isEmpty || isSignificantMove(newPoint)) {
+          userRoutePoints.add(newPoint);
+          notifyListeners();
+        }
+      }
+    }, onError: (e) {
+      print("Error tracking user route: $e");
+    });
+  }
+
+  bool isSignificantMove(LatLng newPoint) {
+    if (userRoutePoints.isEmpty) return true;
+
+    LatLng lastPoint = userRoutePoints.last;
+    double distanceMoved = trackerService.calculateDistance(lastPoint.latitude,
+        lastPoint.longitude, newPoint.latitude, newPoint.longitude);
+
+    return distanceMoved > 1; // only log movement if > 2 meters
   }
 
   // Future<void> fetchPlacesFromMapbox(String query) async {

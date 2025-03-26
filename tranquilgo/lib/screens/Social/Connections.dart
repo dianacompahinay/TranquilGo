@@ -16,6 +16,7 @@ class ConnectionsPage extends StatefulWidget {
 
 class ConnectionsPageState extends State<ConnectionsPage> {
   bool isConnectionFailed = false;
+  bool snackBarOpened = false;
 
   @override
   void initState() {
@@ -25,8 +26,6 @@ class ConnectionsPageState extends State<ConnectionsPage> {
 
   Future<void> initializeFriends() async {
     final userId = FirebaseAuth.instance.currentUser!.uid;
-    // final userProvider = Provider.of<UserDetailsProvider>(context, listen: false);
-    // String? userId = FirebaseAuth.instance.currentUser?.uid;
 
     try {
       // fetch only if users list is empty
@@ -35,7 +34,7 @@ class ConnectionsPageState extends State<ConnectionsPage> {
             Provider.of<UserDetailsProvider>(context, listen: false);
         if (userId != null) {
           userProvider.fetchFriends(userId);
-          userProvider.listenToFriends(userId);
+          userProvider.listenToFriendsActiveStatus(userId);
         }
       });
     } catch (e) {
@@ -125,21 +124,38 @@ class ConnectionsPageState extends State<ConnectionsPage> {
                             itemBuilder: (context, index) {
                               return GestureDetector(
                                 onTap: () async {
-                                  // UserDetailsModal.show(context, users[index]);
                                   bool isOnline = await checkIfOnline();
                                   if (isOnline) {
-                                    String? result =
-                                        await UserDetailsModal.show(context,
-                                            userProvider.friends[index]);
+                                    // check if any field of the user is null
+                                    Map<String, dynamic> friendData =
+                                        userProvider.friends[index];
+                                    bool hasNullField = friendData.values
+                                        .any((value) => value == null);
 
-                                    if (result != null && result.isNotEmpty) {
-                                      final userProvider =
-                                          Provider.of<UserDetailsProvider>(
-                                              context,
-                                              listen: false);
-                                      userProvider.setFetchToFalse();
-                                      await initializeFriends();
-                                      setState(() {});
+                                    if (!hasNullField) {
+                                      String? result =
+                                          await UserDetailsModal.show(context,
+                                              userProvider.friends[index]);
+
+                                      if (result != null && result.isNotEmpty) {
+                                        final userProvider =
+                                            Provider.of<UserDetailsProvider>(
+                                                context,
+                                                listen: false);
+                                        userProvider.setFetchToFalse();
+                                        await initializeFriends();
+                                        setState(() {});
+                                      }
+                                    } else {
+                                      if (!snackBarOpened) {
+                                        showBottomSnackBar(context,
+                                            "Connection failed. The user's data is incomplete.");
+                                      }
+                                    }
+                                  } else {
+                                    if (!snackBarOpened) {
+                                      showBottomSnackBar(context,
+                                          "Check your network settings before proceeding.");
                                     }
                                   }
                                 },
@@ -372,5 +388,43 @@ class ConnectionsPageState extends State<ConnectionsPage> {
         ),
       ),
     );
+  }
+
+  void showBottomSnackBar(BuildContext context, String text) {
+    setState(() {
+      snackBarOpened = true;
+    });
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        bottom: MediaQuery.of(context).padding.bottom + 20,
+        left: 16,
+        right: 16,
+        child: Material(
+          elevation: 4,
+          borderRadius: BorderRadius.circular(8),
+          color: const Color(0xFF2BB1C0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFFFFFFFF),
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+    Future.delayed(const Duration(seconds: 3), () {
+      overlayEntry.remove();
+      setState(() {
+        snackBarOpened = false;
+      });
+    });
   }
 }

@@ -78,12 +78,23 @@ class _MapScreenState extends State<MapScreen> {
                       myLocationButtonEnabled: false,
                       zoomControlsEnabled: false,
                       polylines: {
-                        if (provider.routePoints.isNotEmpty)
+                        // suggested route if enabled
+                        if (provider.routePoints.isNotEmpty &&
+                            widget.isSuggestRouteEnabled)
                           Polyline(
                             polylineId: const PolylineId("suggested_route"),
                             color: Colors.blue,
                             width: 5,
                             points: provider.routePoints,
+                          ),
+
+                        // user's actual route
+                        if (provider.userRoutePoints.isNotEmpty)
+                          Polyline(
+                            polylineId: const PolylineId("user_route"),
+                            color: Colors.green,
+                            width: 6,
+                            points: provider.userRoutePoints,
                           ),
                       },
                       markers: {
@@ -162,9 +173,9 @@ class _MapScreenState extends State<MapScreen> {
       alignment: Alignment.topRight,
       child: Container(
         margin: const EdgeInsets.only(top: 8),
-        width: 270,
-        height: 110,
-        padding: const EdgeInsets.fromLTRB(10, 10, 0, 10),
+        width: 254,
+        height: 100,
+        padding: const EdgeInsets.fromLTRB(6, 6, 0, 6),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.horizontal(left: Radius.circular(6)),
@@ -176,33 +187,41 @@ class _MapScreenState extends State<MapScreen> {
             )
           ],
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
           children: [
-            Image.asset(
-              "assets/icons/destination.png",
-              width: 25,
-              height: 55,
-              fit: BoxFit.cover,
-            ),
-            const SizedBox(width: 5),
-            Column(
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                buildTextContainer(trackerProvider.startLocationName!),
-                const SizedBox(height: 8),
-                buildTextContainer(trackerProvider.destinationLocationName!),
+                Image.asset(
+                  "assets/icons/destination.png",
+                  width: 25,
+                  height: 55,
+                  fit: BoxFit.cover,
+                ),
+                const SizedBox(width: 5),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    buildTextContainer(trackerProvider.startLocationName!),
+                    const SizedBox(height: 8),
+                    buildTextContainer(
+                        trackerProvider.destinationLocationName!),
+                  ],
+                ),
               ],
             ),
             Align(
               alignment: Alignment.centerRight,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_forward_ios, size: 20),
-                onPressed: () {
-                  setState(() {
-                    isDestinationVisible = false;
-                  });
-                },
+              child: Transform.translate(
+                offset: const Offset(7, 0),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_forward_ios, size: 20),
+                  onPressed: () {
+                    setState(() {
+                      isDestinationVisible = false;
+                    });
+                  },
+                ),
               ),
             ),
           ],
@@ -222,8 +241,8 @@ class _MapScreenState extends State<MapScreen> {
         },
         child: Container(
           margin: const EdgeInsets.only(top: 8),
-          height: 110,
-          width: 50,
+          height: 100,
+          width: 32,
           decoration: const BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.horizontal(left: Radius.circular(6)),
@@ -235,8 +254,11 @@ class _MapScreenState extends State<MapScreen> {
               )
             ],
           ),
-          child: const Center(
-            child: Icon(Icons.arrow_back_ios, size: 20),
+          child: Center(
+            child: Transform.translate(
+              offset: const Offset(5, 0),
+              child: const Icon(Icons.arrow_back_ios, size: 20),
+            ),
           ),
         ),
       ),

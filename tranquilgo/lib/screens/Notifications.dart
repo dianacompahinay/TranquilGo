@@ -385,141 +385,176 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                             // action buttons for requests
                                             if (notif["type"] != "message" &&
                                                 notif["status"] == "pending")
-                                              Row(
-                                                children: [
-                                                  Container(
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                            top: 10),
-                                                    height: 30,
-                                                    decoration: BoxDecoration(
-                                                      color: const Color(
-                                                          0xFF6BC7B9),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              4),
-                                                    ),
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 0),
-                                                    child: TextButton(
-                                                      onPressed: () => {
-                                                        if (notif["type"] ==
-                                                            "friend_request")
-                                                          {
-                                                            onFriendAccept(
-                                                                index,
-                                                                notif[
-                                                                    "receiverId"],
-                                                                notif[
-                                                                    "senderId"],
-                                                                notif[
-                                                                    "notifId"]),
-                                                          }
-                                                        else if (notif[
-                                                                "type"] ==
-                                                            "walk_invitation")
-                                                          {
-                                                            onInviteAccept(
-                                                                index,
-                                                                notif[
-                                                                    "receiverId"],
-                                                                notif[
-                                                                    "senderId"],
-                                                                notif[
-                                                                    "details"],
-                                                                notif[
-                                                                    "notifId"])
-                                                          }
-                                                      },
-                                                      style:
-                                                          TextButton.styleFrom(
-                                                        foregroundColor:
-                                                            Colors.white,
-                                                        padding:
-                                                            EdgeInsets.zero,
-                                                      ),
-                                                      child: Text(
-                                                        "Accept",
-                                                        style:
-                                                            GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          fontSize: 13,
+                                              notif["status"] == "loading"
+                                                  ? Row(
+                                                      children: [
+                                                        Container(
+                                                          width: 20,
+                                                          height: 20,
+                                                          margin:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  right: 2,
+                                                                  top: 3),
+                                                          child:
+                                                              CircularProgressIndicator(
+                                                            strokeWidth: 3,
+                                                            color: Colors
+                                                                .grey[300],
+                                                          ),
                                                         ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Container(
-                                                    margin:
-                                                        const EdgeInsets.only(
-                                                            top: 10),
-                                                    height: 30,
-                                                    decoration: BoxDecoration(
-                                                      border: Border.all(
-                                                          color: const Color(
-                                                              0xFFBBBFC6)),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              4),
-                                                    ),
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 0),
-                                                    child: TextButton(
-                                                      onPressed: () => {
-                                                        if (notif["type"] ==
-                                                            "friend_request")
-                                                          {
-                                                            onDecline(
-                                                                index,
-                                                                notif[
-                                                                    "receiverId"],
-                                                                notif[
-                                                                    "senderId"],
-                                                                notif[
-                                                                    "notifId"]),
-                                                          }
-                                                        else if (notif[
-                                                                "type"] ==
-                                                            "walk_invitation")
-                                                          {
-                                                            onInviteDecline(
-                                                                index,
-                                                                notif[
-                                                                    "receiverId"],
-                                                                notif[
-                                                                    "senderId"],
-                                                                notif[
-                                                                    "details"],
-                                                                notif[
-                                                                    "notifId"])
-                                                          }
-                                                      },
-                                                      style:
-                                                          TextButton.styleFrom(
-                                                        foregroundColor:
-                                                            const Color(
-                                                                0xFF475569),
-                                                        padding:
-                                                            EdgeInsets.zero,
-                                                      ),
-                                                      child: Text(
-                                                        "Decline",
-                                                        style:
-                                                            GoogleFonts.inter(
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                          fontSize: 13,
+                                                      ],
+                                                    )
+                                                  : Row(
+                                                      children: [
+                                                        Container(
+                                                          margin:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  top: 10),
+                                                          height: 30,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: const Color(
+                                                                0xFF6BC7B9),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        4),
+                                                          ),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal: 8,
+                                                                  vertical: 0),
+                                                          child: TextButton(
+                                                            onPressed: () => {
+                                                              if (notif[
+                                                                      "type"] ==
+                                                                  "friend_request")
+                                                                {
+                                                                  onFriendAccept(
+                                                                      index,
+                                                                      notif[
+                                                                          "receiverId"],
+                                                                      notif[
+                                                                          "senderId"],
+                                                                      notif[
+                                                                          "notifId"]),
+                                                                }
+                                                              else if (notif[
+                                                                      "type"] ==
+                                                                  "walk_invitation")
+                                                                {
+                                                                  onInviteAccept(
+                                                                      index,
+                                                                      notif[
+                                                                          "receiverId"],
+                                                                      notif[
+                                                                          "senderId"],
+                                                                      notif[
+                                                                          "details"],
+                                                                      notif[
+                                                                          "notifId"])
+                                                                }
+                                                            },
+                                                            style: TextButton
+                                                                .styleFrom(
+                                                              foregroundColor:
+                                                                  Colors.white,
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .zero,
+                                                            ),
+                                                            child: Text(
+                                                              "Accept",
+                                                              style: GoogleFonts
+                                                                  .inter(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                fontSize: 13,
+                                                              ),
+                                                            ),
+                                                          ),
                                                         ),
-                                                      ),
+                                                        const SizedBox(
+                                                            width: 8),
+                                                        Container(
+                                                          margin:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  top: 10),
+                                                          height: 30,
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            border: Border.all(
+                                                                color: const Color(
+                                                                    0xFFBBBFC6)),
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                                        4),
+                                                          ),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal: 8,
+                                                                  vertical: 0),
+                                                          child: TextButton(
+                                                            onPressed: () => {
+                                                              if (notif[
+                                                                      "type"] ==
+                                                                  "friend_request")
+                                                                {
+                                                                  onDecline(
+                                                                      index,
+                                                                      notif[
+                                                                          "receiverId"],
+                                                                      notif[
+                                                                          "senderId"],
+                                                                      notif[
+                                                                          "notifId"]),
+                                                                }
+                                                              else if (notif[
+                                                                      "type"] ==
+                                                                  "walk_invitation")
+                                                                {
+                                                                  onInviteDecline(
+                                                                      index,
+                                                                      notif[
+                                                                          "receiverId"],
+                                                                      notif[
+                                                                          "senderId"],
+                                                                      notif[
+                                                                          "details"],
+                                                                      notif[
+                                                                          "notifId"])
+                                                                }
+                                                            },
+                                                            style: TextButton
+                                                                .styleFrom(
+                                                              foregroundColor:
+                                                                  const Color(
+                                                                      0xFF475569),
+                                                              padding:
+                                                                  EdgeInsets
+                                                                      .zero,
+                                                            ),
+                                                            child: Text(
+                                                              "Decline",
+                                                              style: GoogleFonts
+                                                                  .inter(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                fontSize: 13,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                  ),
-                                                ],
-                                              ),
 
                                             // status display (accepted/declined)
                                             if (notif["status"] == "accepted" &&
@@ -794,6 +829,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void onFriendAccept(int index, String receiverId, String senderId,
       String notificationId) async {
+    setState(() {
+      filteredNotifications[index]["status"] = "loading";
+    });
     setReadStatusToTrue(index, notificationId);
 
     String result =
@@ -812,6 +850,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void onInviteAccept(int index, String receiverId, String senderId,
       Map<String, dynamic> details, String notificationId) async {
+    setState(() {
+      filteredNotifications[index]["status"] = "loading";
+    });
+
     setReadStatusToTrue(index, notificationId);
 
     String result = await Provider.of<NotificationsProvider>(context,
@@ -829,6 +871,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void onDecline(int index, String receiverId, String senderId,
       String notificationId) async {
+    setState(() {
+      filteredNotifications[index]["status"] = "loading";
+    });
+
     setReadStatusToTrue(index, notificationId);
 
     String result =
@@ -846,6 +892,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void onInviteDecline(int index, String receiverId, String senderId,
       Map<String, dynamic> details, String notificationId) async {
+    setState(() {
+      filteredNotifications[index]["status"] = "loading";
+    });
+
     setReadStatusToTrue(index, notificationId);
 
     String result = await Provider.of<NotificationsProvider>(context,

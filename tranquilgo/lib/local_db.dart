@@ -243,7 +243,7 @@ class LocalDatabase {
   // MINDFULNESS: MOOD ---------------------------------------------------------
 
   static Future<void> saveMood(String userId, String monthYear, String date,
-      double selectedMood, int synced) async {
+      int selectedMood, int synced) async {
     final db = await database;
 
     // check if an entry exists for the given userId, monthYear, and date
@@ -295,6 +295,7 @@ class LocalDatabase {
   static Future<Map<DateTime, int>> getAllStoredMoodRecords(
       String userId) async {
     final db = await database;
+
     List<Map<String, dynamic>> records = await db
         .query('mood_records', where: 'userId = ?', whereArgs: [userId]);
 
@@ -334,6 +335,42 @@ class LocalDatabase {
     return moodData;
   }
 
+  static Future<double> getWeeklyAverageMood(
+      String userId, DateTime startOfWeek, DateTime endOfWeek) async {
+    final db = await database;
+
+    List<Map<String, dynamic>> records = await db.query(
+      'mood_records',
+      where: 'userId = ?',
+      whereArgs: [userId],
+    );
+
+    List<double> weeklyMoods = [];
+
+    for (var record in records) {
+      // extract year and month
+      List<String> parts = record['monthYear'].split('-');
+      int month = int.parse(parts[0]);
+      int year = int.parse(parts[1]);
+
+      DateTime moodDate = DateTime(year, month, int.parse(record['date']));
+
+      // filter only moods that fall within the current week
+      if (moodDate
+              .isAfter(startOfWeek.subtract(const Duration(milliseconds: 1))) &&
+          moodDate.isBefore(endOfWeek.add(const Duration(milliseconds: 1)))) {
+        weeklyMoods.add((record['average'] as num).toDouble());
+      }
+    }
+
+    if (weeklyMoods.isEmpty) return 0.0;
+
+    // calculate and return the weekly average mood (rounded to 1 decimal)
+    double averageMood =
+        weeklyMoods.reduce((a, b) => a + b) / weeklyMoods.length;
+    return double.parse(averageMood.toStringAsFixed(1));
+  }
+
   // sync mood record from firestore
   static Future<void> syncOnlineMoodRecords(String userId) async {
     if (!await isOnline()) return;
@@ -352,7 +389,7 @@ class LocalDatabase {
         moods.forEach((date, moodValue) {
           int roundedMood = (moodValue as num).round();
           // save to local storage
-          saveMood(userId, doc.id, date, roundedMood.toDouble(), 1);
+          saveMood(userId, doc.id, date, roundedMood.toInt(), 1);
         });
       }
     } catch (e) {
@@ -404,7 +441,7 @@ class LocalDatabase {
       List<String> images, DateTime timestamp) async {
     final db = await database;
 
-    // Check if the journal entry already exists
+    // check if the journal entry already exists
     final existing = await db.query(
       'journal_entries',
       where: 'id = ?',
@@ -412,8 +449,7 @@ class LocalDatabase {
     );
 
     if (existing.isNotEmpty) {
-      print("Entry already exists: Skipping duplicate insert.");
-      return; // Avoid duplicate insertion
+      return; // avoid duplicate insertion
     }
 
     await db.insert(

@@ -28,82 +28,25 @@ class MindfulnessService {
     try {
       DateTime now = DateTime.now();
 
-      // get the current start and end of the week
+      // get the start and end of the current week (monday - sunday)
       DateTime startOfWeek =
           DateTime(now.year, now.month, now.day - (now.weekday - 1));
       DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
 
-      CollectionReference moodCollection = firestore
-          .collection('mindfulness')
-          .doc(userId)
-          .collection('mood_record');
-
-      QuerySnapshot moodSnapshot = await moodCollection.get();
-
-      List<double> weeklyMoods = [];
-
-      for (QueryDocumentSnapshot doc in moodSnapshot.docs) {
-        List<String> parts = doc.id.split('-');
-        int month = int.parse(parts[0]);
-        int year = int.parse(parts[1]);
-
-        Map<String, dynamic> moods = doc.get('moods');
-
-        moods.forEach((date, moodValue) {
-          double moodDouble = (moodValue as num).toDouble();
-          DateTime moodDate = DateTime(year, month, int.parse(date));
-
-          // filter only records from monday to sunday of this week
-          if (moodDate.isAfter(
-                  startOfWeek.subtract(const Duration(milliseconds: 1))) &&
-              moodDate
-                  .isBefore(endOfWeek.add(const Duration(milliseconds: 1)))) {
-            weeklyMoods.add(moodDouble);
-          }
-        });
-      }
-
-      if (weeklyMoods.isEmpty) return 0;
-
-      // get the average
-      double averageMood =
-          weeklyMoods.reduce((a, b) => a + b) / weeklyMoods.length;
-      return double.parse(averageMood.toStringAsFixed(1));
+      double avgMood = 0.0;
+      avgMood = await LocalDatabase.getWeeklyAverageMood(
+          userId, startOfWeek, endOfWeek);
+      return avgMood;
     } catch (e) {
-      throw Exception('Failed to calculate weekly average mood');
+      throw Exception(
+          'Failed to fetch the current week mood record: ${e.toString()}');
     }
   }
 
   Future<Map<DateTime, int>> fetchAllMoodRecords(String userId) async {
     try {
       Map<DateTime, int> moodData = {};
-
-      if (await LocalDatabase.isOnline()) {
-        // fetch from Firestore if online
-        CollectionReference moodCollection = FirebaseFirestore.instance
-            .collection('mindfulness')
-            .doc(userId)
-            .collection('mood_record');
-
-        QuerySnapshot moodSnapshot = await moodCollection.get();
-
-        for (QueryDocumentSnapshot doc in moodSnapshot.docs) {
-          List<String> parts = doc.id.split('-');
-          int month = int.parse(parts[0]);
-          int year = int.parse(parts[1]);
-
-          Map<String, dynamic> moods = doc.get('moods');
-          moods.forEach((date, moodValue) {
-            int roundedMood = (moodValue as num).round();
-            DateTime moodDate = DateTime(year, month, int.parse(date));
-            moodData[moodDate] = roundedMood;
-          });
-        }
-      } else {
-        // fetch from local storage if offline
-        moodData = await LocalDatabase.getAllStoredMoodRecords(userId);
-      }
-
+      moodData = await LocalDatabase.getAllStoredMoodRecords(userId);
       return moodData;
     } catch (e) {
       throw Exception('Failed to fetch all mood records: ${e.toString()}');
@@ -115,30 +58,7 @@ class MindfulnessService {
     try {
       String monthYear = '${month.toString().padLeft(2, '0')}-$year';
       Map<DateTime, int> moodData = {};
-
-      if (await LocalDatabase.isOnline()) {
-        DocumentReference moodDocRef = FirebaseFirestore.instance
-            .collection('mindfulness')
-            .doc(userId)
-            .collection('mood_record')
-            .doc(monthYear);
-
-        DocumentSnapshot moodSnapshot = await moodDocRef.get();
-
-        if (moodSnapshot.exists) {
-          Map<String, dynamic> moods = moodSnapshot.get('moods');
-
-          moods.forEach((date, moodValue) {
-            int roundedMood = (moodValue as num).round();
-            DateTime moodDate = DateTime(year, month, int.parse(date));
-            moodData[moodDate] = roundedMood;
-          });
-        }
-      } else {
-        // fetch from local storage if offline
-        moodData = await LocalDatabase.getCurrentMonthMoods(userId, monthYear);
-      }
-
+      moodData = await LocalDatabase.getCurrentMonthMoods(userId, monthYear);
       return moodData;
     } catch (e) {
       throw Exception('Failed to fetch mood records: ${e.toString()}');
@@ -196,10 +116,10 @@ class MindfulnessService {
         }, SetOptions(merge: true));
 
         // save to local database (mark as synced)
-        await LocalDatabase.saveMood(userId, monthYear, date, newAvg, 1);
+        await LocalDatabase.saveMood(userId, monthYear, date, selectedMood, 1);
       } else {
         // save to local storage when offline (mark as unsynced)
-        await LocalDatabase.saveMood(userId, monthYear, date, newAvg, 0);
+        await LocalDatabase.saveMood(userId, monthYear, date, selectedMood, 0);
       }
     } catch (e) {
       throw Exception('Failed to save mood record: ${e.toString()}');

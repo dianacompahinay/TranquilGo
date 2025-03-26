@@ -2,9 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/screens/Walking/ActivityForm.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:my_app/providers/TrackerProvider.dart';
 import 'package:my_app/components/TrackerConfirmationDialog.dart';
 
 class ActionButtons extends StatefulWidget {
@@ -138,10 +135,6 @@ class _ActionButtonsState extends State<ActionButtons> {
   }
 
   Widget buildResumeButton(BuildContext context) {
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-    final trackerProvider =
-        Provider.of<TrackerProvider>(context, listen: false);
-
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -186,8 +179,6 @@ class _ActionButtonsState extends State<ActionButtons> {
                         ),
                       ),
                     );
-                    trackerProvider.resetValues(userId);
-                    trackerProvider.disposeService();
                   }
                 },
               ),

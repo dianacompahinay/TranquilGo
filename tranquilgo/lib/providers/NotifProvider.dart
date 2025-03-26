@@ -38,12 +38,12 @@ class NotificationsProvider with ChangeNotifier {
       }
 
       for (var change in snapshot.docChanges) {
+        Map<String, dynamic> data = change.doc.data() as Map<String, dynamic>;
+
+        // ensure data is valid
+        if (data.isEmpty) return;
+
         if (change.type == DocumentChangeType.added) {
-          Map<String, dynamic> data = change.doc.data() as Map<String, dynamic>;
-
-          // ensure data is valid
-          if (data.isEmpty) return;
-
           // fetch sender user data
           DocumentSnapshot userDoc =
               await firestore.collection("users").doc(data["senderId"]).get();
@@ -83,6 +83,15 @@ class NotificationsProvider with ChangeNotifier {
           // insert the new notification at the beginning of the list
           _allNotifications.insert(0, newNotification);
           notifyListeners();
+        } else if (change.type == DocumentChangeType.modified) {
+          if (data["type"] == "friend_request") {
+            int existingIndex = _allNotifications
+                .indexWhere((notif) => notif["notifId"] == change.doc.id);
+
+            // update the status of the friend request notif when accepted from find companions
+            _allNotifications[existingIndex]["status"] = data["status"];
+            notifyListeners();
+          }
         }
 
         // update the indicator if there are unread notifications

@@ -3,11 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:my_app/components/TrackerActionButtons.dart';
 import 'package:my_app/components/TrackerConfirmationDialog.dart';
-// import 'package:my_app/components/TrackerSearchLocation.dart';
 import 'package:my_app/components/MapScreen.dart';
 
 import 'dart:async';
 import 'package:provider/provider.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:my_app/providers/TrackerProvider.dart';
 import 'package:my_app/providers/ActivityProvider.dart';
@@ -50,10 +50,15 @@ class _WalkingTrackerState extends State<WalkingTracker> {
     final trackerProvider =
         Provider.of<TrackerProvider>(context, listen: false);
     trackerProvider.resetValues(userId);
+    trackerProvider.pauseTracking();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        trackerProvider.fetchCurrentLocation();
+        Geolocator.isLocationServiceEnabled().then((isGPSEnabled) {
+          if (isGPSEnabled) {
+            trackerProvider.fetchCurrentLocation();
+          }
+        });
       }
     });
 
@@ -66,6 +71,23 @@ class _WalkingTrackerState extends State<WalkingTracker> {
           });
         }
       });
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final trackerProvider =
+        Provider.of<TrackerProvider>(context, listen: false);
+    // listen for GPS status changes
+    Geolocator.getServiceStatusStream().listen((ServiceStatus status) {
+      if (status == ServiceStatus.enabled) {
+        trackerProvider.fetchCurrentLocation();
+        setState(() {
+          showMap = true;
+        });
+      }
     });
   }
 
@@ -170,6 +192,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                   onCancel: () {
                     timer?.cancel;
                     trackerProvider.resetValues(userId);
+                    trackerProvider.pauseTracking();
                     trackerProvider.disposeService();
                     removeOverlay();
                   },
@@ -438,7 +461,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                           ),
                           if (trackerProvider.progress != null)
                             Text(
-                              "${(trackerProvider.progress * 100).toStringAsFixed(1)}%",
+                              "${(trackerProvider.progress * 100).clamp(0, 100).toStringAsFixed(1)}%",
                               style: GoogleFonts.manrope(
                                 textStyle: const TextStyle(
                                   color: Color(0xFF444444),
@@ -550,13 +573,15 @@ class _WalkingTrackerState extends State<WalkingTracker> {
     return ActionButtons(
       buttonState: buttonState,
       onStart: () {
-        timeDuration = 0;
-        startTimer();
-        trackerProvider.startRealTimeTracking();
-        trackerProvider.monitorSpeed(); //  speed monitoring
-        setState(() {
-          buttonState = 'pause';
-        });
+        if (trackerProvider.targetSteps != 0) {
+          timeDuration = 0;
+          startTimer();
+          trackerProvider.startRealTimeTracking();
+          trackerProvider.monitorSpeed(); //  speed monitoring
+          setState(() {
+            buttonState = 'pause';
+          });
+        }
       },
       onPause: () {
         timer?.cancel();

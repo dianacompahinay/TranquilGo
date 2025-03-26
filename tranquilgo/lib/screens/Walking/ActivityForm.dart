@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:my_app/providers/TrackerProvider.dart';
 import 'dart:math';
 
 import 'package:provider/provider.dart';
@@ -57,6 +58,11 @@ class _ActivityFormState extends State<ActivityForm> {
   @override
   void initState() {
     super.initState();
+    final trackerProvider =
+        Provider.of<TrackerProvider>(context, listen: false);
+    trackerProvider.resetValues(userId);
+    trackerProvider.disposeService();
+
     // convert XFile in File type
     for (var img in capturedImages) {
       File imageFile = File(img.path);
@@ -92,7 +98,7 @@ class _ActivityFormState extends State<ActivityForm> {
         steps,
         distance,
         confidenceLevel! + 1,
-        selectedMood!,
+        selectedMood! + 1,
       );
 
       // plus 1 since selectedMood is index but mood is 1 to 5

@@ -25,6 +25,8 @@ class _FindCompanionsPageState extends State<FindCompanionsPage> {
           Provider.of<UserDetailsProvider>(context, listen: false);
       final userId = FirebaseAuth.instance.currentUser!.uid;
 
+      userProvider.listenToFriendsStatus(userId);
+
       try {
         if (!userProvider.isSearchedUsersFetched) {
           userProvider.initializeUsers(userId);

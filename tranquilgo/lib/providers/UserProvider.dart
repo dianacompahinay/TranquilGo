@@ -141,7 +141,7 @@ class UserDetailsProvider with ChangeNotifier {
     searchQuery = query;
   }
 
-  void listenToFriends(String userId) {
+  void listenToFriendsActiveStatus(String userId) {
     FirebaseFirestore.instance
         .collection("friends")
         .doc(userId)
@@ -156,22 +156,10 @@ class UserDetailsProvider with ChangeNotifier {
                 .collection("users")
                 .doc(friendId)
                 .snapshots()
-                .listen((friendDoc) {
+                .listen((friendDoc) async {
               if (friendDoc.exists) {
                 Map<String, dynamic> friendData =
                     friendDoc.data() as Map<String, dynamic>;
-
-                String userImage = friendData.containsKey("profileImage")
-                    ? friendDoc["profileImage"]
-                    : "no_image";
-
-                Map<String, dynamic> friendInfo = {
-                  "userId": friendId,
-                  "profileImage": userImage,
-                  "username": friendDoc["username"],
-                  "name": friendDoc["name"],
-                  "activeStatus": friendData["activeStatus"] ?? "offline",
-                };
 
                 // find the existing friend in the list
                 int existingIndex = friends
@@ -179,10 +167,8 @@ class UserDetailsProvider with ChangeNotifier {
 
                 if (existingIndex != -1) {
                   // update only the changed friend
-                  friends[existingIndex] = friendInfo;
-                } else {
-                  // add new friend if not already in the list
-                  _friends.add(friendInfo);
+                  friends[existingIndex]["activeStatus"] =
+                      friendData["activeStatus"] ?? "offline";
                 }
 
                 notifyListeners();
@@ -190,6 +176,45 @@ class UserDetailsProvider with ChangeNotifier {
             });
           }
         }
+      }
+    });
+  }
+
+  void listenToFriendsStatus(String userId) {
+    FirebaseFirestore.instance
+        .collection("friends")
+        .doc(userId)
+        .snapshots()
+        .listen((userDoc) {
+      if (userDoc.exists) {
+        Map<String, dynamic>? connections = userDoc.data()?["friendList"];
+
+        if (connections == null) return;
+
+        for (int i = 0; i < _allUsers.length; i++) {
+          String currentStatus = _allUsers[i]["status"];
+
+          if (currentStatus == "pending_request" ||
+              currentStatus == "request_sent") {
+            if (!connections.containsKey(_allUsers[i]["userId"])) {
+              // if user is missing from the friend list, request was declined
+              _allUsers[i]["status"] = "add";
+            } else if (connections[_allUsers[i]["userId"]]["status"] ==
+                "friend") {
+              // if user is in the friend list with "friend" status, update it
+              _allUsers[i]["status"] = "friend";
+            }
+          } else if (currentStatus == "add" &&
+              connections.containsKey(_allUsers[i]["userId"])) {
+            _allUsers[i]["status"] =
+                connections[_allUsers[i]["userId"]]["status"];
+          } else if (currentStatus == "friend" &&
+              !connections.containsKey(_allUsers[i]["userId"])) {
+            _allUsers[i]["status"] = "add";
+          }
+        }
+
+        notifyListeners();
       }
     });
   }
