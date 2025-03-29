@@ -7,19 +7,18 @@ class NotificationsProvider with ChangeNotifier {
   final NotificationsService notifService = NotificationsService();
   final FirebaseFirestore firestore = FirebaseFirestore.instance;
   final UserDetailsService userDetailsService = UserDetailsService();
-  List<Map<String, dynamic>> _allNotifications = [];
+  List<Map<String, dynamic>> allNotifications = [];
   bool _hasUnreadNotif = false;
   bool _isLoading = false;
 
   bool isNotifsFetched = false;
 
-  List<Map<String, dynamic>> get allNotifications => _allNotifications;
   bool get notifsFetched => isNotifsFetched;
   bool get hasUnreadNotif => _hasUnreadNotif;
   bool get isLoading => _isLoading;
 
   void clearUserData() {
-    _allNotifications.clear();
+    allNotifications.clear();
     isNotifsFetched = false;
     notifyListeners();
   }
@@ -80,16 +79,23 @@ class NotificationsProvider with ChangeNotifier {
             };
           }
 
+          // remove old notification if same senderId, receiverId, and type
+          allNotifications.removeWhere((notif) =>
+              (notif["senderId"] == newNotification["senderId"] &&
+                  notif["receiverId"] == newNotification["receiverId"] &&
+                  (notif["type"] == "friend_request" ||
+                      notif["type"] == "friend_request_update")));
+
           // insert the new notification at the beginning of the list
-          _allNotifications.insert(0, newNotification);
+          allNotifications.insert(0, newNotification);
           notifyListeners();
         } else if (change.type == DocumentChangeType.modified) {
           if (data["type"] == "friend_request") {
-            int existingIndex = _allNotifications
+            int existingIndex = allNotifications
                 .indexWhere((notif) => notif["notifId"] == change.doc.id);
 
             // update the status of the friend request notif when accepted from find companions
-            _allNotifications[existingIndex]["status"] = data["status"];
+            allNotifications[existingIndex]["status"] = data["status"];
             notifyListeners();
           }
         }
@@ -135,7 +141,7 @@ class NotificationsProvider with ChangeNotifier {
       // get total user count
       int totalNotifs = await getUserNotifsCount(userId) ?? 0;
       int fetchedCount = 0;
-      _allNotifications.clear();
+      allNotifications.clear();
 
       // fetch the first initial notifs before the loop
       List<Map<String, dynamic>> initialNotifs =
@@ -143,18 +149,18 @@ class NotificationsProvider with ChangeNotifier {
 
       if (initialNotifs.isNotEmpty) {
         fetchedCount += initialNotifs.length;
-        _allNotifications.addAll(initialNotifs);
+        allNotifications.addAll(initialNotifs);
         totalNotifs = await getUserNotifsCount(userId) ?? 0;
       }
 
       // continue fetching remaining notifs
       while (fetchedCount < totalNotifs) {
         List<Map<String, dynamic>> fetchedNotifs =
-            await fetchNotifications(userId, _allNotifications.last["notifId"]);
+            await fetchNotifications(userId, allNotifications.last["notifId"]);
 
         if (fetchedNotifs.isNotEmpty) {
           fetchedCount += fetchedNotifs.length;
-          _allNotifications.addAll(fetchedNotifs);
+          allNotifications.addAll(fetchedNotifs);
           totalNotifs = await getUserNotifsCount(userId) ?? 0;
         }
 

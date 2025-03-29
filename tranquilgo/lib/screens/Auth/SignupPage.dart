@@ -68,7 +68,7 @@ class _SignupPageState extends State<SignupPage> {
             SingleChildScrollView(
               child: Padding(
                 padding:
-                    const EdgeInsets.only(top: 140.0, left: 25.0, right: 25.0),
+                    const EdgeInsets.only(top: 140.0, left: 16.0, right: 16.0),
                 child: Column(
                   children: [
                     ConstrainedBox(

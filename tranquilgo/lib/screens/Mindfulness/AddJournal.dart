@@ -47,7 +47,7 @@ class _AddJournalPageState extends State<AddJournalPage> {
         DateFormat('EEEE, d MMMM yyyy').format(DateTime.now());
 
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,

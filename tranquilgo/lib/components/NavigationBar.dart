@@ -17,11 +17,19 @@ class CustomBottomNavigationBar extends StatelessWidget {
       padding: const EdgeInsets.only(left: 5, right: 5),
       child: Container(
         decoration: const BoxDecoration(
-          color: Color(0xFFD7F0EC),
+          color: Color(0xFFFFFFFF),
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(5),
             topRight: Radius.circular(5),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0xFFFAFAFA),
+              blurRadius: 5,
+              spreadRadius: 2,
+              offset: Offset(0, -2),
+            ),
+          ],
         ),
         child: Stack(
           clipBehavior: Clip.none,
@@ -64,9 +72,9 @@ class CustomBottomNavigationBar extends StatelessWidget {
               // four icons with space in between
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                buildNavigationIcons(0),
+                buildNavigationIcons(0, context),
                 const Expanded(child: SizedBox()),
-                buildNavigationIcons(2),
+                buildNavigationIcons(2, context),
               ],
             ),
           ],
@@ -75,7 +83,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
     );
   }
 
-  Row buildNavigationIcons(int start) {
+  Row buildNavigationIcons(int start, BuildContext context) {
     return Row(
       children: List.generate(2, (index) {
         return GestureDetector(
@@ -93,7 +101,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
                         left: 5,
                         child: Container(
                           height: 4,
-                          width: 54,
+                          width: MediaQuery.of(context).size.height * 0.063,
                           decoration: const BoxDecoration(
                             color: Color(0xFF35A997),
                             borderRadius: BorderRadius.all(Radius.circular(20)),

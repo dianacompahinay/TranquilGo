@@ -72,7 +72,7 @@ class _ViewJournalPageState extends State<ViewJournalPage> {
   Widget build(BuildContext context) {
     final mindfulnessProvider = Provider.of<MindfulnessProvider>(context);
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,

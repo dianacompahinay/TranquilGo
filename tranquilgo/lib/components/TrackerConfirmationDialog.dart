@@ -20,7 +20,7 @@ class ConfirmationDialog {
             child: Text(
               type == "back"
                   ? "Are you sure you want to leave? Any recorded data will be lost."
-                  : "No progress has been made (zero steps). Do you want to continue or discard your progress?",
+                  : "No progress has been made (zero steps). Do you want to continue or discard the current entry?",
               style: GoogleFonts.poppins(
                 textStyle: const TextStyle(
                   color: Color(0xFF464646),

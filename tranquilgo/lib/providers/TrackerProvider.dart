@@ -5,6 +5,7 @@ import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:my_app/api/tracker_service.dart';
 import 'package:my_app/providers/ActivityProvider.dart';
+import 'package:location/location.dart' as loc;
 
 // import 'package:http/http.dart' as http;
 // import 'dart:convert';
@@ -13,6 +14,8 @@ class TrackerProvider with ChangeNotifier {
   LocationData? _currentLocation;
   final TrackerService trackerService = TrackerService();
   final ActivityProvider activityProvider = ActivityProvider();
+
+  Stream<loc.LocationData>? locationStream;
 
   int stepCount = 0;
   double distance = 0.0;
@@ -85,6 +88,11 @@ class TrackerProvider with ChangeNotifier {
   }
 
   void startRealTimeTracking() {
+    locationStream = trackerService.location.onLocationChanged;
+
+    // start tracking movement
+    trackUserRoute(locationStream!);
+
     trackerService.startTracking((int newSteps, double newDistance) {
       stepCount = newSteps;
       distance = newDistance;
@@ -200,7 +208,7 @@ class TrackerProvider with ChangeNotifier {
     double distanceMoved = trackerService.calculateDistance(lastPoint.latitude,
         lastPoint.longitude, newPoint.latitude, newPoint.longitude);
 
-    return distanceMoved > 1; // only log movement if > 2 meters
+    return distanceMoved > 1; // only log movement if > 1 meters
   }
 
   // Future<void> fetchPlacesFromMapbox(String query) async {
@@ -266,5 +274,6 @@ class TrackerProvider with ChangeNotifier {
 
   void disposeService() {
     trackerService.disposeService();
+    locationStream = null;
   }
 }

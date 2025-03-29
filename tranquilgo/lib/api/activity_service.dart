@@ -85,7 +85,7 @@ class ActivityService {
 
   String formatTargetChange(double targetChange) {
     double percentage = targetChange * 100;
-    String changeType = percentage >= 0 ? "higher" : "lower";
+    String changeType = percentage > 0.0 ? "higher" : "lower";
     percentage = percentage.abs(); // absolute value
 
     if (percentage == 0) return "Same as previous week";
@@ -393,9 +393,9 @@ class ActivityService {
 
   Future<void> createWeeklyGoalForNewUser(
       String userId, int targetSteps) async {
-    DateTime today = DateTime.now();
+    DateTime monday = getMondayOfCurrentWeek();
     DateTime sunday = getSundayOfCurrentWeek();
-    String startDate = formatDate(today);
+    String startDate = formatDate(monday);
     String endDate = formatDate(sunday);
 
     try {

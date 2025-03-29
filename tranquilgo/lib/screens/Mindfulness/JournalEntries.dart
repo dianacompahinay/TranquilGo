@@ -29,6 +29,7 @@ class _JournalEntriesState extends State<JournalEntries> {
   bool syncing = false;
   bool loadingMonthTab = true;
   bool isConnectionFailed = false;
+  bool deleteLoading = false;
 
   @override
   void initState() {
@@ -113,6 +114,28 @@ class _JournalEntriesState extends State<JournalEntries> {
           ? a['timestamp'].compareTo(b['timestamp'])
           : b['timestamp'].compareTo(a['timestamp']));
     });
+  }
+
+  void deleteEntry(BuildContext context, String userId, String entryId) async {
+    final mindfulnessProvider =
+        Provider.of<MindfulnessProvider>(context, listen: false);
+    setState(() {
+      deleteLoading = true;
+    });
+
+    String result = await mindfulnessProvider.deleteEntry(userId, entryId);
+
+    setState(() {
+      deleteLoading = false;
+    });
+
+    if (result != "success") {
+      showBottomSnackBar(context, result);
+    } else {
+      setState(() {
+        journalEntries.removeWhere((entry) => entry['entryId'] == entryId);
+      });
+    }
   }
 
   void showImageModal(File imageFile) {
@@ -600,8 +623,6 @@ class _JournalEntriesState extends State<JournalEntries> {
     required String content,
     required String? updatedAt,
   }) {
-    final mindfulnessProvider =
-        Provider.of<MindfulnessProvider>(context, listen: false);
     final isExpanded = expandedTexts[index] ?? false;
 
     return Column(
@@ -642,16 +663,7 @@ class _JournalEntriesState extends State<JournalEntries> {
                     initializeEntries();
                   }
                 } else if (value == 'Delete') {
-                  String result =
-                      await mindfulnessProvider.deleteEntry(userId, entryId);
-                  if (result != "success") {
-                    showBottomSnackBar(context, result);
-                  } else {
-                    setState(() {
-                      journalEntries
-                          .removeWhere((entry) => entry['entryId'] == entryId);
-                    });
-                  }
+                  confirmationToDelete(context, userId, entryId, date);
                 }
               },
               itemBuilder: (context) => [
@@ -765,6 +777,100 @@ class _JournalEntriesState extends State<JournalEntries> {
         ),
         const SizedBox(height: 18),
       ],
+    );
+  }
+
+  void confirmationToDelete(
+      BuildContext context, String userId, String entryId, String date) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          backgroundColor: Colors.white,
+          content: Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Text(
+              "Are you sure you want to permanently delete the entry from $date?",
+              style: GoogleFonts.poppins(
+                textStyle: const TextStyle(
+                  color: Color(0xFF464646),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          actions: [
+            deleteLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Color(0xFF36B9A5),
+                      strokeWidth: 5,
+                    ),
+                  )
+                : Container(
+                    padding: EdgeInsets.zero,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(); // close dialog
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            minimumSize: const Size(120, 32),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                              side: const BorderSide(
+                                color: Color(0xFFB1B1B1),
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                color: Color(0xFF4C4B4B),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                        ElevatedButton(
+                          onPressed: () {
+                            deleteEntry(context, userId, entryId);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF55AC9F),
+                            minimumSize: const Size(120, 32),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                          ),
+                          child: Text(
+                            'Confirm',
+                            style: GoogleFonts.poppins(
+                              textStyle: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ],
+        );
+      },
     );
   }
 

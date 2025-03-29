@@ -829,8 +829,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void onFriendAccept(int index, String receiverId, String senderId,
       String notificationId) async {
+    final notifProvider =
+        Provider.of<NotificationsProvider>(context, listen: false);
     setState(() {
-      filteredNotifications[index]["status"] = "loading";
+      notifProvider.allNotifications[index]["status"] = "loading";
     });
     setReadStatusToTrue(index, notificationId);
 
@@ -850,8 +852,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void onInviteAccept(int index, String receiverId, String senderId,
       Map<String, dynamic> details, String notificationId) async {
+    final notifProvider =
+        Provider.of<NotificationsProvider>(context, listen: false);
     setState(() {
-      filteredNotifications[index]["status"] = "loading";
+      notifProvider.allNotifications[index]["status"] = "loading";
     });
 
     setReadStatusToTrue(index, notificationId);
@@ -871,8 +875,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void onDecline(int index, String receiverId, String senderId,
       String notificationId) async {
+    final notifProvider =
+        Provider.of<NotificationsProvider>(context, listen: false);
     setState(() {
-      filteredNotifications[index]["status"] = "loading";
+      notifProvider.allNotifications[index]["status"] = "loading";
     });
 
     setReadStatusToTrue(index, notificationId);
@@ -892,8 +898,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
   void onInviteDecline(int index, String receiverId, String senderId,
       Map<String, dynamic> details, String notificationId) async {
+    final notifProvider =
+        Provider.of<NotificationsProvider>(context, listen: false);
     setState(() {
-      filteredNotifications[index]["status"] = "loading";
+      notifProvider.allNotifications[index]["status"] = "loading";
     });
 
     setReadStatusToTrue(index, notificationId);

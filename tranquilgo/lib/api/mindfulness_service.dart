@@ -439,7 +439,7 @@ class MindfulnessService {
       Map<String, dynamic> logData = {
         "id": logId,
         "userId": userId,
-        "timestamp": timestamp.toIso8601String(),
+        "timestamp": timestamp.add(const Duration(hours: 8)).toIso8601String(),
         "content": content,
         "synced": 0, // mark as unsynced by default
       };

@@ -33,7 +33,8 @@ class _MapScreenState extends State<MapScreen> {
         color: Colors.black87,
         child: const Center(
           child: Text(
-            'GPS permission denied or GPS is disabled.',
+            'GPS is not detected. It may be disabled \nor encountering an issue.',
+            textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white,
             ),
