@@ -16,7 +16,6 @@ class TrackerService {
   int stepCount = 0;
   double distance = 0.0;
   double previousAcceleration = 0.0;
-  double stepThreshold = 1.2;
   LatLng? lastLocation;
 
   double currentSpeed = 0.0;
@@ -63,48 +62,53 @@ class TrackerService {
       serviceEnabled = await location.requestService();
     }
 
-    // cancel any existing tracking subscriptions
+    // cancel any existing tracking subscriptions to avoid duplicates
     accelerometerSubscription?.cancel();
     locationSubscription?.cancel();
 
     int lastStepTime = DateTime.now().millisecondsSinceEpoch;
     List<double> lastReadings = [];
-    bool updated = false; // flag to track updates
+    bool updated = false;
+
+    int minStepInterval = 350; // minimum time between steps (in ms)
+    double stepSensitivity = 1.1;
+    double stepDistance = 0.0007; // estimated step distance in km
 
     // start step tracking using accelerometer
     accelerometerSubscription =
         accelerometerEvents.listen((AccelerometerEvent event) {
-      double zAcceleration = event.z;
-      lastReadings.add(zAcceleration);
+      double magnitude =
+          sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
 
-      // keep only the last 4 readings
-      if (lastReadings.length > 4) {
+      // store last 5 readings for noise reduction
+      lastReadings.add(magnitude);
+      if (lastReadings.length > 5) {
         lastReadings.removeAt(0);
       }
 
-      // calculate average acceleration
+      // compute average acceleration from the last readings
       double avgAcceleration =
           lastReadings.reduce((a, b) => a + b) / lastReadings.length;
       int currentTime = DateTime.now().millisecondsSinceEpoch;
       int timeSinceLastStep = currentTime - lastStepTime;
 
-      // detect step only if enough time has passed
-      if ((avgAcceleration - previousAcceleration).abs() > stepThreshold &&
-          timeSinceLastStep > 400) {
+      // detect step if acceleration change is significant and enough time has passed
+      if ((avgAcceleration - previousAcceleration).abs() > stepSensitivity &&
+          timeSinceLastStep > minStepInterval &&
+          !updated) {
         stepCount++;
         lastStepTime = currentTime;
 
-        // 0.7m estimated distance per step
-        distance += 0.0007; // 0.7m -> convert to km
-
-        updated = true; // mark update as needed
+        // add estimated distance per step
+        distance += stepDistance;
+        updated = true;
       }
 
       previousAcceleration = avgAcceleration;
     });
 
-    // update UI only once per cycle
-    Timer.periodic(const Duration(milliseconds: 400), (timer) {
+    // update ui only when a step is detected
+    Timer.periodic(const Duration(milliseconds: 300), (timer) {
       if (updated) {
         onUpdate(stepCount, distance);
         updated = false;
@@ -138,9 +142,8 @@ class TrackerService {
         }
       }
     } catch (e) {
-      print("Error fetching landmark: $e");
+      throw Exception("Error fetching landmark: $e");
     }
-
     return currentLocation; // return the random destination if no landmark is found
   }
 

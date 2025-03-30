@@ -797,7 +797,7 @@ class LocalDatabase {
   }
 
   // mark log as synced
-  static Future<void> markLogAsSynced(int id) async {
+  static Future<void> markLogAsSynced(String id) async {
     final db = await database;
     await db.update('gratitude_logs', {"synced": 1},
         where: "id = ?", whereArgs: [id]);

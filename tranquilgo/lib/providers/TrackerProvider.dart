@@ -1,14 +1,15 @@
+import 'dart:io';
 import 'dart:math';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:location/location.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:my_app/api/tracker_service.dart';
 import 'package:my_app/providers/ActivityProvider.dart';
 import 'package:location/location.dart' as loc;
-
-// import 'package:http/http.dart' as http;
-// import 'dart:convert';
+import 'package:latlong2/latlong.dart' as latlong;
+import 'landmarks.dart';
 
 class TrackerProvider with ChangeNotifier {
   LocationData? _currentLocation;
@@ -28,6 +29,7 @@ class TrackerProvider with ChangeNotifier {
   List<LatLng> userRoutePoints = [];
 
   bool isFetchingRoute = false;
+  bool isStarted = false;
 
   List<Map<String, dynamic>> _suggestions = [];
 
@@ -56,12 +58,16 @@ class TrackerProvider with ChangeNotifier {
     trackerService.resetValues();
     targetSteps = await activityProvider.getTargetSteps(userId);
     isTrackingPaused = false;
+    isStarted = false;
 
     _suggestedDestination = null;
     isFetchingRoute = false;
     _startLocationName = "";
     _destinationLocationName = "";
+    routePoints.clear();
+    userRoutePoints.clear();
 
+    locationStream = null;
     trackerService.resetValues();
   }
 
@@ -87,7 +93,17 @@ class TrackerProvider with ChangeNotifier {
     });
   }
 
+  void startForegroundService() {
+    if (Platform.isAndroid) {
+      FlutterForegroundTask.startService(
+        notificationTitle: "Step Tracking Active",
+        notificationText: "Your steps are being recorded in the background.",
+      );
+    }
+  }
+
   void startRealTimeTracking() {
+    startForegroundService();
     locationStream = trackerService.location.onLocationChanged;
 
     // start tracking movement
@@ -120,7 +136,7 @@ class TrackerProvider with ChangeNotifier {
 
   // estimates distance based on target steps
   double estimateDistanceFromSteps(int targetSteps) {
-    const double strideLengthKm = 0.0007; // 0.7m per step (converted to km)
+    const double strideLengthKm = 0.0004;
     return targetSteps * strideLengthKm;
   }
 
@@ -154,6 +170,19 @@ class TrackerProvider with ChangeNotifier {
     }
   }
 
+  bool isWithinUPLB(LatLng currentLocation) {
+    // define UPLB bounding box (approximate)
+    const double minLat = 14.155, maxLat = 14.180;
+    const double minLng = 121.235, maxLng = 121.270;
+
+    bool isWithinUPLB = (currentLocation.latitude >= minLat &&
+        currentLocation.latitude <= maxLat &&
+        currentLocation.longitude >= minLng &&
+        currentLocation.longitude <= maxLng);
+
+    return isWithinUPLB;
+  }
+
   // suggests a route based on user's target steps
   Future<void> suggestRoute(int targetSteps, LatLng currentLocation) async {
     isFetchingRoute = true;
@@ -162,23 +191,62 @@ class TrackerProvider with ChangeNotifier {
     try {
       double estimatedDistance = estimateDistanceFromSteps(targetSteps);
 
-      LatLng randomDest =
-          estimateDestination(currentLocation, estimatedDistance);
+      if (isWithinUPLB(currentLocation)) {
+        if (uplbLandmarks.isNotEmpty) {
+          double estimatedDistanceMeters = estimatedDistance * 1000;
 
-      _suggestedDestination =
-          await trackerService.findClosestLandmark(randomDest);
+          List<Map<String, dynamic>> validLandmarks = [];
 
-      // get place names for start and destination
-      _startLocationName = await trackerService.getPlaceName(currentLocation);
-      _destinationLocationName =
-          await trackerService.getPlaceName(_suggestedDestination!);
+          for (var landmark in uplbLandmarks) {
+            LatLng landmarkLocation = LatLng(landmark["lat"], landmark["lng"]);
+            double distance = trackerService.calculateDistance(
+                currentLocation.latitude,
+                currentLocation.longitude,
+                landmarkLocation.latitude,
+                landmarkLocation.longitude);
 
+            // filter landmark based on distance
+            if (distance <= estimatedDistanceMeters &&
+                distance > estimatedDistanceMeters / 2) {
+              validLandmarks.add({"landmark": landmark, "distance": distance});
+            }
+          }
+
+          if (validLandmarks.isNotEmpty) {
+            // make filtered landmarks random
+            validLandmarks.shuffle();
+
+            Map<String, dynamic> chosenLandmark =
+                validLandmarks.first["landmark"];
+
+            _suggestedDestination =
+                LatLng(chosenLandmark["lat"], chosenLandmark["lng"]);
+            _destinationLocationName = chosenLandmark["name"];
+          }
+        }
+      }
+
+      if (_suggestedDestination == null) {
+        // get random destination based on the target steps
+        LatLng randomDest =
+            estimateDestination(currentLocation, estimatedDistance);
+
+        // if not in UPLB, use google maps API to find a general landmark
+        _suggestedDestination =
+            await trackerService.findClosestLandmark(randomDest);
+        _destinationLocationName =
+            await trackerService.getPlaceName(_suggestedDestination!);
+      }
+
+      // fetch route if a valid destination was found
       if (_suggestedDestination != null) {
         routePoints = await trackerService.fetchRoute(
             currentLocation, _suggestedDestination!);
       }
+      // get place name for start location
+      _startLocationName = await trackerService.getPlaceName(currentLocation);
     } catch (e) {
-      print("Error suggesting route: $e");
+      throw Exception("Error suggesting route: $e");
     }
 
     isFetchingRoute = false;
@@ -186,19 +254,54 @@ class TrackerProvider with ChangeNotifier {
   }
 
   Future<void> trackUserRoute(Stream<LocationData> locationStream) async {
-    locationStream.listen((locData) {
+    locationStream.listen((locData) async {
       if (locData.latitude != null && locData.longitude != null) {
         LatLng newPoint = LatLng(locData.latitude!, locData.longitude!);
 
         // add to user route list if it is a significant move
-        if (userRoutePoints.isEmpty || isSignificantMove(newPoint)) {
+        if ((userRoutePoints.isEmpty || isSignificantMove(newPoint)) &&
+            isStarted) {
           userRoutePoints.add(newPoint);
+
+          // update route points when current location changes
+          if (_suggestedDestination != null) {
+            routePoints = await trackerService.fetchRoute(
+                newPoint, _suggestedDestination!);
+          }
           notifyListeners();
+
+          // // check if the user is still following the suggested route
+          // if (!checkUserOnRoute(newPoint)) {
+          //   // fetch new route to the same suggested destination
+          //   if (_suggestedDestination != null) {
+          //     routePoints = await trackerService.fetchRoute(
+          //         newPoint, _suggestedDestination!);
+          //   }
+
+          //   notifyListeners();
+          // }
         }
       }
     }, onError: (e) {
       print("Error tracking user route: $e");
     });
+  }
+
+  bool checkUserOnRoute(LatLng currentLocation) {
+    if (routePoints.isEmpty) return false;
+
+    latlong.Distance distance = const latlong.Distance();
+    const double deviationThreshold = 15.0; // in meters
+    for (LatLng point in routePoints) {
+      double dist = distance(
+        latlong.LatLng(currentLocation.latitude, currentLocation.longitude),
+        latlong.LatLng(point.latitude, point.longitude),
+      );
+      if (dist <= deviationThreshold) {
+        return true; // user is still following the route
+      }
+    }
+    return false; // user is far away from the route
   }
 
   bool isSignificantMove(LatLng newPoint) {
@@ -211,69 +314,13 @@ class TrackerProvider with ChangeNotifier {
     return distanceMoved > 1; // only log movement if > 1 meters
   }
 
-  // Future<void> fetchPlacesFromMapbox(String query) async {
-  //   const String mapboxApiKey =
-  //       "pk.eyJ1IjoiYXFjZGFlbmEiLCJhIjoiY203dTR4MXR2MDBpZTJrcTJ4NjU3YXZpeSJ9.pagAH_l6pvm4GTeq--bPAg";
-
-  //   if (query.isEmpty) return;
-  //   final url = Uri.parse(
-  //       "https://api.mapbox.com/geocoding/v5/mapbox.places/$query.json?access_token=$mapboxApiKey&country=PH");
-
-  //   final response = await http.get(url);
-
-  //   if (response.statusCode == 200) {
-  //     final Map<String, dynamic> data = jsonDecode(response.body);
-  //     _suggestions = (data["features"] as List).map((place) {
-  //       return {
-  //         "name": place["place_name"],
-  //         "lat": place["geometry"]["coordinates"][1],
-  //         "lng": place["geometry"]["coordinates"][0],
-  //       };
-  //     }).toList();
-  //   } else {
-  //     _suggestions = [];
-  //   }
-  // }
-
-  // Future<void> fetchPlaces(String query) async {
-  //   if (query.isEmpty) return;
-
-  //   final url =
-  //       Uri.parse("https://maps.googleapis.com/maps/api/place/autocomplete/json"
-  //           "?input=$query"
-  //           "&key=$placesApiKey"
-  //           "&components=country:PH" // Limits to the Philippines
-  //           );
-
-  //   final response = await http.get(url);
-
-  //   if (response.statusCode == 200) {
-  //     final Map<String, dynamic> data = jsonDecode(response.body);
-
-  //     if (data["status"] == "OK") {
-  //       _suggestions = (data["predictions"] as List).map((place) {
-  //         return {
-  //           "name": place["description"], // Place name
-  //           "place_id":
-  //               place["place_id"], // Google Place ID (needed for details)
-  //         };
-  //       }).toList();
-  //     } else {
-  //       print("Google Places API error: ${data["error_message"]}");
-  //       _suggestions = [];
-  //     }
-  //   } else {
-  //     print("HTTP error: ${response.statusCode}");
-  //     _suggestions = [];
-  //   }
-  // }
-
   void clearSuggestions() {
     _suggestions = [];
   }
 
   void disposeService() {
     trackerService.disposeService();
+    FlutterForegroundTask.stopService();
     locationStream = null;
   }
 }

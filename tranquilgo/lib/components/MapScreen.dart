@@ -60,59 +60,52 @@ class _MapScreenState extends State<MapScreen> {
           }
           return Stack(
             children: [
-              provider.isFetchingRoute
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF36B9A5),
-                        strokeWidth: 5,
-                      ),
-                    )
-                  : GoogleMap(
-                      initialCameraPosition: CameraPosition(
-                        target: LatLng(
-                          currentLocation.latitude!,
-                          currentLocation.longitude!,
-                        ),
-                        zoom: 15,
-                      ),
-                      myLocationEnabled: true,
-                      myLocationButtonEnabled: false,
-                      zoomControlsEnabled: false,
-                      polylines: {
-                        // suggested route if enabled
-                        if (provider.routePoints.isNotEmpty &&
-                            widget.isSuggestRouteEnabled)
-                          Polyline(
-                            polylineId: const PolylineId("suggested_route"),
-                            color: Colors.blue,
-                            width: 5,
-                            points: provider.routePoints,
-                          ),
-
-                        // user's actual route
-                        if (provider.userRoutePoints.isNotEmpty)
-                          Polyline(
-                            polylineId: const PolylineId("user_route"),
-                            color: Colors.green,
-                            width: 6,
-                            points: provider.userRoutePoints,
-                          ),
-                      },
-                      markers: {
-                        if (provider.suggestedDestination != null)
-                          Marker(
-                            markerId: const MarkerId("destination"),
-                            position: provider.suggestedDestination!,
-                            infoWindow: const InfoWindow(
-                                title: "Suggested Destination"),
-                          ),
-                      },
-                      onMapCreated: (GoogleMapController controller) {
-                        setState(() {
-                          mapController = controller;
-                        });
-                      },
+              GoogleMap(
+                initialCameraPosition: CameraPosition(
+                  target: LatLng(
+                    currentLocation.latitude!,
+                    currentLocation.longitude!,
+                  ),
+                  zoom: 15,
+                ),
+                myLocationEnabled: true,
+                myLocationButtonEnabled: false,
+                zoomControlsEnabled: false,
+                polylines: {
+                  // suggested route if enabled
+                  if (provider.routePoints.isNotEmpty &&
+                      widget.isSuggestRouteEnabled)
+                    Polyline(
+                      polylineId: const PolylineId("suggested_route"),
+                      color: Colors.deepPurpleAccent,
+                      width: 5,
+                      points: provider.routePoints,
                     ),
+
+                  // user's actual route
+                  if (provider.userRoutePoints.isNotEmpty && provider.isStarted)
+                    Polyline(
+                      polylineId: const PolylineId("user_route"),
+                      color: Colors.blue,
+                      width: 6,
+                      points: provider.userRoutePoints,
+                    ),
+                },
+                markers: {
+                  if (provider.suggestedDestination != null)
+                    Marker(
+                      markerId: const MarkerId("destination"),
+                      position: provider.suggestedDestination!,
+                      infoWindow:
+                          const InfoWindow(title: "Suggested Destination"),
+                    ),
+                },
+                onMapCreated: (GoogleMapController controller) {
+                  setState(() {
+                    mapController = controller;
+                  });
+                },
+              ),
 
               // show destination when suggest route is enabled
               widget.isSuggestRouteEnabled && !provider.isFetchingRoute

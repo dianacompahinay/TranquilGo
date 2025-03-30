@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:my_app/local_db.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'providers/AuthProvider.dart';
 import 'providers/UserProvider.dart';
 import 'providers/NotifProvider.dart';
@@ -68,8 +70,33 @@ void syncOfflineActivities() async {
   });
 }
 
-class MainApp extends StatelessWidget {
+class MainApp extends StatefulWidget {
   const MainApp({super.key});
+
+  @override
+  State<MainApp> createState() => _MainAppState();
+}
+
+class _MainAppState extends State<MainApp> {
+  bool isFirstTime = true;
+
+  @override
+  void initState() {
+    super.initState();
+    checkFirstTime();
+  }
+
+  Future<void> checkFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isFirstTime = prefs.getBool('isFirstTime') ?? true;
+    });
+
+    // Mark as opened after first launch
+    if (isFirstTime) {
+      prefs.setBool('isFirstTime', false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,11 +105,12 @@ class MainApp extends StatelessWidget {
       title: 'TranquilGo',
       home: Consumer<AuthenticationProvider>(
         builder: (context, authProvider, child) {
-          if (authProvider.isAuthenticated) {
-            return const DashboardWithNavigation(); // authenticated users
-          } else {
-            return const LandingPage(); // non-authenticated users
+          if (isFirstTime) {
+            return const LandingPage();
           }
+          return authProvider.isAuthenticated
+              ? const DashboardWithNavigation()
+              : const LandingPage();
         },
       ),
       routes: {

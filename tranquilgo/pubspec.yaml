@@ -39,6 +39,8 @@ dependencies:
   geolocator: ^13.0.3
   flutter_launcher_icons: ^0.14.3
   flutter_native_splash: ^2.4.5
+  latlong2: ^0.9.1
+  flutter_foreground_task: ^8.17.0
 
 dev_dependencies:
   flutter_test:

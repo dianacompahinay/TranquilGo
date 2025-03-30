@@ -578,6 +578,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
           startTimer();
           trackerProvider.startRealTimeTracking();
           trackerProvider.monitorSpeed(); //  speed monitoring
+          trackerProvider.isStarted = true;
           setState(() {
             buttonState = 'pause';
           });
