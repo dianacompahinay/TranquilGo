@@ -76,7 +76,7 @@ class ActivityProvider with ChangeNotifier {
         .snapshots()
         .listen((snapshot) async {
       // needs to delay for few seconds to wait for creating activity
-      await Future.delayed(const Duration(seconds: 5));
+      await Future.delayed(const Duration(seconds: 3));
 
       if (!isOverviewFetch) {
         isOverviewFetch = true;

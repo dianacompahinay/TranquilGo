@@ -156,342 +156,365 @@ class _WalkingTrackerState extends State<WalkingTracker> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () async {
+        if (trackerProvider.progress == 0) {
+          Navigator.pop(context);
+          removeOverlay();
+        } else {
+          ConfirmationDialog.show(
+            context: context,
+            type: "back",
+            onCancel: () {
+              timer?.cancel();
+              trackerProvider.resetValues(userId);
+              trackerProvider.pauseTracking();
+              trackerProvider.disposeService();
+              removeOverlay();
+            },
+          );
+        }
+        return false; // Prevent default back action
+      },
+      child: Scaffold(
         backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        toolbarHeight: 60,
-        leading: Container(
-          margin: const EdgeInsets.only(left: 10),
-          width: 42,
-          height: 42,
-          decoration: const BoxDecoration(
-            color: Color(0xFFFFFFFF),
-            shape: BoxShape.circle,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          elevation: 0,
+          toolbarHeight: 60,
+          leading: Container(
+            margin: const EdgeInsets.only(left: 10),
+            width: 42,
+            height: 42,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFFFFF),
+              shape: BoxShape.circle,
+            ),
+            child: IconButton(
+              icon: SizedBox(
+                width: 30,
+                height: 30,
+                child: Image.asset(
+                  'assets/images/back-arrow.png',
+                  fit: BoxFit.contain,
+                  color: const Color(0xFF6C6C6C),
+                ),
+              ),
+              onPressed: () {
+                if (trackerProvider.progress == 0) {
+                  Navigator.pop(context);
+                  removeOverlay();
+                } else {
+                  ConfirmationDialog.show(
+                    context: context,
+                    type: "back",
+                    onCancel: () {
+                      timer?.cancel;
+                      trackerProvider.resetValues(userId);
+                      trackerProvider.pauseTracking();
+                      trackerProvider.disposeService();
+                      removeOverlay();
+                    },
+                  );
+                }
+              },
+            ),
           ),
-          child: IconButton(
-            icon: SizedBox(
-              width: 30,
-              height: 30,
-              child: Image.asset(
-                'assets/images/back-arrow.png',
-                fit: BoxFit.contain,
-                color: const Color(0xFF6C6C6C),
+          title: Text(
+            "Walking Tracker",
+            style: GoogleFonts.poppins(
+              textStyle: const TextStyle(
+                color: Color(0xFF110000),
+                fontWeight: FontWeight.bold,
+                fontSize: 19,
               ),
             ),
-            onPressed: () {
-              if (trackerProvider.progress == 0) {
-                Navigator.pop(context);
-                removeOverlay();
-              } else {
-                ConfirmationDialog.show(
-                  context: context,
-                  type: "back",
-                  onCancel: () {
-                    timer?.cancel;
-                    trackerProvider.resetValues(userId);
-                    trackerProvider.pauseTracking();
-                    trackerProvider.disposeService();
-                    removeOverlay();
-                  },
-                );
-              }
-            },
           ),
+          centerTitle: true,
         ),
-        title: Text(
-          "Walking Tracker",
-          style: GoogleFonts.poppins(
-            textStyle: const TextStyle(
-              color: Color(0xFF110000),
-              fontWeight: FontWeight.bold,
-              fontSize: 19,
-            ),
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          showMap
-              ? Expanded(
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(top: 8),
-                        child: MapScreen(
-                          targetSteps: activityProvider.goalSteps,
-                          isSuggestRouteEnabled: suggestRoute,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 18,
-                        right: 18,
-                        // child: Column(
-                        //   children: [
-                        // // for directions button
-                        //     !selectedDestination && showDirectionsButton
-                        //         ? GestureDetector(
-                        //             onTap: () {
-                        //               SearchLocationDialog dialog =
-                        //                   SearchLocationDialog();
-
-                        //               dialog.show(
-                        //                 context: context,
-
-                        //                 // pass the selected destination in the param
-                        //                 onSave: () {
-                        //                   // set to true if a a destination is selected so setting own destination will only be allowed once
-                        //                   setState(() {
-                        //                     selectedDestination = true;
-                        //                   });
-                        //                 },
-                        //               );
-                        //             },
-                        //             child: Container(
-                        //               width: 42,
-                        //               height: 42,
-                        //               decoration: BoxDecoration(
-                        //                 color: const Color(0xFFFDE7B1),
-                        //                 borderRadius: BorderRadius.circular(10),
-                        //                 boxShadow: [
-                        //                   BoxShadow(
-                        //                     color:
-                        //                         Colors.grey.withOpacity(0.25),
-                        //                     blurRadius: 2,
-                        //                     offset: const Offset(0, 1.2),
-                        //                   ),
-                        //                 ],
-                        //               ),
-                        //               child: const Icon(
-                        //                 Icons.directions,
-                        //                 color: Color(0xFFBF9552),
-                        //                 size: 26,
-                        //               ),
-                        //             ),
-                        //           )
-                        //         : const SizedBox(),
-
-                        //     const SizedBox(height: 10),
-
-                        // for camera button
-                        child: GestureDetector(
-                          onTap: () async {
-                            // open camera to take a picture
-                            capturedImage = await picker.pickImage(
-                                source: ImageSource.camera);
-                            if (capturedImage != null) {
-                              capturedImages.add(capturedImage!);
-                              // ignore: use_build_context_synchronously
-                              showTopSnackBar(context);
-                            }
-                          },
-                          child: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.grey.withOpacity(0.25),
-                                  blurRadius: 2,
-                                  offset: const Offset(0, 1.2),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.black54,
-                              size: 26,
-                            ),
+        body: Column(
+          children: [
+            showMap
+                ? Expanded(
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(top: 8),
+                          child: MapScreen(
+                            targetSteps: activityProvider.goalSteps,
+                            isSuggestRouteEnabled: suggestRoute,
                           ),
                         ),
-                        //   ],
-                        // ),
-                      ),
-                    ],
-                  ),
-                )
-              : Expanded(
-                  child: Stack(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
-                        child: Column(
-                          children: [
-                            buildMetricsCard("Steps",
-                                "${trackerProvider.stepCount}", "large"),
-                            buildMetricsCard(
-                                "Distance covered",
-                                trackerProvider.distance.toStringAsFixed(3),
-                                "large"),
-                            buildMetricsCard("Time", displayTime, "large"),
-                            Container(
-                              padding: const EdgeInsets.all(2),
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  // open camera to take a picture
-                                  capturedImage = await picker.pickImage(
-                                      source: ImageSource.camera);
-                                  if (capturedImage != null) {
-                                    setState(() {
-                                      capturedImages.add(capturedImage!);
-                                    });
-                                    // ignore: use_build_context_synchronously
-                                    showTopSnackBar(context);
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  elevation: 0.3,
-                                  backgroundColor: const Color(0xFFF8F8F8),
-                                  minimumSize: const Size(double.infinity, 40),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(5),
+                        Positioned(
+                          bottom: 18,
+                          right: 18,
+                          // child: Column(
+                          //   children: [
+                          // // for directions button
+                          //     !selectedDestination && showDirectionsButton
+                          //         ? GestureDetector(
+                          //             onTap: () {
+                          //               SearchLocationDialog dialog =
+                          //                   SearchLocationDialog();
+
+                          //               dialog.show(
+                          //                 context: context,
+
+                          //                 // pass the selected destination in the param
+                          //                 onSave: () {
+                          //                   // set to true if a a destination is selected so setting own destination will only be allowed once
+                          //                   setState(() {
+                          //                     selectedDestination = true;
+                          //                   });
+                          //                 },
+                          //               );
+                          //             },
+                          //             child: Container(
+                          //               width: 42,
+                          //               height: 42,
+                          //               decoration: BoxDecoration(
+                          //                 color: const Color(0xFFFDE7B1),
+                          //                 borderRadius: BorderRadius.circular(10),
+                          //                 boxShadow: [
+                          //                   BoxShadow(
+                          //                     color:
+                          //                         Colors.grey.withOpacity(0.25),
+                          //                     blurRadius: 2,
+                          //                     offset: const Offset(0, 1.2),
+                          //                   ),
+                          //                 ],
+                          //               ),
+                          //               child: const Icon(
+                          //                 Icons.directions,
+                          //                 color: Color(0xFFBF9552),
+                          //                 size: 26,
+                          //               ),
+                          //             ),
+                          //           )
+                          //         : const SizedBox(),
+
+                          //     const SizedBox(height: 10),
+
+                          // for camera button
+                          child: GestureDetector(
+                            onTap: () async {
+                              // open camera to take a picture
+                              capturedImage = await picker.pickImage(
+                                  source: ImageSource.camera);
+                              if (capturedImage != null) {
+                                capturedImages.add(capturedImage!);
+                                // ignore: use_build_context_synchronously
+                                showTopSnackBar(context);
+                              }
+                            },
+                            child: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.grey.withOpacity(0.25),
+                                    blurRadius: 2,
+                                    offset: const Offset(0, 1.2),
                                   ),
-                                  padding: EdgeInsets.zero,
-                                ),
-                                child: DefaultTextStyle(
-                                  style: GoogleFonts.inter(
-                                    textStyle: const TextStyle(
-                                      color: Colors.black45,
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  child: const Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.black38,
-                                        size: 18,
-                                      ),
-                                      SizedBox(width: 5),
-                                      Text('Take a Photo'),
-                                    ],
-                                  ),
-                                ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.black54,
+                                size: 26,
                               ),
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(10, 15, 10, 15),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                showMap && trackerProvider.currentLocation != null
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          buildMetricsCard(
-                              "Steps", "${trackerProvider.stepCount}", "small"),
-                          buildMetricsCard("Time", displayTime, "small"),
-                          buildMetricsCard(
-                              "Distance covered",
-                              trackerProvider.distance.toStringAsFixed(2),
-                              "small"),
-                        ],
-                      )
-                    : const SizedBox(),
-                const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.only(left: 10, right: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Progress Bar",
-                        style: GoogleFonts.manrope(
-                          textStyle: const TextStyle(
-                            color: Color(0xFF444444),
-                            fontWeight: FontWeight.w400,
-                            fontSize: 11,
                           ),
+                          //   ],
+                          // ),
                         ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
+                      ],
+                    ),
+                  )
+                : Expanded(
+                    child: Stack(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(15, 10, 15, 10),
+                          child: Column(
                             children: [
-                              Image.asset(
-                                height: 20,
-                                width: 20,
-                                'assets/icons/footprint.png',
-                                fit: BoxFit.contain,
-                                color: const Color(0xFF6DA899),
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                "${trackerProvider.targetSteps}",
-                                style: GoogleFonts.manrope(
-                                  textStyle: const TextStyle(
-                                    color: Color(0xFF484848),
-                                    fontWeight: FontWeight.w400,
-                                    fontSize: 18,
+                              buildMetricsCard("Steps",
+                                  "${trackerProvider.stepCount}", "large"),
+                              buildMetricsCard(
+                                  "Distance covered",
+                                  trackerProvider.distance.toStringAsFixed(3),
+                                  "large"),
+                              buildMetricsCard("Time", displayTime, "large"),
+                              Container(
+                                padding: const EdgeInsets.all(2),
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    // open camera to take a picture
+                                    capturedImage = await picker.pickImage(
+                                        source: ImageSource.camera);
+                                    if (capturedImage != null) {
+                                      setState(() {
+                                        capturedImages.add(capturedImage!);
+                                      });
+                                      // ignore: use_build_context_synchronously
+                                      showTopSnackBar(context);
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    elevation: 0.3,
+                                    backgroundColor: const Color(0xFFF8F8F8),
+                                    minimumSize:
+                                        const Size(double.infinity, 40),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                    padding: EdgeInsets.zero,
                                   ),
-                                ),
-                              ),
-                              const SizedBox(width: 3),
-                              Baseline(
-                                baseline: 18,
-                                baselineType: TextBaseline.alphabetic,
-                                child: Text(
-                                  "target steps",
-                                  style: GoogleFonts.manrope(
-                                    textStyle: const TextStyle(
-                                      color: Color(0xFF7D7D7D),
-                                      fontWeight: FontWeight.w400,
-                                      fontSize: 11,
+                                  child: DefaultTextStyle(
+                                    style: GoogleFonts.inter(
+                                      textStyle: const TextStyle(
+                                        color: Colors.black45,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    child: const Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.camera_alt,
+                                          color: Colors.black38,
+                                          size: 18,
+                                        ),
+                                        SizedBox(width: 5),
+                                        Text('Take a Photo'),
+                                      ],
                                     ),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          if (trackerProvider.progress != null)
-                            Text(
-                              "${(trackerProvider.progress * 100).clamp(0, 100).toStringAsFixed(1)}%",
-                              style: GoogleFonts.manrope(
-                                textStyle: const TextStyle(
-                                  color: Color(0xFF444444),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 20,
+                        ),
+                      ],
+                    ),
+                  ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 15, 10, 15),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  showMap && trackerProvider.currentLocation != null
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            buildMetricsCard("Steps",
+                                "${trackerProvider.stepCount}", "small"),
+                            buildMetricsCard("Time", displayTime, "small"),
+                            buildMetricsCard(
+                                "Distance covered",
+                                trackerProvider.distance.toStringAsFixed(2),
+                                "small"),
+                          ],
+                        )
+                      : const SizedBox(),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 10, right: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Progress Bar",
+                          style: GoogleFonts.manrope(
+                            textStyle: const TextStyle(
+                              color: Color(0xFF444444),
+                              fontWeight: FontWeight.w400,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Image.asset(
+                                  height: 20,
+                                  width: 20,
+                                  'assets/icons/footprint.png',
+                                  fit: BoxFit.contain,
+                                  color: const Color(0xFF6DA899),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  "${trackerProvider.targetSteps}",
+                                  style: GoogleFonts.manrope(
+                                    textStyle: const TextStyle(
+                                      color: Color(0xFF484848),
+                                      fontWeight: FontWeight.w400,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                Baseline(
+                                  baseline: 18,
+                                  baselineType: TextBaseline.alphabetic,
+                                  child: Text(
+                                    "target steps",
+                                    style: GoogleFonts.manrope(
+                                      textStyle: const TextStyle(
+                                        color: Color(0xFF7D7D7D),
+                                        fontWeight: FontWeight.w400,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (trackerProvider.progress != null)
+                              Text(
+                                "${(trackerProvider.progress * 100).clamp(0, 100).toStringAsFixed(1)}%",
+                                style: GoogleFonts.manrope(
+                                  textStyle: const TextStyle(
+                                    color: Color(0xFF444444),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 20,
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                      LinearProgressIndicator(
-                        value: trackerProvider.progress,
-                        minHeight: 8,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(5)),
-                        backgroundColor: const Color(0xFFEBECEC),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                            Color(0xFF55AC9F)),
-                      ),
-                    ],
+                          ],
+                        ),
+                        LinearProgressIndicator(
+                          value: trackerProvider.progress,
+                          minHeight: 8,
+                          borderRadius:
+                              const BorderRadius.all(Radius.circular(5)),
+                          backgroundColor: const Color(0xFFEBECEC),
+                          valueColor: const AlwaysStoppedAnimation<Color>(
+                              Color(0xFF55AC9F)),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
-                // action buttons
-                const SizedBox(height: 40),
-                getActionButtons(),
-              ],
+                  // action buttons
+                  const SizedBox(height: 40),
+                  getActionButtons(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

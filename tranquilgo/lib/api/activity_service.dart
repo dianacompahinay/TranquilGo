@@ -594,14 +594,23 @@ class ActivityService {
         'synced': 0
       };
 
+      await LocalDatabase.saveActivity(activityData);
+
       // check internet connectivity
       if (await LocalDatabase.isOnline()) {
-        await LocalDatabase.syncActivityToFirestore(activityData);
-      } else {
-        await LocalDatabase.saveActivity(activityData);
+        Future.microtask(() => syncActivityInBackground(activityData));
       }
     } catch (e) {
       throw Exception('Failed to create activity: ${e.toString()}');
+    }
+  }
+
+  Future<void> syncActivityInBackground(
+      Map<String, dynamic> activityData) async {
+    try {
+      LocalDatabase.syncActivityToFirestore(activityData);
+    } catch (e) {
+      throw Exception("Error syncing activity in background: $e");
     }
   }
 

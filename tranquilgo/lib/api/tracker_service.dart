@@ -70,8 +70,8 @@ class TrackerService {
     List<double> lastReadings = [];
     bool updated = false;
 
-    int minStepInterval = 350; // minimum time between steps (in ms)
-    double stepSensitivity = 1.1;
+    int minStepInterval = 340; // minimum time between steps (in ms)
+    double stepSensitivity = 1.0;
     double stepDistance = 0.0007; // estimated step distance in km
 
     // start step tracking using accelerometer
@@ -94,8 +94,7 @@ class TrackerService {
 
       // detect step if acceleration change is significant and enough time has passed
       if ((avgAcceleration - previousAcceleration).abs() > stepSensitivity &&
-          timeSinceLastStep > minStepInterval &&
-          !updated) {
+          timeSinceLastStep > minStepInterval) {
         stepCount++;
         lastStepTime = currentTime;
 

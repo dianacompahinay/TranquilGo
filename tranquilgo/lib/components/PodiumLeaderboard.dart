@@ -210,16 +210,6 @@ Widget userColumn(Map<String, dynamic> user, Color crownColor,
           ),
         ),
       ),
-      // Text(
-      //   'steps',
-      //   style: GoogleFonts.inter(
-      //     textStyle: const TextStyle(
-      //       color: Color(0xFFC2C2C2),
-      //       fontWeight: FontWeight.w600,
-      //       fontSize: 10,
-      //     ),
-      //   ),
-      // ),
     ],
   );
 }
@@ -244,12 +234,18 @@ Widget userContainer(
         .add(userColumn(topUsers[i], crownColors[i], isRankOne: i == 0));
   }
 
-  // adjust the alignment based on the number of users
-  MainAxisAlignment alignment;
+  MainAxisAlignment alignment = MainAxisAlignment.spaceEvenly;
   if (topUsers.length == 1) {
     alignment = MainAxisAlignment.center;
   } else if (topUsers.length == 2) {
-    alignment = MainAxisAlignment.spaceEvenly;
+    // for two users: retain three columns for alignment
+    userWidgets = [
+      usersRankInfo[1],
+      const VerticalDivider(thickness: 1, width: 20),
+      usersRankInfo[0],
+      const VerticalDivider(thickness: 1, width: 20),
+      const SizedBox(),
+    ];
   } else {
     // for three users: middle one first, left and right next
     userWidgets = [
@@ -259,7 +255,6 @@ Widget userContainer(
       const VerticalDivider(thickness: 1, width: 20),
       usersRankInfo[2],
     ];
-    alignment = MainAxisAlignment.spaceEvenly;
   }
 
   return Container(

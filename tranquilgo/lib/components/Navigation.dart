@@ -26,6 +26,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
     with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey<SocialPageState> socialPageKey = GlobalKey<SocialPageState>();
+  final userId = FirebaseAuth.instance.currentUser?.uid;
 
   int currentIndex = 0;
 
@@ -42,6 +43,14 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
   @override
   void initState() {
     super.initState();
+
+    final notifProvider =
+        Provider.of<NotificationsProvider>(context, listen: false);
+    if (userId != null) {
+      notifProvider.hasUnreadNotifOnlineDB(userId!);
+      notifProvider.listenForNewNotifsMark(userId!, socialPageKey);
+    }
+
     updateWeeklyGoalActivity();
     syncData();
 
@@ -389,28 +398,6 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
                   ),
                   item('Connections', 'assets/icons/group_outlined.png',
                       'social'),
-                ],
-              ),
-
-              const SizedBox(height: 5),
-
-              // fifth section
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 16.0, top: 10),
-                    child: Text(
-                      'More',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
-                  item('About Us', 'assets/icons/sidebar_info.png',
-                      '/navigation'),
                 ],
               ),
             ],

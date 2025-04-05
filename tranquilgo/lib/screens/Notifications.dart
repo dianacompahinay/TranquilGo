@@ -365,7 +365,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                                   ),
                                                 ],
                                               ),
-                                              maxLines: 3,
+                                              maxLines: 4,
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                             const SizedBox(height: 4),

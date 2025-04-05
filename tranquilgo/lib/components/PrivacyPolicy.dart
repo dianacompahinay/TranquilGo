@@ -54,10 +54,10 @@ class PrivacyPolicyPage extends StatelessWidget {
             ),
             const SizedBox(height: 10),
 
-            text("Last Updated March 01, 2025"),
+            text("Last Updated April 01, 2025"),
             const SizedBox(height: 25),
             text(
-              "This Privacy Notice describes how and why we might access, collect, store, use, and/or share your personal information when you use our services, including when you:",
+              "This Privacy Notice describes how and why we might access, collect, store, use, and/or share your personal information when you use our services.",
             ),
             const SizedBox(height: 15),
             boldText("Questions or concerns?"),
@@ -120,24 +120,20 @@ class PrivacyPolicyPage extends StatelessWidget {
             const SizedBox(height: 10),
 
             text(
-                "We automatically collect certain information when you visit, use, or navigate the services. This information does not reveal your specific identity (like your name or contact information) but may include device and usage information, such as your IP address, device characteristics, operating system, language preferences, referring URLs, device name, country, location, information about how and when you use our services, and other technical information. This information is primarily needed to maintain the security and operation of our services, and for our internal analytics and reporting purposes."),
+                "We automatically collect certain information when you visit, use, or navigate our services. This may include general usage data, such as location, timestamps, and interactions with our services. Your name and email may be visible to other users when necessary for certain features, but we do not share your personal information with third parties. This information is mainly used to keep our services running smoothly and to help us understand how they are used."),
             const SizedBox(height: 10),
             text("The information we collect includes:"),
             const SizedBox(height: 10),
 
             bulletItalizedTitle(
               "Log and Usage Data",
-              "Log and usage data is service-related, diagnostic, usage, and performance information our servers automatically collect when you access or use our Services and which we record in log files. Depending on how you interact with us, this log data may include your IP address, device information, browser type, and settings and information about your activity in the Services (such as the date/time stamps associated with your usage, pages and files viewed, searches, and other actions you take such as which features you use), device event information (such as system activity, error reports (sometimes called \"crash dumps\"), and hardware settings).",
+              "We collect basic usage data when you access TranquilGo, depending on how you interact with us, this log data may include information about your activity in the Services (such as the date/time stamps associated with your usage, pages and files viewed, and other actions you take such as which features you use), device event information.",
             ),
-            const SizedBox(height: 10),
-            bulletItalizedTitle(
-              "Device Data",
-              "We collect device data such as information about your computer, phone, tablet, or other device you use to access the Services. Depending on the device used, this device data may include information such as your IP address (or proxy server), device and application identification numbers, location, browser type, hardware model, Internet service provider and/or mobile carrier, operating system, and system configuration information.",
-            ),
+
             const SizedBox(height: 10),
             bulletItalizedTitle(
               "Location Data",
-              "We collect location data such as information about your device's location, which can be either precise or imprecise. How much information we collect depends on the type and settings of the device you use to access the Services. For example, we may use GPS and other technologies to collect geolocation data that tells us your current location (based on your IP address). You can opt out of allowing us to collect this information either by refusing access to the information or by disabling your Location setting on your device. However, if you choose to opt out, you may not be able to use certain aspects of the Services.",
+              "The app collects location data such as information about your device's location, which can be either precise or imprecise. This data is processed on your device and is not collected or stored by us, it is used to track your walking routes and provide route suggestions. You can opt out of allowing us to collect this information either by refusing access to the information or by disabling your Location setting on your device. However, if you choose to opt out, you may not be able to use certain aspects of the Services.",
             ),
 
             const SizedBox(height: 20),
@@ -169,29 +165,22 @@ class PrivacyPolicyPage extends StatelessWidget {
               "To enable user-to-user communications",
               "We may process your information if you choose to use any of our offerings that allow for communication with another user.",
             ),
+
             const SizedBox(height: 5),
             bulletBoldTitle(
-              "To protect our services",
-              "We may process your information as part of our efforts to keep our services safe and secure, including fraud monitoring and prevention.",
+              "To provide progress reports.",
+              "We may generate summaries of your activity, including distance walked, number of steps, and overall progress, to help you track your fitness goals.",
             ),
-            const SizedBox(height: 5),
-            boldBulletPoint("To enhance social interactions."),
-            const SizedBox(height: 5),
-            boldBulletPoint("To improve mental wellness support."),
-            const SizedBox(height: 5),
-            boldBulletPoint(
-                "To analyze step count accuracy and optimize tracking."),
-            const SizedBox(height: 5),
-            boldBulletPoint("To provide progress reports."),
             const SizedBox(height: 20),
 
             sectionTitle(
                 "3. WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?"),
             const SizedBox(height: 10),
-            boldText(
-                "Vendors, Consultants, and Other Third-Party Service Providers."),
+            text("However, we may share data with:"),
+            const SizedBox(height: 10),
+            boldText("Third-Party Service Providers."),
             text(
-              "We may share your data with third-party vendors, service providers, contractors, or agents (\"third parties\") who perform services for us or on our behalf and require access to such information to do that work. We have contracts in place with our third parties, which are designed to help safeguard your personal information. This means that they cannot do anything with your personal information unless we have instructed them to do it. They will also not share your personal information with any organization apart from us. They also commit to protecting the data they hold on our behalf and to retain it for the period we instruct.",
+              "We may use third-party services to support certain app features, such as analytics, media storage, GPS tracking, and database management. However, we do not directly share personal data with these providers, nor do we have direct control over how they handle data. If any third-party services are used, they are responsible for processing data according to their own privacy policies.",
             ),
             const SizedBox(height: 10),
 
@@ -212,29 +201,22 @@ class PrivacyPolicyPage extends StatelessWidget {
                 "We also may need to share your personal information in the following situations:"),
             const SizedBox(height: 10),
 
-            bulletBoldTitle("Business Transfers",
-                "We may share or transfer your information in connection with, or during negotiations of, any merger, sale of company assets, financing, or acquisition of all or a portion of our business to another company."),
+            bulletBoldTitle(
+              "When we use Google Maps Platform APIs",
+              "We may share your information with certain Google Maps Platform APIs (e.g., Google Maps API, Places API). Google Maps uses GPS, Wi-Fi, and cell towers to estimate your location. GPS is accurate to about 20 meters, while Wi-Fi and cell towers help improve accuracy when GPS signals are weak, like indoors. This data helps Google Maps provide directions, but it is not always perfectly precise. We obtain and store on your device (\"cache\") your location. You may revoke your consent anytime by contacting us at the contact details provided at the end of this document.",
+            ),
             const SizedBox(height: 10),
-            bulletBoldTitle("When we use Google Maps Platform APIs",
-                "We may share your information with certain Google Maps Platform APIs (e.g., Google Maps API, Places API). Google Maps uses GPS, Wi-Fi, and cell towers to estimate your location. GPS is accurate to about 20 meters, while Wi-Fi and cell towers help improve accuracy when GPS signals are weak, like indoors. This data helps Google Maps provide directions, but it is not always perfectly precise. We obtain and store on your device (\"cache\") your location. You may revoke your consent anytime by contacting us at the contact details provided at the end of this document."),
-            const SizedBox(height: 10),
-            bulletBoldTitle("Other Users",
-                "When you share personal information (for example, by posting comments, contributions, or other content to the Services) or otherwise interact with public areas of the Services, such personal information may be viewed by all users and may be publicly made available outside the Services in perpetuity. Similarly, other users will be able to view descriptions of your activity, communicate with you within our Services, and view your profile."),
-
+            bulletBoldTitle(
+              "Other Users",
+              "When you share personal information or otherwise interact with public areas of the Services, such personal information may be viewed by all users and may be publicly made available outside the Services in perpetuity. Similarly, other users will be able to view descriptions of your activity, communicate with you within our Services, and view your profile.",
+            ),
             const SizedBox(height: 20),
 
             sectionTitle("4. DO WE USE COOKIES AND TRACKING TECHNOLOGIES?"),
             const SizedBox(height: 10),
 
             text(
-                "We may use cookies and similar tracking technologies (like web beacons and pixels) to gather information when you interact with our Services. Some online tracking technologies help us maintain the security of our Services and your account, prevent crashes, fix bugs, save your preferences, and assist with basic site functions."),
-            const SizedBox(height: 15),
-            text(
-                "We also permit third parties and service providers to use online tracking technologies on our Services for analytics and advertising, including to help manage and display advertisements, to tailor advertisements to your interests, or to send abandoned shopping cart reminders (depending on your communication preferences). The third parties and service providers use their technology to provide advertising about products and services tailored to your interests which may appear either on our Services or on other websites."),
-            const SizedBox(height: 15),
-            text(
-                "Specific information about how we use such technologies and how you can refuse certain cookies is set out in our Cookie Notice."),
-
+                "We do not use cookies, web beacons, or similar tracking technologies typically found on websites. However, third-party services integrated into the app, such as analytics or cloud storage providers, may use tracking technologies to collect usage data for performance monitoring and improvements. We do not use tracking technologies for advertising or personalized marketing."),
             const SizedBox(height: 20),
 
             boldText("Google Analytics"),
@@ -248,22 +230,13 @@ class PrivacyPolicyPage extends StatelessWidget {
                 "5. DO WE OFFER ARTIFICIAL INTELLIGENCE-BASED PRODUCTS?"),
             const SizedBox(height: 10),
             text(
-                "As part of our Services, we offer products, features, or tools powered by artificial intelligence, machine learning, or similar technologies (collectively, \"AI Products\"). These tools are designed to enhance your experience and provide you with innovative solutions. The terms in this Privacy Notice govern your use of the AI Products within our Services."),
-            const SizedBox(height: 20),
-
-            boldText("Use of AI Technologies"),
-            const SizedBox(height: 5),
-            text(
-                "We provide the AI Products through third-party service providers (\"AI Service Providers\"), including Google Cloud AI. As outlined in this Privacy Notice, your input, output, and personal information will be shared with and processed by these AI Service Providers to enable your use of our AI Products for purposes outlined in [\"WHEN AND WITH WHOM DO WE SHARE YOUR PERSONAL INFORMATION?\"] You must not use the AI Products in any way that violates the terms or policies of any AI Service Provider."),
+                "We do not currently use artificial intelligence (AI) or machine learning technologies to process user data or provide features. If AI-powered tools are introduced in the future, we will update this Privacy Notice accordingly."),
             const SizedBox(height: 20),
 
             sectionTitle("6. HOW LONG DO WE KEEP YOUR INFORMATION?"),
             const SizedBox(height: 10),
             text(
-                "We will only keep your personal information for as long as it is necessary for the purposes set out in this Privacy Notice, unless a longer retention period is required or permitted by law (such as tax, accounting, or other legal requirements). No purpose in this notice will require us keeping your personal information for longer than three (3) months past the termination of the user's account."),
-
-            text(
-                "When we have no ongoing legitimate business need to process your personal information, we will either delete or anonymize such information, or, if this is not possible (for example, because your personal information has been stored in backup archives), then we will securely store your personal information and isolate it from any further processing until deletion is possible."),
+                "We retain your personal information only for as long as necessary to provide our services. When you delete your account, all associated personal information will be deleted and will not be retained in backups."),
 
             const SizedBox(height: 20),
 
@@ -274,8 +247,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                 "If we are relying on your consent to process your personal information, which may be express and/or implied consent depending on the applicable law, you have the right to withdraw your consent at any time. You can withdraw your consent at any time by contacting us by using the contact details provided in the section \"HOW CAN YOU CONTACT US ABOUT THIS NOTICE?\" below."),
             const SizedBox(height: 10),
             text(
-                "However, please note that this will not affect the lawfulness of the processing before its withdrawal nor, when applicable law allows, will it affect the processing of your personal information conducted in reliance on lawful processing grounds other than consent."),
-
+                "Please note that this will not affect any processing done before you withdraw your consent, and some features of the app may no longer work without it."),
             const SizedBox(height: 10),
 
             sectionTitle("Account Information"),
@@ -283,32 +255,25 @@ class PrivacyPolicyPage extends StatelessWidget {
             text(
                 "If you would at any time like to review or change the information in your account or terminate your account, you can:"),
             const SizedBox(height: 10),
-            bulletPoint("Contact us for data requests"),
+            bulletPoint("Delete your account by contacting us"),
             const SizedBox(height: 5),
-            bulletPoint("Update account settings"),
+            bulletPoint("Update your account settings within the app"),
             const SizedBox(height: 10),
 
             text(
-                "Upon your request to terminate your account, we will deactivate or delete your account and information from our active databases. However, we may retain some information in our files to prevent fraud, troubleshoot problems, assist with any investigations, enforce our legal terms and/or comply with applicable legal requirements."),
-            text(
-                "If you have questions or comments about your privacy rights, you may email us at dpcompahinay@up.edu.ph."),
-            const SizedBox(height: 20),
+                "Upon your request to terminate your account, we will deactivate or delete your account and information from our active databases."),
 
-            sectionTitle("8. CONTROLS FOR DO-NOT-TRACK FEATURES"),
-            const SizedBox(height: 10),
-            text(
-                "Most web browsers and some mobile operating systems and mobile applications include a Do-Not-Track (\"DNT\") feature or setting you can activate to signal your privacy preference not to have data about your online browsing activities monitored and collected. At this stage, no uniform technology standard for recognizing and implementing DNT signals has been finalized. As such, we do not currently respond to DNT browser signals or any other mechanism that automatically communicates your choice not to be tracked online. If a standard for online tracking is adopted that we must follow in the future, we will inform you about that practice in a revised version of this Privacy Notice."),
             const SizedBox(height: 20),
 
             sectionTitle(
-                "9. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?"),
+                "8. HOW CAN YOU REVIEW, UPDATE, OR DELETE THE DATA WE COLLECT FROM YOU?"),
             const SizedBox(height: 10),
             text(
               "You have the right to request access, corrections, or deletion of your data. Contact us to submit a data subject access request.",
             ),
             const SizedBox(height: 20),
 
-            sectionTitle("10. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?"),
+            sectionTitle("9. HOW CAN YOU CONTACT US ABOUT THIS NOTICE?"),
             const SizedBox(height: 10),
             text(
                 "If you have any inquiries or feedback regarding this notice, you can reach us via email at dpcompahinay@up.edu.ph or call us at 09615121467."),
@@ -316,6 +281,13 @@ class PrivacyPolicyPage extends StatelessWidget {
             text("University of the Philippines Los Baños"),
             text("Los Baños, Laguna"),
             text("Philippines"),
+            const SizedBox(height: 20),
+
+            text(
+                "By using TranquilGo, you agree to the terms of this Privacy Policy"),
+            const SizedBox(height: 20),
+            italicText(
+                "This Terms and Conditions page was generated with the help of Termly. For more information, visit Termly's website at termly.io."),
             const SizedBox(height: 20),
           ],
         )),

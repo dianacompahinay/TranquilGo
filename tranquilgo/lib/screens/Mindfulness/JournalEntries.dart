@@ -136,6 +136,8 @@ class _JournalEntriesState extends State<JournalEntries> {
         journalEntries.removeWhere((entry) => entry['entryId'] == entryId);
       });
     }
+
+    Navigator.of(context).pop(); // close dialog
   }
 
   void showImageModal(File imageFile) {

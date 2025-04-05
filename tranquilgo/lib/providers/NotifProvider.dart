@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:my_app/api/notif_service.dart';
 import 'package:my_app/api/user_service.dart';
+import 'package:my_app/local_db.dart';
+import 'package:my_app/screens/Social/SocialPage.dart';
 
 class NotificationsProvider with ChangeNotifier {
   final NotificationsService notifService = NotificationsService();
@@ -21,6 +23,36 @@ class NotificationsProvider with ChangeNotifier {
     allNotifications.clear();
     isNotifsFetched = false;
     notifyListeners();
+  }
+
+  void listenForNewNotifsMark(
+      String userId, GlobalKey<SocialPageState> socialPageKey) {
+    bool isFirstSnapshot = true;
+    firestore
+        .collection("notifications")
+        .where("receiverId", isEqualTo: userId)
+        .snapshots()
+        .listen((snapshot) async {
+      if (isFirstSnapshot) {
+        isFirstSnapshot = false; // skip the initial snapshot
+        return;
+      }
+
+      for (var change in snapshot.docChanges) {
+        Map<String, dynamic> data = change.doc.data() as Map<String, dynamic>;
+
+        // ensure data is valid
+        if (data.isEmpty) return;
+
+        if (change.type == DocumentChangeType.added) {
+          if (data["type"] == "friend_request_update") {
+            socialPageKey.currentState?.refreshConnections();
+          }
+        }
+
+        hasUnreadNotifOnlineDB(userId);
+      }
+    });
   }
 
   void listenForNewNotifications(String userId) {
@@ -86,6 +118,9 @@ class NotificationsProvider with ChangeNotifier {
                   (notif["type"] == "friend_request" ||
                       notif["type"] == "friend_request_update")));
 
+          // remove notification if same walking invitation
+          deleteInvDuplicates(newNotification);
+
           // insert the new notification at the beginning of the list
           allNotifications.insert(0, newNotification);
           notifyListeners();
@@ -120,11 +155,14 @@ class NotificationsProvider with ChangeNotifier {
     try {
       List<Map<String, dynamic>> notifications =
           await notifService.getNotifications(userId, lastNotifId);
+
       notifyListeners();
       return notifications;
     } catch (e) {
       print('Error fetching notifs: $e');
     }
+
+    hasUnreadNotifications(userId);
 
     return [];
   }
@@ -153,6 +191,10 @@ class NotificationsProvider with ChangeNotifier {
         totalNotifs = await getUserNotifsCount(userId) ?? 0;
       }
 
+      for (var notif in initialNotifs) {
+        await deleteInvDuplicates(notif);
+      }
+
       // continue fetching remaining notifs
       while (fetchedCount < totalNotifs) {
         List<Map<String, dynamic>> fetchedNotifs =
@@ -164,6 +206,10 @@ class NotificationsProvider with ChangeNotifier {
           totalNotifs = await getUserNotifsCount(userId) ?? 0;
         }
 
+        for (var notif in fetchedNotifs) {
+          await deleteInvDuplicates(notif);
+        }
+
         if (fetchedCount >= totalNotifs || fetchedNotifs.isEmpty) {
           break;
         }
@@ -171,6 +217,8 @@ class NotificationsProvider with ChangeNotifier {
     } catch (e) {
       print("Error initializing notifications: $e");
     }
+
+    hasUnreadNotifications(userId);
 
     _isLoading = false;
     notifyListeners();
@@ -291,10 +339,62 @@ class NotificationsProvider with ChangeNotifier {
 
   Future<void> hasUnreadNotifications(String receiverId) async {
     try {
-      _hasUnreadNotif = await notifService.hasUnreadNotifications(receiverId);
+      bool isOnline = await LocalDatabase.isOnline();
+      if (!isOnline) {
+        _hasUnreadNotif = false;
+      } else {
+        bool hasUnread =
+            allNotifications.any((notif) => notif['isRead'] == false);
+        _hasUnreadNotif = hasUnread;
+      }
       notifyListeners();
     } catch (e) {
-      print('Error fetching if there is unread notif: $e');
+      print('Error checking for unread notifications: $e');
+    }
+  }
+
+  Future<void> hasUnreadNotifOnlineDB(String receiverId) async {
+    try {
+      _hasUnreadNotif = await notifService.hasUnreadNotifications(receiverId);
+
+      notifyListeners();
+    } catch (e) {
+      print('Error checking for unread notifications: $e');
+    }
+  }
+
+  Future<void> deleteInvDuplicates(Map<String, dynamic> newNotification) async {
+    try {
+      // find all notifications that match the condition (duplicates)
+      List<int> indicesToRemove = [];
+
+      for (int i = 0; i < allNotifications.length; i++) {
+        if ((allNotifications[i]["type"] == "walk_invitation" ||
+                allNotifications[i]["type"] == "invitation_request_update") &&
+            (allNotifications[i]["senderId"] == newNotification["senderId"] &&
+                allNotifications[i]["receiverId"] ==
+                    newNotification["receiverId"] &&
+                allNotifications[i]["details"] == newNotification["details"])) {
+          indicesToRemove.add(i);
+        }
+      }
+
+      // if there are duplicates, remove the extras, but keep the first one
+      if (indicesToRemove.isNotEmpty) {
+        indicesToRemove.removeAt(0); // keep the first occurrence
+        indicesToRemove.forEach((index) async {
+          String notifIdToDelete = allNotifications[index]["notifId"];
+          allNotifications.removeAt(index);
+
+          // remove the duplicate from the database using its notifId
+          await notifService.deleteNotif(notifIdToDelete);
+        });
+
+        notifyListeners();
+      }
+    } catch (e) {
+      throw Exception(
+          "Unexpected error occurred while deleting the notification.");
     }
   }
 }
