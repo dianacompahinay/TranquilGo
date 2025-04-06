@@ -1,17 +1,15 @@
-# ios/Podfile
+platform :ios, '10.0'
 
-platform :ios, '13.0'  # Minimum deployment target for iOS 13.0
-
-# Cocoapods installation method
-install! 'cocoapods', :disable_input_output_paths => true
-
-flutter_application_path = '../'  # Path to your Flutter project
-load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+# Flutter-specific setup
+flutter_application_path = File.join('..', 'flutter')
 
 target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # Install all Flutter dependencies
-  install_all_flutter_pods(flutter_application_path)
+  # Add this line to integrate Flutter dependencies
+  pod 'Flutter', :path => flutter_application_path
+
+  # This line makes sure the Flutter dependencies are included
+  pod 'FlutterPluginRegistrant', :path => File.join(flutter_application_path, 'packages', 'flutter_plugin_registrant')
 end
