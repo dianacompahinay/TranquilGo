@@ -1,0 +1,29 @@
+platform :ios, '13.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_installation
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  raise "#{generated_xcode_build_settings_path} must exist. Run 'flutter pub get' first." unless File.exist?(generated_xcode_build_settings_path)
+
+  install! 'cocoapods',
+    :disable_input_output_paths => true,
+    :generate_multiple_pod_projects => false
+
+  flutter_application_path = File.join('..')
+  load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+end
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_installation
+end
