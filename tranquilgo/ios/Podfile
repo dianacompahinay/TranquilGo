@@ -1,7 +1,7 @@
 platform :ios, '10.0'
 
 # Flutter-specific setup
-flutter_application_path = File.join('..', 'flutter')
+flutter_application_path = '../'
 
 target 'Runner' do
   use_frameworks!
