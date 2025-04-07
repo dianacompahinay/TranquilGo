@@ -3,7 +3,7 @@ platform :ios, '13.0'
 
 # Path to your Flutter project
 flutter_application_path = '../'
-load File.join(flutter_application_path, '.dart_tool', 'flutter_ios_podhelper.rb')
+# load File.join(flutter_application_path, '.dart_tool', 'flutter_ios_podhelper.rb')
 
 target 'Runner' do
   use_frameworks!
