@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart' as perm;
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 class TrackerService {
   final loc.Location location = loc.Location();
@@ -51,7 +52,48 @@ class TrackerService {
     });
   }
 
+  void startForegroundService() async {
+    final isRunning = await FlutterForegroundTask.isRunningService;
+    if (isRunning) {
+      return;
+    }
+
+    FlutterForegroundTask.initCommunicationPort();
+    FlutterForegroundTask.init(
+      androidNotificationOptions: AndroidNotificationOptions(
+        channelId: 'pedometer_service',
+        channelName: 'Pedometer Service',
+        onlyAlertOnce: true,
+      ),
+      iosNotificationOptions: const IOSNotificationOptions(
+        showNotification: false,
+        playSound: false,
+      ),
+      foregroundTaskOptions: ForegroundTaskOptions(
+        eventAction: ForegroundTaskEventAction.nothing(),
+        autoRunOnBoot: true,
+        autoRunOnMyPackageReplaced: true,
+        allowWakeLock: true,
+        allowWifiLock: true,
+      ),
+    );
+
+    await FlutterForegroundTask.startService(
+      notificationTitle: "Pedometer Service",
+      notificationText:
+          "Steps: $stepCount, Distance: ${distance.toStringAsFixed(2)} km",
+    );
+
+    // update service notification
+    FlutterForegroundTask.updateService(
+      notificationTitle: "Pedometer Service",
+      notificationText:
+          "Steps: $stepCount, Distance: ${distance.toStringAsFixed(2)} km",
+    );
+  }
+
   void startTracking(Function(int, double) onUpdate) async {
+    startForegroundService();
     // check if location permission is granted
     bool hasPermission = await requestLocationPermission();
     if (!hasPermission) return;
@@ -109,6 +151,12 @@ class TrackerService {
     // update ui only when a step is detected
     Timer.periodic(const Duration(milliseconds: 300), (timer) {
       if (updated) {
+        FlutterForegroundTask.updateService(
+          notificationTitle: "Pedometer Service",
+          notificationText:
+              "Steps: $stepCount, Distance: ${distance.toStringAsFixed(2)} km",
+        );
+
         onUpdate(stepCount, distance);
         updated = false;
       }

@@ -190,13 +190,23 @@ Widget userColumn(Map<String, dynamic> user, Color crownColor,
         color: crownColor,
         fit: BoxFit.contain,
       ),
-      Text(
-        '${user["username"]}',
-        style: GoogleFonts.inter(
-          textStyle: const TextStyle(
-            color: Color(0xFF7A7A7A),
-            fontWeight: FontWeight.w400,
-            fontSize: 12,
+      ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: 65,
+        ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Text(
+            '${user["username"]}',
+            style: GoogleFonts.inter(
+              textStyle: const TextStyle(
+                color: Color(0xFF7A7A7A),
+                fontWeight: FontWeight.w400,
+                fontSize: 12,
+              ),
+            ),
+            overflow: TextOverflow.visible,
+            softWrap: false,
           ),
         ),
       ),
@@ -273,9 +283,12 @@ Widget userContainer(
         ),
       ],
     ),
-    child: Row(
-      mainAxisAlignment: alignment,
-      children: userWidgets,
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisAlignment: alignment,
+        children: userWidgets,
+      ),
     ),
   );
 }

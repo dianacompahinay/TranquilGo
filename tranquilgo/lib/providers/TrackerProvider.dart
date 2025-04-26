@@ -18,6 +18,9 @@ class TrackerProvider with ChangeNotifier {
 
   Stream<loc.LocationData>? locationStream;
 
+  Timer? timer;
+  int timeDuration = 0;
+  String displayTime = '0:00:00';
   int stepCount = 0;
   double distance = 0.0;
   bool isFetching = true;
@@ -50,6 +53,8 @@ class TrackerProvider with ChangeNotifier {
   final String placesApiKey = "AIzaSyAF97pejfG-jgwBotC2RVB0wj2-Tbn6SSU";
 
   void resetValues(String userId) async {
+    timeDuration = 0;
+    displayTime = '0:00:00';
     stepCount = 0;
     distance = 0.0;
     isFetching = false;
@@ -69,6 +74,56 @@ class TrackerProvider with ChangeNotifier {
 
     locationStream = null;
     trackerService.resetValues();
+    timer?.cancel();
+  }
+
+  Future<void> requestPlatformPermissions() async {
+    if (Platform.isAndroid) {
+      final isIgnoring =
+          await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+
+      if (isIgnoring == false) {
+        await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+      }
+    }
+  }
+
+  void startTimer() {
+    // cancel any existing timer to avoid duplicates
+    FlutterForegroundTask.updateService(
+      notificationTitle: "Pedometer Service",
+      notificationText:
+          "Steps: $stepCount, Distance: ${distance.toStringAsFixed(2)} km, Time: $displayTime",
+    );
+
+    timer?.cancel(); // ensure no duplicate timers
+    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      timeDuration++;
+      displayTime = formatDuration(timeDuration);
+      notifyListeners();
+      FlutterForegroundTask.updateService(
+        notificationTitle: "Pedometer Service",
+        notificationText:
+            "Steps: $stepCount, Distance: ${distance.toStringAsFixed(2)} km, Time: $displayTime",
+      );
+    });
+  }
+
+  String formatDuration(int seconds) {
+    int hours = seconds ~/ 3600;
+    int minutes = (seconds % 3600) ~/ 60;
+    int secs = seconds % 60;
+
+    return "${hours.toString()}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> stop() async {
+    final ServiceRequestResult result =
+        await FlutterForegroundTask.stopService();
+
+    if (result is ServiceRequestFailure) {
+      throw result.error;
+    }
   }
 
   void monitorSpeed() {
@@ -93,17 +148,7 @@ class TrackerProvider with ChangeNotifier {
     });
   }
 
-  void startForegroundService() {
-    if (Platform.isAndroid) {
-      FlutterForegroundTask.startService(
-        notificationTitle: "Step Tracking Active",
-        notificationText: "Your steps are being recorded in the background.",
-      );
-    }
-  }
-
   void startRealTimeTracking() {
-    startForegroundService();
     locationStream = trackerService.location.onLocationChanged;
 
     // start tracking movement
@@ -118,12 +163,14 @@ class TrackerProvider with ChangeNotifier {
   }
 
   void pauseTracking() {
+    timer?.cancel();
     trackerService.accelerometerSubscription?.cancel();
     trackerService.locationSubscription?.cancel();
   }
 
   void resumeTracking() {
     isTrackingPaused = false;
+    startTimer();
     startRealTimeTracking();
   }
 
@@ -322,5 +369,8 @@ class TrackerProvider with ChangeNotifier {
     trackerService.disposeService();
     FlutterForegroundTask.stopService();
     locationStream = null;
+
+    // stop the background service
+    stop();
   }
 }

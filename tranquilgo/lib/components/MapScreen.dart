@@ -51,12 +51,13 @@ class _MapScreenState extends State<MapScreen> {
             // to prevent multiple function call
             isSuggestedRouteCalled = true;
 
-            LatLng currentLatLng = LatLng(
-              provider.currentLocation!.latitude!,
-              provider.currentLocation!.longitude!,
-            );
-
-            provider.suggestRoute(widget.targetSteps, currentLatLng);
+            Future.microtask(() {
+              final currentLatLng = LatLng(
+                provider.currentLocation!.latitude!,
+                provider.currentLocation!.longitude!,
+              );
+              provider.suggestRoute(widget.targetSteps, currentLatLng);
+            });
           }
           return Stack(
             children: [

@@ -25,10 +25,8 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   final ImagePicker picker = ImagePicker();
   XFile? capturedImage;
 
-  int timeDuration = 0; // duration in seconds
-  String displayTime = '0:00:00';
+  // int timeDuration = 0; // duration in seconds
   Timer? locationTimer;
-  Timer? timer;
 
   String buttonState = 'start';
   bool isFinish = false;
@@ -49,6 +47,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
 
     final trackerProvider =
         Provider.of<TrackerProvider>(context, listen: false);
+    trackerProvider.requestPlatformPermissions();
     trackerProvider.resetValues(userId);
     trackerProvider.pauseTracking();
 
@@ -88,16 +87,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
           showMap = true;
         });
       }
-    });
-  }
-
-  void startTimer() {
-    timer?.cancel(); // ensure no duplicate timers
-    timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        timeDuration++;
-        displayTime = formatDuration(timeDuration);
-      });
     });
   }
 
@@ -166,7 +155,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
             context: context,
             type: "back",
             onCancel: () {
-              timer?.cancel();
               trackerProvider.resetValues(userId);
               trackerProvider.pauseTracking();
               trackerProvider.disposeService();
@@ -210,7 +198,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                     context: context,
                     type: "back",
                     onCancel: () {
-                      timer?.cancel;
                       trackerProvider.resetValues(userId);
                       trackerProvider.pauseTracking();
                       trackerProvider.disposeService();
@@ -349,7 +336,8 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                                   "Distance covered",
                                   trackerProvider.distance.toStringAsFixed(3),
                                   "large"),
-                              buildMetricsCard("Time", displayTime, "large"),
+                              buildMetricsCard(
+                                  "Time", trackerProvider.displayTime, "large"),
                               Container(
                                 padding: const EdgeInsets.all(2),
                                 child: ElevatedButton(
@@ -416,7 +404,8 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                           children: [
                             buildMetricsCard("Steps",
                                 "${trackerProvider.stepCount}", "small"),
-                            buildMetricsCard("Time", displayTime, "small"),
+                            buildMetricsCard(
+                                "Time", trackerProvider.displayTime, "small"),
                             buildMetricsCard(
                                 "Distance covered",
                                 trackerProvider.distance.toStringAsFixed(2),
@@ -597,8 +586,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
       buttonState: buttonState,
       onStart: () {
         if (trackerProvider.targetSteps != 0) {
-          timeDuration = 0;
-          startTimer();
+          trackerProvider.startTimer();
           trackerProvider.startRealTimeTracking();
           trackerProvider.monitorSpeed(); //  speed monitoring
           trackerProvider.isStarted = true;
@@ -608,26 +596,24 @@ class _WalkingTrackerState extends State<WalkingTracker> {
         }
       },
       onPause: () {
-        timer?.cancel();
         trackerProvider.pauseTracking();
         setState(() {
           buttonState = 'resume';
         });
       },
       onResume: () {
-        startTimer();
         trackerProvider.resumeTracking();
         setState(() {
           buttonState = 'pause';
         });
       },
       onFinish: () {
-        timer?.cancel();
         trackerProvider.pauseTracking();
         removeOverlay();
         setState(() {
           isFinish = true;
         });
+        trackerProvider.disposeService();
       },
       onSwitchMap: () {
         setState(() {
@@ -638,7 +624,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
       capturedImages: capturedImages,
       steps: trackerProvider.stepCount,
       distance: trackerProvider.distance,
-      timeDuration: timeDuration,
+      timeDuration: trackerProvider.timeDuration,
     );
   }
 
@@ -750,14 +736,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   void removeOverlay() {
     overlayEntryRoute?.remove();
     overlayEntryRoute = null;
-  }
-
-  String formatDuration(int seconds) {
-    int hours = seconds ~/ 3600;
-    int minutes = (seconds % 3600) ~/ 60;
-    int secs = seconds % 60;
-
-    return "${hours.toString()}:${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}";
   }
 
   void showTopSnackBar(BuildContext context) {
