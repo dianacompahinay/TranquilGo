@@ -92,7 +92,7 @@ class _MainAppState extends State<MainApp> {
       isFirstTime = prefs.getBool('isFirstTime') ?? true;
     });
 
-    // Mark as opened after first launch
+    // mark as opened after first launch
     if (isFirstTime) {
       prefs.setBool('isFirstTime', false);
     }

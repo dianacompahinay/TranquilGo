@@ -316,17 +316,6 @@ class TrackerProvider with ChangeNotifier {
                 newPoint, _suggestedDestination!);
           }
           notifyListeners();
-
-          // // check if the user is still following the suggested route
-          // if (!checkUserOnRoute(newPoint)) {
-          //   // fetch new route to the same suggested destination
-          //   if (_suggestedDestination != null) {
-          //     routePoints = await trackerService.fetchRoute(
-          //         newPoint, _suggestedDestination!);
-          //   }
-
-          //   notifyListeners();
-          // }
         }
       }
     }, onError: (e) {

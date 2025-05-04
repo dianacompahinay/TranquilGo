@@ -20,24 +20,6 @@ class _CalendarViewState extends State<CalendarView> {
   bool isConnectionFailed = false;
   bool isLoading = false;
 
-  // map to store moods associated with specific dates
-  // Map<DateTime, int> moodData = {
-  //   DateTime(2025, 1, 1): 'Happy',
-  //   DateTime(2025, 1, 2): 'Calm',
-  //   DateTime(2025, 1, 3): 'Calm',
-  //   DateTime(2025, 1, 4): 'Stressed',
-  //   DateTime(2025, 1, 5): 'Sad',
-  //   DateTime(2025, 1, 6): 'Happy',
-  //   DateTime(2025, 1, 7): 'Neutral',
-  //   DateTime(2025, 1, 8): 'Stressed',
-  //   DateTime(2025, 1, 9): 'Sad',
-  //   DateTime(2025, 1, 10): 'Calm',
-  //   DateTime(2025, 1, 11): 'Happy',
-  //   DateTime(2025, 1, 12): 'Sad',
-  //   DateTime(2025, 1, 31): 'Happy',
-  //   DateTime(2024, 12, 31): 'Happy',
-  // };
-
   @override
   void initState() {
     super.initState();
@@ -200,9 +182,8 @@ class _CalendarViewState extends State<CalendarView> {
     );
   }
 
-  // normalize DateTime to remove the time component (set time to 00:00:00)
   bool isSameDate(DateTime date1, DateTime date2) {
-    // normalize both dates to remove time component
+    // normalize DateTime to remove the time component (set time to 00:00:00)
     final normalizedDate1 = DateTime(date1.year, date1.month, date1.day);
     final normalizedDate2 = DateTime(date2.year, date2.month, date2.day);
     return normalizedDate1.isAtSameMomentAs(normalizedDate2);

@@ -490,14 +490,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                 buildStatCard(
                                   "assets/icons/footprint.png",
                                   "Total Steps",
-                                  // "27,500",
                                   formatNumber(activityProvider
                                       .activityStats["totalSteps"]),
                                 ),
                                 buildStatCard(
                                   'assets/icons/distance.png',
                                   "Total Distance",
-                                  // "100 km",
                                   "${activityProvider.activityStats["totalDistance"].toStringAsFixed(2)} km",
                                 ),
                               ],
@@ -509,14 +507,12 @@ class _StatisticsPageState extends State<StatisticsPage> {
                                 buildStatCard(
                                   "assets/icons/clock.png",
                                   "Total Duration",
-                                  // "4h 11m",
                                   formatTimeDuration(activityProvider
                                       .activityStats["totalDuration"]),
                                 ),
                                 buildStatCard(
                                   "assets/icons/person.png",
                                   "Self Efficacy",
-                                  // "High",
                                   activityProvider
                                       .activityStats["selfEfficacy"],
                                 ),
@@ -787,7 +783,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
   DateTime getMondayOfCurrentWeek() {
     DateTime now = DateTime.now();
-    int currentWeekday = now.weekday; // Monday = 1, Sunday = 7
+    int currentWeekday = now.weekday; // monday = 1, sunday = 7
     return now.subtract(Duration(days: currentWeekday - 1));
   }
 

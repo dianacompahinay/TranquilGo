@@ -25,9 +25,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   final ImagePicker picker = ImagePicker();
   XFile? capturedImage;
 
-  // int timeDuration = 0; // duration in seconds
   Timer? locationTimer;
-
   String buttonState = 'start';
   bool isFinish = false;
   bool showMap = true;
@@ -35,9 +33,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
   OverlayEntry? overlayEntryRoute;
   bool overlayShown = false; // prevent multiple overlays
   bool suggestRoute = false;
-
-  // bool showDirectionsButton = false;
-  // bool selectedDestination = false;
 
   bool isDialogShowing = false;
 
@@ -105,11 +100,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
     void handleSuggestRouteSelection(bool useSuggestedRoute) {
       setState(() {
         suggestRoute = useSuggestedRoute;
-
-        // if not suggesting route, show directions button
-        // if (!useSuggestedRoute) {
-        //   showDirectionsButton = true;
-        // }
       });
     }
 
@@ -162,7 +152,7 @@ class _WalkingTrackerState extends State<WalkingTracker> {
             },
           );
         }
-        return false; // Prevent default back action
+        return false; // prevent default back action
       },
       child: Scaffold(
         backgroundColor: Colors.white,
@@ -237,52 +227,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                         Positioned(
                           bottom: 18,
                           right: 18,
-                          // child: Column(
-                          //   children: [
-                          // // for directions button
-                          //     !selectedDestination && showDirectionsButton
-                          //         ? GestureDetector(
-                          //             onTap: () {
-                          //               SearchLocationDialog dialog =
-                          //                   SearchLocationDialog();
-
-                          //               dialog.show(
-                          //                 context: context,
-
-                          //                 // pass the selected destination in the param
-                          //                 onSave: () {
-                          //                   // set to true if a a destination is selected so setting own destination will only be allowed once
-                          //                   setState(() {
-                          //                     selectedDestination = true;
-                          //                   });
-                          //                 },
-                          //               );
-                          //             },
-                          //             child: Container(
-                          //               width: 42,
-                          //               height: 42,
-                          //               decoration: BoxDecoration(
-                          //                 color: const Color(0xFFFDE7B1),
-                          //                 borderRadius: BorderRadius.circular(10),
-                          //                 boxShadow: [
-                          //                   BoxShadow(
-                          //                     color:
-                          //                         Colors.grey.withOpacity(0.25),
-                          //                     blurRadius: 2,
-                          //                     offset: const Offset(0, 1.2),
-                          //                   ),
-                          //                 ],
-                          //               ),
-                          //               child: const Icon(
-                          //                 Icons.directions,
-                          //                 color: Color(0xFFBF9552),
-                          //                 size: 26,
-                          //               ),
-                          //             ),
-                          //           )
-                          //         : const SizedBox(),
-
-                          //     const SizedBox(height: 10),
 
                           // for camera button
                           child: GestureDetector(
@@ -292,7 +236,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                                   source: ImageSource.camera);
                               if (capturedImage != null) {
                                 capturedImages.add(capturedImage!);
-                                // ignore: use_build_context_synchronously
                                 showTopSnackBar(context);
                               }
                             },
@@ -317,8 +260,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                               ),
                             ),
                           ),
-                          //   ],
-                          // ),
                         ),
                       ],
                     ),
@@ -349,7 +290,6 @@ class _WalkingTrackerState extends State<WalkingTracker> {
                                       setState(() {
                                         capturedImages.add(capturedImage!);
                                       });
-                                      // ignore: use_build_context_synchronously
                                       showTopSnackBar(context);
                                     }
                                   },

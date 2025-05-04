@@ -89,7 +89,6 @@ class PrivacyPolicyPage extends StatelessWidget {
 
             const SizedBox(height: 10),
 
-            // Bold Heading with Description
             boldText("Sensitive Information"),
             text(
                 "We process the following categories of sensitive information with your consent:"),

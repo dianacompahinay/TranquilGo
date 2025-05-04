@@ -33,8 +33,6 @@ class MindfulnessProvider with ChangeNotifier {
   }
 
   Future<void> fetchWeeklyAverageMood(String userId) async {
-    // if (_isMoodFetched) return;
-
     _isLoading = true;
     notifyListeners();
 

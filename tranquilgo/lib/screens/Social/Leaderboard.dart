@@ -272,7 +272,7 @@ class TopUserImage extends StatelessWidget {
 
   Future<bool> doesAssetExist(String assetPath) async {
     try {
-      await rootBundle.load(assetPath); // Check if the asset can be loaded
+      await rootBundle.load(assetPath); // check if the asset can be loaded
       return true;
     } catch (e) {
       print("Asset not found: $assetPath");

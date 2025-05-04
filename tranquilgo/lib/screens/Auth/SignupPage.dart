@@ -133,8 +133,6 @@ class _SignupPageState extends State<SignupPage> {
                               padding:
                                   const EdgeInsets.only(left: 40, right: 40),
                               child: Row(
-                                // mainAxisAlignment: MainAxisAlignment.start,
-                                // crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Checkbox(
                                     value: isChecked,

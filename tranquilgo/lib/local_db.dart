@@ -285,7 +285,7 @@ class LocalDatabase {
           'average': selectedMood,
           'sum': selectedMood,
           'count': 1,
-          'synced': synced, // 1 = Synced, 0 = Not Synced
+          'synced': synced, // 1 = synced, 0 = not synced
         },
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
@@ -555,11 +555,11 @@ class LocalDatabase {
   }
 
   static Future<bool> needsJournalSync(String userId) async {
-    if (!await isOnline()) return false; // No need to sync if offline
+    if (!await isOnline()) return false; // no need to sync if offline
 
     final db = await database;
 
-    // Get local journal count
+    // get local journal count
     List<Map<String, dynamic>> localResult = await db.rawQuery(
       "SELECT COUNT(*) as count FROM journal_entries WHERE userId = ?",
       [userId],
@@ -673,7 +673,7 @@ class LocalDatabase {
       String localPath = await getLocalImagePath(filename);
 
       if (await File(localPath).exists()) {
-        localPaths.add(localPath); // Image already saved
+        localPaths.add(localPath); // image already saved
       } else {
         try {
           localPaths.add(await downloadImage(url, localPath));
@@ -696,7 +696,7 @@ class LocalDatabase {
     await response.pipe(sink);
     await sink.close();
 
-    return savePath; // Return saved file path
+    return savePath; // return saved file path
   }
 
   static Future<String> getLocalImagePath(String filename) async {
@@ -804,7 +804,7 @@ class LocalDatabase {
   }
 
   static Future<bool> needsLogSync(String userId) async {
-    if (!await isOnline()) return false; // No need to sync if offline
+    if (!await isOnline()) return false; // no need to sync if offline
 
     final db = await database;
 
@@ -835,7 +835,7 @@ class LocalDatabase {
     final db = await LocalDatabase.database;
     FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-    // Fetch all locally stored log IDs
+    // fetch all locally stored log IDs
     List<Map<String, dynamic>> localLogs = await db.query(
       "gratitude_logs",
       columns: ["id"],
@@ -846,7 +846,7 @@ class LocalDatabase {
     Set<String> localLogIds =
         localLogs.map((log) => log["id"].toString()).toSet();
 
-    // Fetch all Firestore logs
+    // fetch all Firestore logs
     QuerySnapshot firestoreLogs = await firestore
         .collection("mindfulness")
         .doc(userId)
@@ -865,7 +865,7 @@ class LocalDatabase {
           "timestamp":
               (logData["timestamp"] as Timestamp).toDate().toIso8601String(),
           "content": logData["content"] ?? "",
-          "synced": 1, // Mark as synced
+          "synced": 1, // mark as synced
         });
       }
     }

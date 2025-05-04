@@ -309,7 +309,7 @@ class ActivityProvider with ChangeNotifier {
 
   DateTime getMondayOfCurrentWeek() {
     DateTime now = DateTime.now();
-    int currentWeekday = now.weekday; // Monday = 1, Sunday = 7
+    int currentWeekday = now.weekday; // monday = 1, sunday = 7
     return now.subtract(Duration(days: currentWeekday - 1));
   }
 

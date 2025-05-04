@@ -7,7 +7,6 @@ class MoodRecord extends StatefulWidget {
   const MoodRecord({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _MoodRecordState createState() => _MoodRecordState();
 }
 
@@ -218,7 +217,7 @@ class _MoodRecordState extends State<MoodRecord> {
                 ],
               ),
               const SizedBox(height: 20),
-              // Content Area
+              // content Area
               SizedBox(
                 child: currentIndex == 0
                     ? const GraphView() // display Graph

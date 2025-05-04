@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:google_places_flutter/google_places_flutter.dart';
-// import 'package:google_places_flutter/model/prediction.dart';
-
 import 'package:provider/provider.dart';
 import 'package:my_app/providers/TrackerProvider.dart';
 

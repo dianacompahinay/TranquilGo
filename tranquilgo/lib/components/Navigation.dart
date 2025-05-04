@@ -63,7 +63,7 @@ class _DashboardWithNavigationState extends State<DashboardWithNavigation>
     pages = [
       const Dashboard(),
       const Mindfulness(),
-      SocialPage(key: socialPageKey), // Assign the key inside initState
+      SocialPage(key: socialPageKey), // assign the key inside initState
       const StatisticsPage(),
     ];
 

@@ -392,7 +392,7 @@ class _ActivityFormState extends State<ActivityForm> {
                                               top: 5,
                                               child: GestureDetector(
                                                 onTap: () => removeImage(
-                                                    i), // Remove image at index
+                                                    i), // remove image at index
                                                 child: Container(
                                                   width: 20,
                                                   height: 20,
@@ -412,7 +412,6 @@ class _ActivityFormState extends State<ActivityForm> {
                                           ],
                                         ),
                                       ),
-                                    // const SizedBox(width: 12),
                                     GestureDetector(
                                       onTap: pickImage,
                                       child: Container(

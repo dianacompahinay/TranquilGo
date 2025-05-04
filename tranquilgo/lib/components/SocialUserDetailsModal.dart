@@ -121,32 +121,6 @@ class UserDetailsModal {
                     children: [
                       Row(
                         children: [
-                          // IconButton(
-                          //   constraints: const BoxConstraints(),
-                          //   icon: const Icon(
-                          //     Icons.email_outlined,
-                          //     color: Color(0xFF8A8A8A),
-                          //     size: 28,
-                          //   ),
-                          //   onPressed: () {
-                          //     MessageUserModal(user["userId"], user["username"])
-                          //         .show(context);
-                          //   },
-                          // ),
-                          // const SizedBox(width: 5),
-                          // IconButton(
-                          //   constraints: const BoxConstraints(),
-                          //   icon: const Icon(
-                          //     Icons.person_remove_outlined,
-                          //     color: Color(0xFF8A8A8A),
-                          //     size: 30,
-                          //   ),
-                          //   onPressed: () {
-                          //     confirmationToUnfriend(
-                          //         context, user["userId"], user["username"]);
-                          //   },
-                          // ),
-
                           GestureDetector(
                             onTap: () {
                               MessageUserModal(user["userId"], user["username"])
@@ -206,7 +180,6 @@ class UserDetailsModal {
                   ),
                 ],
               ),
-
               const SizedBox(height: 26),
               buildSectionTitle("Most Recent Activity"),
               buildActivityRow(
@@ -217,7 +190,6 @@ class UserDetailsModal {
                 "Mood Rating",
                 "${user["mood"]}",
               ),
-              // const Divider(thickness: 0.7, height: 60),
               const SizedBox(height: 30),
               buildSectionTitle("This Week's Progress"),
               buildActivityRow(
